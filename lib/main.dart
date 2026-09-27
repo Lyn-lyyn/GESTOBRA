@@ -1,6 +1,10 @@
-import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
+import 'dart:convert';
+
+// IMPORTA TUS ARCHIVOS (Asegúrate de que las rutas sean correctas)
+import 'config/theme/app_theme.dart';
+import 'ui/screens/auth/login_screen.dart';
 
 void main() {
   runApp(const MiApp());
@@ -12,24 +16,18 @@ class MiApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      home: Scaffold(
-        appBar: AppBar(
-          title: const Text('Prueba de Conexión GestObra'),
-        ),
-        body: Center(
-          child: ElevatedButton(
-            onPressed: probarConexion,
-            child: const Text('Probar Conexión con AlwaysData'),
-          ),
-        ),
-      ),
+      title: 'GestObra',
+      debugShowCheckedModeBanner: false, // Quita la etiqueta de "debug"
+      theme: AppTheme.lightTheme, // <--- Aquí aplicas el tema global
+      home: const LoginScreen(),  // <--- Aquí inicias en el Login
     );
   }
 }
 
-// Función para probar la conexión HTTP
+// ============================================================
+// FUNCIÓN DE PRUEBA (Puedes dejarla aquí temporalmente o borrarla)
+// ============================================================
 Future<void> probarConexion() async {
-  // Apunta al script de prueba
   final url = Uri.parse('https://gestobra.alwaysdata.net/test_conexion.php');
 
   try {
