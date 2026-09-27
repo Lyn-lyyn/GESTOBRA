@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
+import 'dart:ui';
 import '../../../config/theme/app_colors.dart';
 import '../../widgets/custom_textfield.dart';
 import '../dashboard/main_scaffold.dart';
+import 'register_screen.dart';
+import 'forgot_password_screen.dart';
 //ESTE ES EL LOGIN DE LA APP
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -37,8 +40,24 @@ class _LoginScreenState extends State<LoginScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.grisfondo,
-      body: SafeArea(
-        child: _isDesktop(context)
+      body: Stack(
+        children: [
+          Positioned.fill(
+            child: ImageFiltered(
+              imageFilter: ImageFilter.blur(sigmaX: 4, sigmaY: 4),
+              child: Image.asset(
+                'assets/images/login_background.png',
+                fit: BoxFit.cover,
+              ),
+            ),
+          ),
+          Positioned.fill(
+            child: Container(
+              color: Colors.black.withValues(alpha: 0.38),
+            ),
+          ),
+          SafeArea(
+            child: _isDesktop(context)
             // ============ VISTA DE ESCRITORIO ============
             ? Row(
                 children: [
@@ -67,7 +86,10 @@ class _LoginScreenState extends State<LoginScreen> {
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       // Logo arriba del formulario
-                      const Icon(Icons.construction, size: 80, color: AppColors.naranja),
+                      Image.asset(
+                        'assets/images/logo_gestobra.png',
+                        height: 72,
+                      ),
                       const SizedBox(height: 16),
                       const Text(
                         'GestObra',
@@ -79,21 +101,12 @@ class _LoginScreenState extends State<LoginScreen> {
                       ),
                       const SizedBox(height: 40),
                       _buildLoginForm(),
-                      const SizedBox(height: 24),
-                      TextButton(
-                        onPressed: () {},
-                        child: const Text(
-                          'Registrate',
-                          style: TextStyle(
-                            color: AppColors.textoNegro,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ),
                     ],
                   ),
                 ),
               ),
+          ),
+        ],
       ),
     );
   }
@@ -103,16 +116,7 @@ class _LoginScreenState extends State<LoginScreen> {
   // ============================================================
   Widget _buildBrandingPanel() {
     return Container(
-      decoration: const BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [
-            AppColors.naranja,
-            Color(0xFFFF9800), // Naranja más claro
-          ],
-        ),
-      ),
+      decoration: const BoxDecoration(color: Colors.transparent),
       child: Padding(
         padding: const EdgeInsets.all(48.0),
         child: Column(
@@ -252,7 +256,14 @@ class _LoginScreenState extends State<LoginScreen> {
           Align(
             alignment: Alignment.centerRight,
             child: TextButton(
-              onPressed: () {},
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => const ForgotPasswordScreen(),
+                  ),
+                );
+              },
               child: const Text(
                 '¿Olvidaste tu contraseña?',
                 style: TextStyle(color: AppColors.naranja),
@@ -263,13 +274,41 @@ class _LoginScreenState extends State<LoginScreen> {
 
           ElevatedButton(
             onPressed: _isLoading ? null : _handleLogin,
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.naranja,
+              foregroundColor: AppColors.blanco,
+              padding: const EdgeInsets.symmetric(vertical: 16),
+            ),
             child: _isLoading
                 ? const SizedBox(
                     height: 20,
                     width: 20,
-                    child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
+                    child: CircularProgressIndicator(
+                      color: AppColors.blanco,
+                      strokeWidth: 2,
+                    ),
                   )
                 : const Text('INICIAR SESIÓN'),
+          ),
+
+          const SizedBox(height: 12),
+
+          TextButton(
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const RegisterScreen(),
+                ),
+              );
+            },
+            child: const Text(
+              '¿No tienes una cuenta? Regístrate',
+              style: TextStyle(
+                color: AppColors.naranja,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
           ),
         ],
       ),

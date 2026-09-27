@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 
@@ -17,9 +18,17 @@ class MiApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       title: 'GestObra',
-      debugShowCheckedModeBanner: false, // Quita la etiqueta de "debug"
-      theme: AppTheme.lightTheme, // <--- Aquí aplicas el tema global
-      home: const LoginScreen(),  // <--- Aquí inicias en el Login
+      debugShowCheckedModeBanner: false,
+      theme: AppTheme.lightTheme,
+      localizationsDelegates: const [
+        GlobalMaterialLocalizations.delegate,
+        GlobalWidgetsLocalizations.delegate,
+        GlobalCupertinoLocalizations.delegate,
+      ],
+      supportedLocales: const [
+        Locale('es', 'MX'),
+      ],
+      home: const LoginScreen(),
     );
   }
 }

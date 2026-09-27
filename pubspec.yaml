@@ -30,6 +30,8 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
+  flutter_localizations:
+    sdk: flutter  
   http: ^1.6.0
   shared_preferences: ^2.2.2  # Para guardar el token y recordar sesión
   google_fonts: ^6.1.0        # Opcional, para la tipografía del diseño
