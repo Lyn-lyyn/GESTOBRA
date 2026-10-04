@@ -193,13 +193,23 @@ class _BitacoraSectionState extends State<BitacoraSection> {
               }).toList(),
             ),
           ],
-          if (bitacora['material'].toString().isNotEmpty) ...[
+          if ((bitacora['materiales'] as List).isNotEmpty) ...[
             const SizedBox(height: 12),
-            _buildInfoRow(
-              Icons.inventory_2_outlined,
-              'Material utilizado',
-              '${bitacora['material']} - ${bitacora['cantidad_material']} unidades',
+            const Text(
+              'Materiales utilizados:',
+              style: TextStyle(
+                fontWeight: FontWeight.bold,
+                color: AppColors.textoNegro,
+              ),
             ),
+            const SizedBox(height: 6),
+            ...(bitacora['materiales'] as List).map<Widget>((material) {
+              return _buildInfoRow(
+                Icons.inventory_2_outlined,
+                material['material'].toString(),
+                '${material['cantidad']} unidades',
+              );
+            }),
           ],
           if (bitacora['clima'].toString().isNotEmpty) ...[
             const SizedBox(height: 12),
@@ -298,8 +308,12 @@ class _NuevaBitacoraDialogState extends State<_NuevaBitacoraDialog> {
   'Losa de entrepiso',
   'Muros de block',
 ];
-  String? _materialSeleccionado;
-  final _cantidadMaterialController = TextEditingController();
+  final List<Map<String, dynamic>> _materialesSeleccionados = [
+    {
+      'material': null,
+      'cantidad': TextEditingController(),
+    },
+  ];
 
   final List<String> _materialesDisponibles = [
     'Cemento',
@@ -414,35 +428,83 @@ Widget _buildActividadesField() {
         ),
       ),
       const SizedBox(height: 8),
-      Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Expanded(
-            flex: 3,
-            child: CustomDropdownField(
-              label: 'Material',
-              hint: 'Selecciona',
-              icon: Icons.inventory_2_outlined,
-              value: _materialSeleccionado,
-              items: _materialesDisponibles,
-              onChanged: (value) {
-                setState(() {
-                  _materialSeleccionado = value;
-                });
-              },
-            ),
+      ..._materialesSeleccionados.asMap().entries.map((entry) {
+        final index = entry.key;
+        final material = entry.value;
+        final cantidadController =
+            material['cantidad'] as TextEditingController;
+
+        return Padding(
+          padding: const EdgeInsets.only(bottom: 6),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              Expanded(
+                flex: 3,
+                child: CustomDropdownField(
+                  label: 'Material',
+                  showLabel: index == 0,
+                  hint: 'Selecciona',
+                  icon: Icons.inventory_2_outlined,
+                  value: material['material'] as String?,
+                  items: _materialesDisponibles,
+                  onChanged: (value) {
+                    setState(() {
+                      material['material'] = value;
+                    });
+                  },
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                flex: 1,
+                child: CustomTextField(
+                  label: 'Cantidad',
+                  showLabel: index == 0,
+                  hint: '0',
+                  icon: Icons.numbers,
+                  controller: cantidadController,
+                  keyboardType: TextInputType.number,
+                ),
+              ),
+              if (_materialesSeleccionados.length > 1) ...[
+                const SizedBox(width: 4),
+                IconButton(
+                  tooltip: 'Eliminar material',
+                  onPressed: () {
+                    setState(() {
+                      (material['cantidad'] as TextEditingController)
+                          .dispose();
+                      _materialesSeleccionados.removeAt(index);
+                    });
+                  },
+                  icon: const Icon(
+                    Icons.remove_circle_outline,
+                    color: AppColors.estadoRojo,
+                  ),
+                ),
+              ],
+            ],
           ),
-          const SizedBox(width: 8),
-          Expanded(
-            child: CustomTextField(
-              label: 'Cantidad',
-              hint: '0',
-              icon: Icons.numbers,
-              controller: _cantidadMaterialController,
-              keyboardType: TextInputType.number,
-            ),
+        );
+      }),
+      Align(
+        alignment: Alignment.centerLeft,
+        child: TextButton.icon(
+          onPressed: () {
+            setState(() {
+              _materialesSeleccionados.add({
+                'material': null,
+                'cantidad': TextEditingController(),
+              });
+            });
+          },
+          icon: const Icon(Icons.add, color: AppColors.naranja),
+          label: const Text(
+            'Agregar material',
+            style: TextStyle(color: AppColors.naranja),
           ),
-        ],
+        ),
       ),
     ],
   );
@@ -673,8 +735,13 @@ Widget _buildFirmaField() {
       'personal': _personalController.text.trim().isEmpty
           ? '0'
           : _personalController.text.trim(),
-      'material': _materialSeleccionado ?? '',
-      'cantidad_material': _cantidadMaterialController.text.trim(),    
+      'materiales': _materialesSeleccionados.map((material) {
+        return {
+          'material': material['material'] ?? '',
+          'cantidad':
+              (material['cantidad'] as TextEditingController).text.trim(),
+        };
+      }).where((material) => material['material'].toString().isNotEmpty).toList(),
       'actividades': List<String>.from(_actividadesSeleccionadas),
       'descripcion': _descripcionController.text.trim(),
       'observaciones': _observacionesController.text.trim(),
@@ -697,7 +764,9 @@ Widget _buildFirmaField() {
     _observacionesController.dispose();
     _incidenciasController.dispose();
     _temperaturaController.dispose();
-    _cantidadMaterialController.dispose();
+    for (final material in _materialesSeleccionados) {
+      (material['cantidad'] as TextEditingController).dispose();
+    }
     _horasRetrasoController.dispose();
     _causaRetrasoController.dispose();
     super.dispose();
@@ -783,6 +852,8 @@ Widget _buildFirmaField() {
                 icon: Icons.warning_amber_outlined,
                 controller: _incidenciasController,
               ),
+              const SizedBox(height: 14),
+
               _buildEvidenciasField(),
               const SizedBox(height: 14),
               _buildFirmaField(),

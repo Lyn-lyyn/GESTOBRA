@@ -11,6 +11,7 @@ class CustomTextField extends StatelessWidget {
   final bool readOnly;
   final Widget? suffixIcon;
   final VoidCallback? onTap;
+  final bool showLabel;
 
   const CustomTextField({
     super.key,
@@ -23,6 +24,7 @@ class CustomTextField extends StatelessWidget {
     this.readOnly = false,
     this.suffixIcon,
     this.onTap,
+    this.showLabel = true,
   });
 
   @override
@@ -30,15 +32,17 @@ class CustomTextField extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          label,
-          style: const TextStyle(
-            fontWeight: FontWeight.bold,
-            color: AppColors.textoNegro,
-            fontSize: 14,
+        if (showLabel) ...[
+          Text(
+            label,
+            style: const TextStyle(
+              fontWeight: FontWeight.bold,
+              color: AppColors.textoNegro,
+              fontSize: 14,
+            ),
           ),
-        ),
-        const SizedBox(height: 8),
+          const SizedBox(height: 8),
+        ],
         TextField(
             controller: controller,
             obscureText: isPassword,
