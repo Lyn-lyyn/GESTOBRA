@@ -1,8 +1,29 @@
+import 'package:flutter/services.dart' show rootBundle;
+import 'package:http/http.dart' as http;
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:printing/printing.dart';
 
 class ReportePdfService {
+  static Future<pw.MemoryImage?> _cargarImagenDesdeUrl(String url) async {
+    try {
+      final response = await http.get(Uri.parse(url));
+      if (response.statusCode == 200) {
+        return pw.MemoryImage(response.bodyBytes);
+      }
+    } catch (_) {}
+    return null;
+  }
+
+  static Future<pw.MemoryImage?> _cargarImagenAsset(String ruta) async {
+    try {
+      final data = await rootBundle.load(ruta);
+      return pw.MemoryImage(data.buffer.asUint8List());
+    } catch (_) {
+      return null;
+    }
+  }
+
   static Future<void> generarYCompartir({
     required Map<String, dynamic> obra,
     required Map<String, dynamic> datos,
@@ -10,6 +31,20 @@ class ReportePdfService {
     final doc = pw.Document();
 
     final estiloCuerpo = const pw.TextStyle(fontSize: 9);
+    final estiloSub = pw.TextStyle(
+      fontSize: 8,
+      color: PdfColors.grey700,
+    );
+
+    // ─── Cargar imágenes ───
+    final logo = await _cargarImagenAsset('assets/images/logo_gestobra.png');
+
+    final evidencias = (datos['evidencias'] as List?) ?? [];
+    final List<pw.MemoryImage?> imagenesEvidencias = [];
+    for (final ev in evidencias) {
+      final url = ev is Map ? ev['url'] as String : ev as String;
+      imagenesEvidencias.add(await _cargarImagenDesdeUrl(url));
+    }
 
     doc.addPage(
       pw.MultiPage(
@@ -19,24 +54,28 @@ class ReportePdfService {
           // ─── ENCABEZADO ───
           pw.Row(
             mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+            crossAxisAlignment: pw.CrossAxisAlignment.start,
             children: [
               pw.Row(
                 children: [
-                  pw.Container(
-                    padding: const pw.EdgeInsets.all(4),
-                    decoration: pw.BoxDecoration(
-                      color: PdfColor.fromHex('#F57C00'),
-                      borderRadius: pw.BorderRadius.circular(4),
-                    ),
-                    child: pw.Text(
-                      'G',
-                      style: pw.TextStyle(
-                        color: PdfColors.white,
-                        fontWeight: pw.FontWeight.bold,
-                        fontSize: 12,
+                  if (logo != null)
+                    pw.Image(logo, height: 24)
+                  else
+                    pw.Container(
+                      padding: const pw.EdgeInsets.all(4),
+                      decoration: pw.BoxDecoration(
+                        color: PdfColor.fromHex('#F57C00'),
+                        borderRadius: pw.BorderRadius.circular(4),
+                      ),
+                      child: pw.Text(
+                        'G',
+                        style: pw.TextStyle(
+                          color: PdfColors.white,
+                          fontWeight: pw.FontWeight.bold,
+                          fontSize: 12,
+                        ),
                       ),
                     ),
-                  ),
                   pw.SizedBox(width: 6),
                   pw.Text(
                     'GestObra',
@@ -59,14 +98,10 @@ class ReportePdfService {
                       color: PdfColor.fromHex('#212121'),
                     ),
                   ),
-                  pw.Text(
-                    'Periodo: ${datos['periodo']}',
-                    style: const pw.TextStyle(fontSize: 8),
-                  ),
-                  pw.Text(
-                    'Generado el: ${datos['fechaGeneracion']}',
-                    style: const pw.TextStyle(fontSize: 8),
-                  ),
+                  pw.Text('Periodo: ${datos['periodo']}',
+                      style: const pw.TextStyle(fontSize: 8)),
+                  pw.Text('Generado el: ${datos['fechaGeneracion']}',
+                      style: const pw.TextStyle(fontSize: 8)),
                 ],
               ),
             ],
@@ -109,11 +144,13 @@ class ReportePdfService {
           pw.SizedBox(height: 6),
           pw.Row(
             children: [
-              _cuadro('Avance inicial', '${datos['avanceInicial']}%'),
+              _cuadro('Preliminares', '${datos['avancePreliminares']}%'),
               pw.SizedBox(width: 8),
-              _cuadro('Cimentación', '${datos['avancePlan']}%'),
+              _cuadro('Cimentación', '${datos['avanceCimentacion']}%'),
               pw.SizedBox(width: 8),
-              _cuadro('Estructura', '${datos['desviacion']}%'),
+              _cuadro('Estructura', '${datos['avanceEstructura']}%'),
+              pw.SizedBox(width: 8),
+              _cuadro('Albañilería', '${datos['avanceAlbanileria']}%'),
             ],
           ),
           pw.SizedBox(height: 14),
@@ -142,73 +179,133 @@ class ReportePdfService {
           ),
           pw.SizedBox(height: 14),
 
-          // ─── 3. MATERIALES ───
+          // ─── 3. MATERIALES (2 columnas: Material y Cantidad) ───
           _seccion('3. Resumen de Materiales Utilizados en el Periodo'),
           pw.SizedBox(height: 6),
-          pw.Column(
-            crossAxisAlignment: pw.CrossAxisAlignment.start,
-            children: (datos['materiales'] as List).map<pw.Widget>((m) {
-              return pw.Padding(
-                padding: const pw.EdgeInsets.symmetric(vertical: 2),
-                child: pw.Row(
+          pw.TableHelper.fromTextArray(
+            headers: ['Material', 'Cantidad'],
+            data: (datos['materiales'] as List).map<List<String>>((m) {
+              return [
+                m['material'].toString(),
+                '${m['cantidad']} ${m['unidad']}',
+              ];
+            }).toList(),
+            headerStyle: pw.TextStyle(
+              fontSize: 9,
+              fontWeight: pw.FontWeight.bold,
+              color: PdfColors.white,
+            ),
+            headerDecoration:
+                pw.BoxDecoration(color: PdfColor.fromHex('#1A1F36')),
+            cellStyle: const pw.TextStyle(fontSize: 8),
+            columnWidths: {
+              0: const pw.FlexColumnWidth(6),  // Material
+              1: const pw.FlexColumnWidth(3),  // Cantidad + unidad
+            },
+            cellAlignments: {
+              0: pw.Alignment.centerLeft,
+              1: pw.Alignment.centerRight,
+            },
+          ),
+          pw.SizedBox(height: 14),
+
+          // ─── 4. INCIDENCIAS ───
+          _seccion('4. Incidencias / Paros Registrados en el Periodo'),
+          pw.SizedBox(height: 6),
+          (datos['incidencias'] as List).isEmpty
+              ? pw.Text('Sin incidencias ni paros registrados.',
+                  style: estiloCuerpo)
+              : pw.Column(
+                  crossAxisAlignment: pw.CrossAxisAlignment.start,
+                  children:
+                      (datos['incidencias'] as List).map<pw.Widget>((i) {
+                    return pw.Padding(
+                      padding: const pw.EdgeInsets.only(bottom: 6, top: 2),
+                      child: pw.Column(
+                        crossAxisAlignment: pw.CrossAxisAlignment.start,
+                        children: [
+                          pw.Text(
+                            '${i['tipo']} - ${i['descripcion']}',
+                            style: pw.TextStyle(
+                              fontSize: 9,
+                              fontWeight: pw.FontWeight.bold,
+                              color: PdfColor.fromHex('#212121'),
+                            ),
+                          ),
+                          pw.SizedBox(height: 1),
+                          pw.Text(
+                            'Estado: ${i['estado']}     Fecha: ${i['fecha']}',
+                            style: estiloSub,
+                          ),
+                        ],
+                      ),
+                    );
+                  }).toList(),
+                ),
+          pw.SizedBox(height: 20),
+
+          // ─── 5. EVIDENCIAS ───
+          _seccion('5. Evidencias Gráficas Representativas'),
+          pw.SizedBox(height: 8),
+          pw.Wrap(
+            spacing: 6,
+            runSpacing: 6,
+            children: List.generate(evidencias.length, (index) {
+              final img = imagenesEvidencias[index];
+              final ev = evidencias[index];
+              final titulo = ev is Map ? (ev['titulo'] ?? '') : '';
+
+              return pw.SizedBox(
+                width: 110,
+                child: pw.Column(
+                  crossAxisAlignment: pw.CrossAxisAlignment.stretch,
                   children: [
-                    pw.Expanded(
-                      child: pw.Text(m['material'].toString(),
-                          style: estiloCuerpo),
-                    ),
-                    pw.Text(
-                      '${m['cantidad']} ${m['unidad']}',
-                      style: pw.TextStyle(
-                        fontSize: 9,
-                        fontWeight: pw.FontWeight.bold,
-                        color: PdfColor.fromHex('#F57C00'),
+                    if (img != null)
+                      pw.Image(
+                        img,
+                        height: 75,
+                        fit: pw.BoxFit.cover,
+                      )
+                    else
+                      pw.Container(
+                        height: 75,
+                        color: PdfColors.grey300,
+                        alignment: pw.Alignment.center,
+                        child: pw.Text('Sin imagen',
+                            style: const pw.TextStyle(fontSize: 7)),
+                      ),
+                    pw.Container(
+                      padding: const pw.EdgeInsets.all(2),
+                      color: PdfColor.fromHex('#1A1F36'),
+                      child: pw.Text(
+                        titulo,
+                        textAlign: pw.TextAlign.center,
+                        style: const pw.TextStyle(
+                            color: PdfColors.white, fontSize: 7),
                       ),
                     ),
                   ],
                 ),
               );
-            }).toList(),
+            }),
           ),
-          pw.SizedBox(height: 14),
 
-          // ─── 4. INCIDENCIAS / PAROS ───
-          _seccion('4. Incidencias / Paros Registrados en el Periodo'),
-          pw.SizedBox(height: 6),
-          (datos['incidencias'] as List).isEmpty
-              ? pw.Text('Sin incidencias ni paros registrados.', style: estiloCuerpo)
-              : pw.Column(
-                  crossAxisAlignment: pw.CrossAxisAlignment.start,
-                  children: (datos['incidencias'] as List).map<pw.Widget>((i) {
-                    return pw.Padding(
-                      padding: const pw.EdgeInsets.symmetric(vertical: 2),
-                      child: pw.Text(
-                        '• [${i['tipo']}] ${i['descripcion']} — ${i['estado']} (${i['fecha']})',
-                        style: estiloCuerpo,
-                      ),
-                    );
-                  }).toList(),
-                ),
-          pw.SizedBox(height: 14),
-
-          // ─── 5. EVIDENCIAS ───
-          _seccion('5. Evidencias Gráficas Representativas'),
-          pw.SizedBox(height: 6),
-          pw.Text(
-            '(Las imágenes se muestran en la versión digital de este reporte)',
-            style: estiloCuerpo,
-          ),
-          pw.SizedBox(height: 24),
+          // ─── ESPACIO GRANDE ANTES DE FIRMAS ───
+          pw.SizedBox(height: 120),
 
           // ─── FIRMAS ───
           pw.Row(
             mainAxisAlignment: pw.MainAxisAlignment.spaceAround,
             children: [
-              _firma('Ing. ${datos['residente']}', 'Residente de Obra / D.R.O.'),
+              _firma(datos['residente'], 'Residente de Obra / D.R.O.'),
               _firma(datos['cliente'], 'Cliente / Supervisión Externa'),
             ],
           ),
-          pw.SizedBox(height: 20),
+
+          pw.SizedBox(height: 40),
+
           pw.Divider(color: PdfColors.grey400),
+          pw.SizedBox(height: 6),
           pw.Center(
             child: pw.Text(
               'Generado por GestObra - ${datos['fechaGeneracion']}',
@@ -286,8 +383,8 @@ class ReportePdfService {
   static pw.Widget _firma(String nombre, String cargo) {
     return pw.Column(
       children: [
-        pw.Container(width: 160, height: 1, color: PdfColors.grey600),
-        pw.SizedBox(height: 4),
+        pw.Container(width: 180, height: 1, color: PdfColors.grey600),
+        pw.SizedBox(height: 14),
         pw.Text(
           nombre,
           style: pw.TextStyle(
@@ -296,6 +393,7 @@ class ReportePdfService {
             color: PdfColor.fromHex('#212121'),
           ),
         ),
+        pw.SizedBox(height: 2),
         pw.Text(cargo, style: const pw.TextStyle(fontSize: 8)),
       ],
     );

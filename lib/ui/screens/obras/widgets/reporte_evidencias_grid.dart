@@ -14,7 +14,7 @@ class ReporteEvidenciasGrid extends StatelessWidget {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppColors.gris.withValues(alpha: 0.3)),
+        border: Border.all(color: AppColors.gris, width: 1.2),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -30,13 +30,13 @@ class ReporteEvidenciasGrid extends StatelessWidget {
           const SizedBox(height: 12),
           LayoutBuilder(
             builder: (context, constraints) {
-              // Grid adaptativo: se calculan cuántas columnas caben
-              const double anchoMin = 200;
+              const double anchoMin = 130;
               const double gap = 8;
 
-              int cols = ((constraints.maxWidth + gap) / (anchoMin + gap)).floor();
+              int cols =
+                  ((constraints.maxWidth + gap) / (anchoMin + gap)).floor();
               if (cols < 1) cols = 1;
-              if (cols > 4) cols = 4;
+              if (cols > 5) cols = 5;
 
               return GridView.builder(
                 shrinkWrap: true,
@@ -53,48 +53,55 @@ class ReporteEvidenciasGrid extends StatelessWidget {
                   final url = ev is Map ? ev['url'] : ev;
                   final titulo = ev is Map ? (ev['titulo'] ?? '') : '';
 
-                  return Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      Expanded(
-                        child: ClipRRect(
-                          borderRadius: const BorderRadius.vertical(
-                            top: Radius.circular(8),
-                          ),
-                          child: Image.network(
-                            url,
-                            fit: BoxFit.cover,
-                            errorBuilder: (_, __, ___) => Container(
-                              color: AppColors.grisfondo,
-                              child: const Icon(
-                                Icons.broken_image,
-                                color: AppColors.gris,
+                  return Container(
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: AppColors.gris, width: 1.2),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        Expanded(
+                          child: ClipRRect(
+                            borderRadius: const BorderRadius.vertical(
+                              top: Radius.circular(6),
+                            ),
+                            child: Image.network(
+                              url,
+                              fit: BoxFit.cover,
+                              errorBuilder: (_, __, ___) => Container(
+                                color: AppColors.grisfondo,
+                                child: const Icon(
+                                  Icons.broken_image,
+                                  color: AppColors.gris,
+                                  size: 20,
+                                ),
                               ),
                             ),
                           ),
                         ),
-                      ),
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                          vertical: 4,
-                          horizontal: 6,
-                        ),
-                        decoration: const BoxDecoration(
-                          color: Color(0xFF1A1F36),
-                          borderRadius: BorderRadius.vertical(
-                            bottom: Radius.circular(8),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            vertical: 3,
+                            horizontal: 4,
+                          ),
+                          decoration: const BoxDecoration(
+                            color: Color(0xFF1A1F36),
+                            borderRadius: BorderRadius.vertical(
+                              bottom: Radius.circular(6),
+                            ),
+                          ),
+                          child: Text(
+                            titulo,
+                            textAlign: TextAlign.center,
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 9,
+                            ),
                           ),
                         ),
-                        child: Text(
-                          titulo,
-                          textAlign: TextAlign.center,
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 10,
-                          ),
-                        ),
-                      ),
-                    ],
+                      ],
+                    ),
                   );
                 },
               );

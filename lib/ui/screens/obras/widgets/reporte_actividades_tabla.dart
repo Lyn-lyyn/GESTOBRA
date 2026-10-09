@@ -14,7 +14,7 @@ class ReporteActividadesTabla extends StatelessWidget {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppColors.gris.withValues(alpha: 0.3)),
+        border: Border.all(color: AppColors.gris, width: 1.2),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -28,13 +28,12 @@ class ReporteActividadesTabla extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 12),
-
-          // Encabezado
           Container(
             padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 12),
             decoration: BoxDecoration(
               color: AppColors.grisfondo,
               borderRadius: BorderRadius.circular(6),
+              border: Border.all(color: AppColors.gris, width: 1.2),
             ),
             child: Row(
               children: const [
@@ -47,15 +46,14 @@ class ReporteActividadesTabla extends StatelessWidget {
               ],
             ),
           ),
-
-          // Filas — cada fila también con `Expanded(flex)` para repartir el ancho
           ...actividades.map<Widget>((a) {
             return Container(
               padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 12),
               decoration: BoxDecoration(
                 border: Border(
                   bottom: BorderSide(
-                    color: AppColors.gris.withValues(alpha: 0.15),
+                    color: AppColors.gris.withValues(alpha: 0.4),
+                    width: 1.2,
                   ),
                 ),
               ),
