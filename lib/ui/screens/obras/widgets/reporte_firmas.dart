@@ -8,16 +8,16 @@ class ReporteFirmas extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppColors.gris.withValues(alpha: 0.3)),
+        border: Border.all(color: AppColors.gris, width: 1.2),
       ),
       child: LayoutBuilder(
         builder: (context, constraints) {
-          const double anchoMin = 200;
-          const double gap = 24;
+          const double anchoMin = 220;
+          const double gap = 32;
 
           int cols = ((constraints.maxWidth + gap) / (anchoMin + gap)).floor();
           if (cols < 1) cols = 1;
@@ -40,6 +40,7 @@ class ReporteFirmas extends StatelessWidget {
           return Wrap(
             spacing: gap,
             runSpacing: gap,
+            alignment: WrapAlignment.center,
             children: [firma1, firma2],
           );
         },
@@ -52,8 +53,11 @@ class ReporteFirmas extends StatelessWidget {
       width: ancho,
       child: Column(
         children: [
-          Container(height: 1, color: AppColors.gris.withValues(alpha: 0.5)),
-          const SizedBox(height: 6),
+          Container(
+            height: 1.2,
+            color: AppColors.gris,
+          ),
+          const SizedBox(height: 16),
           Text(
             nombre,
             textAlign: TextAlign.center,
@@ -63,10 +67,14 @@ class ReporteFirmas extends StatelessWidget {
               color: AppColors.textoNegro,
             ),
           ),
+          const SizedBox(height: 4),
           Text(
             cargo,
             textAlign: TextAlign.center,
-            style: const TextStyle(fontSize: 10, color: AppColors.textoGris),
+            style: const TextStyle(
+              fontSize: 10,
+              color: AppColors.textoGris,
+            ),
           ),
         ],
       ),

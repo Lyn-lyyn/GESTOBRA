@@ -14,28 +14,31 @@ class ReporteHeader extends StatelessWidget {
       decoration: BoxDecoration(
         color: AppColors.blanco,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppColors.gris.withValues(alpha: 0.3)),
+        border: Border.all(color: AppColors.gris, width: 1.2),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // ─── Fila superior: logo IZQUIERDA + título DERECHA ───
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Container(
-                    padding: const EdgeInsets.all(6),
-                    decoration: BoxDecoration(
-                      color: AppColors.naranja,
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: const Icon(
-                      Icons.construction,
-                      color: Colors.white,
-                      size: 20,
+                  Image.asset(
+                    'assets/images/logo_gestobra.png',
+                    height: 32,
+                    errorBuilder: (context, error, stackTrace) => Container(
+                      padding: const EdgeInsets.all(6),
+                      decoration: BoxDecoration(
+                        color: AppColors.naranja,
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: const Icon(
+                        Icons.construction,
+                        color: Colors.white,
+                        size: 20,
+                      ),
                     ),
                   ),
                   const SizedBox(width: 8),
@@ -67,12 +70,14 @@ class ReporteHeader extends StatelessWidget {
                     Text(
                       'Periodo: ${datos['periodo']}',
                       textAlign: TextAlign.right,
-                      style: const TextStyle(fontSize: 10, color: AppColors.textoGris),
+                      style: const TextStyle(
+                          fontSize: 10, color: AppColors.textoGris),
                     ),
                     Text(
                       'Generado el: ${datos['fechaGeneracion']}',
                       textAlign: TextAlign.right,
-                      style: const TextStyle(fontSize: 10, color: AppColors.textoGris),
+                      style: const TextStyle(
+                          fontSize: 10, color: AppColors.textoGris),
                     ),
                   ],
                 ),
@@ -82,14 +87,13 @@ class ReporteHeader extends StatelessWidget {
           const SizedBox(height: 12),
           const Divider(height: 1),
           const SizedBox(height: 12),
-
-          // ─── Datos en 2 columnas ───
           LayoutBuilder(
             builder: (context, constraints) {
               const double anchoMin = 320;
               const double gap = 16;
 
-              int cols = ((constraints.maxWidth + gap) / (anchoMin + gap)).floor();
+              int cols =
+                  ((constraints.maxWidth + gap) / (anchoMin + gap)).floor();
               if (cols < 1) cols = 1;
               if (cols > 2) cols = 2;
 
@@ -100,7 +104,6 @@ class ReporteHeader extends StatelessWidget {
                 spacing: gap,
                 runSpacing: 8,
                 children: [
-                  // Columna IZQUIERDA: alineada a la izquierda
                   SizedBox(
                     width: anchoCol,
                     child: Column(
@@ -115,7 +118,6 @@ class ReporteHeader extends StatelessWidget {
                       ],
                     ),
                   ),
-                  // Columna DERECHA: alineada a la derecha
                   SizedBox(
                     width: anchoCol,
                     child: Column(
@@ -146,7 +148,8 @@ class ReporteHeader extends StatelessWidget {
                                 vertical: 2,
                               ),
                               decoration: BoxDecoration(
-                                color: AppColors.estadoVerde.withValues(alpha: 0.15),
+                                color: AppColors.estadoVerde
+                                    .withValues(alpha: 0.15),
                                 borderRadius: BorderRadius.circular(6),
                               ),
                               child: Text(

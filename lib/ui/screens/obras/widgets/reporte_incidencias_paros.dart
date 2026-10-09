@@ -14,7 +14,7 @@ class ReporteIncidenciasParos extends StatelessWidget {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppColors.gris.withValues(alpha: 0.3)),
+        border: Border.all(color: AppColors.gris, width: 1.2),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -42,11 +42,7 @@ class ReporteIncidenciasParos extends StatelessWidget {
                 decoration: BoxDecoration(
                   color: AppColors.grisfondo,
                   borderRadius: BorderRadius.circular(8),
-                  border: Border.all(
-                    color: resuelta
-                        ? AppColors.estadoVerde.withValues(alpha: 0.5)
-                        : AppColors.estadoAmarillo.withValues(alpha: 0.6),
-                  ),
+                  border: Border.all(color: AppColors.gris, width: 1.2),
                 ),
                 child: Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -62,20 +58,20 @@ class ReporteIncidenciasParos extends StatelessWidget {
                     ),
                     const SizedBox(width: 8),
                     Expanded(
-                      child: Wrap(
-                        crossAxisAlignment: WrapCrossAlignment.center,
-                        spacing: 4,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            '[${i['tipo']}] ${i['descripcion']}',
+                            '${i['tipo']} - ${i['descripcion']}',
                             style: const TextStyle(
                               fontSize: 11,
                               fontWeight: FontWeight.bold,
                               color: AppColors.textoNegro,
                             ),
                           ),
+                          const SizedBox(height: 2),
                           Text(
-                            '• Fecha: ${i['fecha'] ?? '—'} • Estado: ${i['estado'] ?? '—'}',
+                            'Estado: ${i['estado'] ?? '—'}     Fecha: ${i['fecha'] ?? '—'}',
                             style: const TextStyle(
                               fontSize: 10,
                               color: AppColors.textoGris,

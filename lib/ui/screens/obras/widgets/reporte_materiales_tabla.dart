@@ -14,7 +14,7 @@ class ReporteMaterialesTabla extends StatelessWidget {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppColors.gris.withValues(alpha: 0.3)),
+        border: Border.all(color: AppColors.gris, width: 1.2),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -30,11 +30,11 @@ class ReporteMaterialesTabla extends StatelessWidget {
           const SizedBox(height: 12),
           LayoutBuilder(
             builder: (context, constraints) {
-              // Ancho mínimo cómodo por tarjeta de material
               const double anchoMin = 260;
               const double gap = 8;
 
-              int cols = ((constraints.maxWidth + gap) / (anchoMin + gap)).floor();
+              int cols =
+                  ((constraints.maxWidth + gap) / (anchoMin + gap)).floor();
               if (cols < 1) cols = 1;
 
               final double anchoTarjeta =
@@ -54,9 +54,7 @@ class ReporteMaterialesTabla extends StatelessWidget {
                       decoration: BoxDecoration(
                         color: AppColors.grisfondo,
                         borderRadius: BorderRadius.circular(8),
-                        border: Border.all(
-                          color: AppColors.gris.withValues(alpha: 0.4),
-                        ),
+                        border: Border.all(color: AppColors.gris, width: 1.2),
                       ),
                       child: Row(
                         children: [
