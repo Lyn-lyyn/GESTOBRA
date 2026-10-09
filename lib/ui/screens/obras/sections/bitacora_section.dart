@@ -16,7 +16,33 @@ class BitacoraSection extends StatefulWidget {
 }
 
 class _BitacoraSectionState extends State<BitacoraSection> {
-  final List<Map<String, dynamic>> _bitacoras = [];
+  final List<Map<String, dynamic>> _bitacoras = [
+    {
+      'fecha': '22/09/2026',
+      'clima': 'Soleado',
+      'temperatura': '28 °C',
+      'personal': '8',
+      'materiales': [
+        {'material': 'Cemento', 'cantidad': '24 sacos'},
+        {'material': 'Varilla', 'cantidad': '180 kg'},
+        {'material': 'Grava', 'cantidad': '1.5 m³'},
+      ],
+      'actividades': ['Colado de zapatas y contratrabes'],
+      'fotografias': [
+        'assets/images/evidencia_armado_cimentacion.png',
+        'assets/images/evidencia_colado_zapatas.png',
+      ],
+      'descripcion':
+          'Se realizó el colado de zapatas y contratrabes de acuerdo con las especificaciones estructurales. Se tomaron cilindros de prueba para ensayo a compresión a los 7 y 28 días.',
+      'observaciones': 'Cimbra revisada y acero liberado antes del colado.',
+      'hubo_retraso': false,
+      'horas_retraso': '',
+      'causa_retraso': '',
+      'incidencias': '',
+      'evidencia_agregada': true,
+      'firma_agregada': true,
+    },
+  ];
 
   void _abrirNuevaBitacora() {
     showDialog(
@@ -121,6 +147,49 @@ class _BitacoraSectionState extends State<BitacoraSection> {
     );
   }
 
+  Widget _buildGaleriaBitacora(List fotos, {required bool mobileLayout}) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final spacing = 8.0;
+        final imageWidth = mobileLayout
+            ? (constraints.maxWidth - spacing) / 2
+            : constraints.maxWidth;
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'Evidencias fotográficas',
+              style: TextStyle(fontWeight: FontWeight.bold, color: AppColors.textoNegro),
+            ),
+            const SizedBox(height: 8),
+            Wrap(
+              spacing: spacing,
+              runSpacing: spacing,
+              children: fotos.map((foto) => SizedBox(
+                    width: imageWidth,
+                    child: AspectRatio(
+                      aspectRatio: 1.65,
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(8),
+                        child: Image.asset(
+                          foto.toString(),
+                          fit: BoxFit.cover,
+                          errorBuilder: (context, error, stackTrace) => Container(
+                            color: AppColors.grisfondo,
+                            alignment: Alignment.center,
+                            child: const Icon(Icons.broken_image_outlined, color: AppColors.gris),
+                          ),
+                        ),
+                      ),
+                    ),
+                  )).toList(),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
   Widget _buildBitacoraCard(Map<String, dynamic> bitacora) {
     return Container(
       width: double.infinity,
@@ -131,9 +200,13 @@ class _BitacoraSectionState extends State<BitacoraSection> {
         borderRadius: BorderRadius.circular(12),
         border: Border.all(color: AppColors.gris),
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final fotos = (bitacora['fotografias'] as List?) ?? const [];
+          final mostrarFotosALado = constraints.maxWidth >= 760 && fotos.isNotEmpty;
+          final contenido = Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
           Row(
             children: [
               const Icon(
@@ -193,13 +266,23 @@ class _BitacoraSectionState extends State<BitacoraSection> {
               }).toList(),
             ),
           ],
-          if (bitacora['material'].toString().isNotEmpty) ...[
+          if ((bitacora['materiales'] as List).isNotEmpty) ...[
             const SizedBox(height: 12),
-            _buildInfoRow(
-              Icons.inventory_2_outlined,
-              'Material utilizado',
-              '${bitacora['material']} - ${bitacora['cantidad_material']} unidades',
+            const Text(
+              'Materiales utilizados:',
+              style: TextStyle(
+                fontWeight: FontWeight.bold,
+                color: AppColors.textoNegro,
+              ),
             ),
+            const SizedBox(height: 6),
+            ...(bitacora['materiales'] as List).map<Widget>((material) {
+              return _buildInfoRow(
+                Icons.inventory_2_outlined,
+                material['material'].toString(),
+                '${material['cantidad']} unidades',
+              );
+            }),
           ],
           if (bitacora['clima'].toString().isNotEmpty) ...[
             const SizedBox(height: 12),
@@ -233,7 +316,34 @@ class _BitacoraSectionState extends State<BitacoraSection> {
               bitacora['incidencias'],
             ),
           ],
-        ],
+            ],
+          );
+          if (!mostrarFotosALado) {
+            if (fotos.isEmpty) return contenido;
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                contenido,
+                const SizedBox(height: 16),
+                _buildGaleriaBitacora(fotos, mobileLayout: true),
+              ],
+            );
+          }
+          final anchoGaleria = (constraints.maxWidth * 0.35)
+              .clamp(280.0, 380.0)
+              .toDouble();
+          return Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(child: contenido),
+              const SizedBox(width: 20),
+              SizedBox(
+                width: anchoGaleria,
+                child: _buildGaleriaBitacora(fotos, mobileLayout: false),
+              ),
+            ],
+          );
+        },
       ),
     );
   }
@@ -298,8 +408,12 @@ class _NuevaBitacoraDialogState extends State<_NuevaBitacoraDialog> {
   'Losa de entrepiso',
   'Muros de block',
 ];
-  String? _materialSeleccionado;
-  final _cantidadMaterialController = TextEditingController();
+  final List<Map<String, dynamic>> _materialesSeleccionados = [
+    {
+      'material': null,
+      'cantidad': TextEditingController(),
+    },
+  ];
 
   final List<String> _materialesDisponibles = [
     'Cemento',
@@ -414,35 +528,83 @@ Widget _buildActividadesField() {
         ),
       ),
       const SizedBox(height: 8),
-      Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Expanded(
-            flex: 3,
-            child: CustomDropdownField(
-              label: 'Material',
-              hint: 'Selecciona',
-              icon: Icons.inventory_2_outlined,
-              value: _materialSeleccionado,
-              items: _materialesDisponibles,
-              onChanged: (value) {
-                setState(() {
-                  _materialSeleccionado = value;
-                });
-              },
-            ),
+      ..._materialesSeleccionados.asMap().entries.map((entry) {
+        final index = entry.key;
+        final material = entry.value;
+        final cantidadController =
+            material['cantidad'] as TextEditingController;
+
+        return Padding(
+          padding: const EdgeInsets.only(bottom: 6),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              Expanded(
+                flex: 3,
+                child: CustomDropdownField(
+                  label: 'Material',
+                  showLabel: index == 0,
+                  hint: 'Selecciona',
+                  icon: Icons.inventory_2_outlined,
+                  value: material['material'] as String?,
+                  items: _materialesDisponibles,
+                  onChanged: (value) {
+                    setState(() {
+                      material['material'] = value;
+                    });
+                  },
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                flex: 1,
+                child: CustomTextField(
+                  label: 'Cantidad',
+                  showLabel: index == 0,
+                  hint: '0',
+                  icon: Icons.numbers,
+                  controller: cantidadController,
+                  keyboardType: TextInputType.number,
+                ),
+              ),
+              if (_materialesSeleccionados.length > 1) ...[
+                const SizedBox(width: 4),
+                IconButton(
+                  tooltip: 'Eliminar material',
+                  onPressed: () {
+                    setState(() {
+                      (material['cantidad'] as TextEditingController)
+                          .dispose();
+                      _materialesSeleccionados.removeAt(index);
+                    });
+                  },
+                  icon: const Icon(
+                    Icons.remove_circle_outline,
+                    color: AppColors.estadoRojo,
+                  ),
+                ),
+              ],
+            ],
           ),
-          const SizedBox(width: 8),
-          Expanded(
-            child: CustomTextField(
-              label: 'Cantidad',
-              hint: '0',
-              icon: Icons.numbers,
-              controller: _cantidadMaterialController,
-              keyboardType: TextInputType.number,
-            ),
+        );
+      }),
+      Align(
+        alignment: Alignment.centerLeft,
+        child: TextButton.icon(
+          onPressed: () {
+            setState(() {
+              _materialesSeleccionados.add({
+                'material': null,
+                'cantidad': TextEditingController(),
+              });
+            });
+          },
+          icon: const Icon(Icons.add, color: AppColors.naranja),
+          label: const Text(
+            'Agregar material',
+            style: TextStyle(color: AppColors.naranja),
           ),
-        ],
+        ),
       ),
     ],
   );
@@ -673,8 +835,13 @@ Widget _buildFirmaField() {
       'personal': _personalController.text.trim().isEmpty
           ? '0'
           : _personalController.text.trim(),
-      'material': _materialSeleccionado ?? '',
-      'cantidad_material': _cantidadMaterialController.text.trim(),    
+      'materiales': _materialesSeleccionados.map((material) {
+        return {
+          'material': material['material'] ?? '',
+          'cantidad':
+              (material['cantidad'] as TextEditingController).text.trim(),
+        };
+      }).where((material) => material['material'].toString().isNotEmpty).toList(),
       'actividades': List<String>.from(_actividadesSeleccionadas),
       'descripcion': _descripcionController.text.trim(),
       'observaciones': _observacionesController.text.trim(),
@@ -697,7 +864,9 @@ Widget _buildFirmaField() {
     _observacionesController.dispose();
     _incidenciasController.dispose();
     _temperaturaController.dispose();
-    _cantidadMaterialController.dispose();
+    for (final material in _materialesSeleccionados) {
+      (material['cantidad'] as TextEditingController).dispose();
+    }
     _horasRetrasoController.dispose();
     _causaRetrasoController.dispose();
     super.dispose();
@@ -783,6 +952,8 @@ Widget _buildFirmaField() {
                 icon: Icons.warning_amber_outlined,
                 controller: _incidenciasController,
               ),
+              const SizedBox(height: 14),
+
               _buildEvidenciasField(),
               const SizedBox(height: 14),
               _buildFirmaField(),

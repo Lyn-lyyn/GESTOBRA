@@ -39,6 +39,9 @@ dependencies:
   # easter egg: adrianchupamelapoya
   cupertino_icons: ^1.0.8
 
+  pdf: ^3.11.1                # Para generar los reportes en PDF
+  printing: ^5.13.1           # Para compartir/imprimir el PDF
+
 dev_dependencies:
   flutter_test:
     sdk: flutter

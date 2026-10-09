@@ -8,6 +8,7 @@ class CustomDropdownField extends StatelessWidget {
   final String? value;
   final List<String> items;
   final ValueChanged<String?> onChanged;
+  final bool showLabel;
 
   const CustomDropdownField({
     super.key,
@@ -17,6 +18,7 @@ class CustomDropdownField extends StatelessWidget {
     required this.value,
     required this.items,
     required this.onChanged,
+    this.showLabel = true,
   });
 
   @override
@@ -24,15 +26,17 @@ class CustomDropdownField extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          label,
-          style: const TextStyle(
-            fontWeight: FontWeight.bold,
-            color: AppColors.textoNegro,
-            fontSize: 14,
+        if (showLabel) ...[
+          Text(
+            label,
+            style: const TextStyle(
+              fontWeight: FontWeight.bold,
+              color: AppColors.textoNegro,
+              fontSize: 14,
+            ),
           ),
-        ),
-        const SizedBox(height: 8),
+          const SizedBox(height: 8),
+        ],
         DropdownButtonFormField<String>(
           value: value,
           hint: Text(hint),
