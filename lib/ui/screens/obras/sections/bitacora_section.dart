@@ -16,7 +16,33 @@ class BitacoraSection extends StatefulWidget {
 }
 
 class _BitacoraSectionState extends State<BitacoraSection> {
-  final List<Map<String, dynamic>> _bitacoras = [];
+  final List<Map<String, dynamic>> _bitacoras = [
+    {
+      'fecha': '22/09/2026',
+      'clima': 'Soleado',
+      'temperatura': '28 °C',
+      'personal': '8',
+      'materiales': [
+        {'material': 'Cemento', 'cantidad': '24 sacos'},
+        {'material': 'Varilla', 'cantidad': '180 kg'},
+        {'material': 'Grava', 'cantidad': '1.5 m³'},
+      ],
+      'actividades': ['Colado de zapatas y contratrabes'],
+      'fotografias': [
+        'assets/images/evidencia_armado_cimentacion.png',
+        'assets/images/evidencia_colado_zapatas.png',
+      ],
+      'descripcion':
+          'Se realizó el colado de zapatas y contratrabes de acuerdo con las especificaciones estructurales. Se tomaron cilindros de prueba para ensayo a compresión a los 7 y 28 días.',
+      'observaciones': 'Cimbra revisada y acero liberado antes del colado.',
+      'hubo_retraso': false,
+      'horas_retraso': '',
+      'causa_retraso': '',
+      'incidencias': '',
+      'evidencia_agregada': true,
+      'firma_agregada': true,
+    },
+  ];
 
   void _abrirNuevaBitacora() {
     showDialog(
@@ -121,6 +147,49 @@ class _BitacoraSectionState extends State<BitacoraSection> {
     );
   }
 
+  Widget _buildGaleriaBitacora(List fotos, {required bool mobileLayout}) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final spacing = 8.0;
+        final imageWidth = mobileLayout
+            ? (constraints.maxWidth - spacing) / 2
+            : constraints.maxWidth;
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'Evidencias fotográficas',
+              style: TextStyle(fontWeight: FontWeight.bold, color: AppColors.textoNegro),
+            ),
+            const SizedBox(height: 8),
+            Wrap(
+              spacing: spacing,
+              runSpacing: spacing,
+              children: fotos.map((foto) => SizedBox(
+                    width: imageWidth,
+                    child: AspectRatio(
+                      aspectRatio: 1.65,
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(8),
+                        child: Image.asset(
+                          foto.toString(),
+                          fit: BoxFit.cover,
+                          errorBuilder: (context, error, stackTrace) => Container(
+                            color: AppColors.grisfondo,
+                            alignment: Alignment.center,
+                            child: const Icon(Icons.broken_image_outlined, color: AppColors.gris),
+                          ),
+                        ),
+                      ),
+                    ),
+                  )).toList(),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
   Widget _buildBitacoraCard(Map<String, dynamic> bitacora) {
     return Container(
       width: double.infinity,
@@ -131,9 +200,13 @@ class _BitacoraSectionState extends State<BitacoraSection> {
         borderRadius: BorderRadius.circular(12),
         border: Border.all(color: AppColors.gris),
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final fotos = (bitacora['fotografias'] as List?) ?? const [];
+          final mostrarFotosALado = constraints.maxWidth >= 760 && fotos.isNotEmpty;
+          final contenido = Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
           Row(
             children: [
               const Icon(
@@ -243,7 +316,34 @@ class _BitacoraSectionState extends State<BitacoraSection> {
               bitacora['incidencias'],
             ),
           ],
-        ],
+            ],
+          );
+          if (!mostrarFotosALado) {
+            if (fotos.isEmpty) return contenido;
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                contenido,
+                const SizedBox(height: 16),
+                _buildGaleriaBitacora(fotos, mobileLayout: true),
+              ],
+            );
+          }
+          final anchoGaleria = (constraints.maxWidth * 0.35)
+              .clamp(280.0, 380.0)
+              .toDouble();
+          return Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(child: contenido),
+              const SizedBox(width: 20),
+              SizedBox(
+                width: anchoGaleria,
+                child: _buildGaleriaBitacora(fotos, mobileLayout: false),
+              ),
+            ],
+          );
+        },
       ),
     );
   }

@@ -658,27 +658,27 @@ Widget _buildActividadesSection() {
   }
 
   Widget _buildTabContent() {
-  if (_selectedTabIndex == 0) {
-    // ACTIVIDADES
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        _buildActionBar(),
-        const SizedBox(height: 16),
-        _buildFasesResumen(),
-        const SizedBox(height: 20),
-        _buildActividadesSection(),
-      ],
-    );
-  } else if (_selectedTabIndex == 1) {
-    return BitacoraSection(obra: widget.obra);
-  } else if (_selectedTabIndex == 2) {
-    return MaterialesSection(obra: widget.obra);
-  } else if (_selectedTabIndex == 3) {
-    return EvidenciasSection(obra: widget.obra);
-  } else if (_selectedTabIndex == 4) {
-    return ReportesSection(obra: widget.obra);
-  }
-  return const SizedBox.shrink();
+  return IndexedStack(
+    index: _selectedTabIndex,
+    children: [
+      Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _buildActionBar(),
+          const SizedBox(height: 16),
+          _buildFasesResumen(),
+          const SizedBox(height: 20),
+          _buildActividadesSection(),
+        ],
+      ),
+      BitacoraSection(obra: widget.obra),
+      MaterialesSection(obra: widget.obra),
+      EvidenciasSection(
+        obra: widget.obra,
+        fasesDisponibles: _fases,
+      ),
+      ReportesSection(obra: widget.obra),
+    ],
+  );
 }
 }
