@@ -3,8 +3,10 @@ import 'dart:ui';
 import '../../../config/theme/app_colors.dart';
 import '../../widgets/custom_textfield.dart';
 import '../dashboard/main_scaffold.dart';
+import '../admin/admin_main_scaffold.dart';
 import 'register_screen.dart';
 import 'forgot_password_screen.dart';
+import '../admin/admin_dashboard_screen.dart'; // Ajusta la ruta si es necesario
 //ESTE ES EL LOGIN DE LA APP
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -23,15 +25,42 @@ class _LoginScreenState extends State<LoginScreen> {
     return MediaQuery.of(context).size.width >= 900;
   }
 
-  void _handleLogin() async {
+   void _handleLogin() async {
+    final email = _emailController.text.trim();
+    final password = _passwordController.text.trim();
+
+    // Validación en duro (mientras no hay BD)
+    if (email.isEmpty || password.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Por favor ingresa tus credenciales')),
+      );
+      return;
+    }
+
     setState(() => _isLoading = true);
-    await Future.delayed(const Duration(seconds: 2));
+    await Future.delayed(const Duration(seconds: 1)); // Simulamos carga en red
+    if (!mounted) return;
     setState(() => _isLoading = false);
 
-    if (mounted) {
+    // ─── RUTEO SEGÚN CREDENCIALES ───
+    if (email == 'Admin' && password == '123456') {
+  Navigator.pushReplacement(
+    context,
+    MaterialPageRoute(builder: (context) => const AdminMainScaffold()), // <-- Apunta al nuevo scaffold
+  );
+} else if (email == 'tilin' && password == '123456') {
+      // Ruta de Empleado (Actual)
       Navigator.pushReplacement(
         context,
         MaterialPageRoute(builder: (context) => const MainScaffold()),
+      );
+    } else {
+      // Credenciales incorrectas
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Usuario o contraseña incorrectos'),
+          backgroundColor: AppColors.estadoRojo,
+        ),
       );
     }
   }
@@ -237,7 +266,7 @@ class _LoginScreenState extends State<LoginScreen> {
           const SizedBox(height: 24),
 
           CustomTextField(
-            label: 'Correo electrónico',
+            label: 'Usuario o Correo electrónico',
             hint: 'ejemplo@empresa.com',
             icon: Icons.email_outlined,
             controller: _emailController,
