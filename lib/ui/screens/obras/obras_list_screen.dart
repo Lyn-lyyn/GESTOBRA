@@ -13,7 +13,6 @@ class _ObrasListScreenState extends State<ObrasListScreen> {
   final TextEditingController _busquedaController = TextEditingController();
   String _filtro = 'Todas';
 
-  // ─── Datos mock de obras ───
   final List<Map<String, dynamic>> _obras = [
     {
       'codigo': 'OBRA-2026-042',
@@ -129,7 +128,6 @@ class _ObrasListScreenState extends State<ObrasListScreen> {
             return SingleChildScrollView(
               padding: EdgeInsets.all(pad),
               child: Center(
-                // Aumentamos el maxWidth para que use más pantalla (igual que Dashboard)
                 child: ConstrainedBox(
                   constraints: const BoxConstraints(maxWidth: 1400),
                   child: desktop
@@ -151,20 +149,18 @@ class _ObrasListScreenState extends State<ObrasListScreen> {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // ─── Columna IZQUIERDA (Panel de contexto) ───
         SizedBox(
-          width: 320, // Ancho fijo más compacto
+          width: 320,
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               _buildHeaderPanel(compact: false),
               const SizedBox(height: 16),
-              _buildStatsGrid2x2(), // <--- AQUÍ LA MAGIA: 2x2
+              _buildStatsGrid2x2(),
             ],
           ),
         ),
         const SizedBox(width: 16),
-        // ─── Columna DERECHA (Buscador + Lista) ───
         Expanded(
           child: _buildListPanel(),
         ),
@@ -181,7 +177,7 @@ class _ObrasListScreenState extends State<ObrasListScreen> {
       children: [
         _buildHeaderPanel(compact: true),
         const SizedBox(height: 16),
-        _buildStatsRowMobile(),
+        _buildStatsRowMobile(), // <--- Aquí está el cambio responsivo
         const SizedBox(height: 16),
         _buildListPanel(showHeader: true),
       ],
@@ -192,124 +188,39 @@ class _ObrasListScreenState extends State<ObrasListScreen> {
   // CABECERA (MIS OBRAS)
   // ============================================================
   Widget _buildHeaderPanel({required bool compact}) {
-    if (compact) {
-      return Container(
-        padding: const EdgeInsets.all(18),
-        decoration: BoxDecoration(
-          color: AppColors.grisfondo,
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: AppColors.gris, width: 1.2),
-        ),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Expanded(
-              child: Row(
-                children: [
-                  Image.asset(
-                    'assets/images/logo_gestobra.png',
-                    height: 48,
-                    errorBuilder: (context, error, stackTrace) {
-                      return const Icon(Icons.business, color: AppColors.naranja, size: 42);
-                    },
-                  ),
-                  const SizedBox(width: 14),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: const [
-                        Text(
-                          'MIS OBRAS',
-                          style: TextStyle(
-                            fontSize: 20,
-                            fontWeight: FontWeight.bold,
-                            color: AppColors.textoNegro,
-                            letterSpacing: 0.5,
-                          ),
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                        SizedBox(height: 3),
-                        Text(
-                          'Gestión y seguimiento de proyectos',
-                          style: TextStyle(fontSize: 12, color: AppColors.textoGris),
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(width: 8),
-            _buildCountBadge(),
-          ],
-        ),
-      );
-    }
-
-    // Escritorio
     return Container(
-      padding: const EdgeInsets.all(20),
+      padding: EdgeInsets.all(compact ? 18 : 24),
       decoration: BoxDecoration(
         color: AppColors.grisfondo,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(color: AppColors.gris, width: 1.2),
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Image.asset(
-                'assets/images/logo_gestobra.png',
-                height: 48,
-                errorBuilder: (context, error, stackTrace) {
-                  return const Icon(Icons.business, color: AppColors.naranja, size: 42);
-                },
-              ),
-              const SizedBox(width: 12),
-              const Expanded(
-                child: Text(
-                  'GestObra',
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppColors.textoNegro),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 18),
-          const Text(
-            'MIS OBRAS',
-            style: TextStyle(
-              fontSize: 22,
-              fontWeight: FontWeight.bold,
-              color: AppColors.textoNegro,
-              letterSpacing: 0.8,
-            ),
-          ),
-          const SizedBox(height: 6),
-          
-          Align(alignment: Alignment.centerLeft, child: _buildCountBadge()),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildCountBadge() {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-      decoration: BoxDecoration(
-        color: AppColors.blanco,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: AppColors.gris, width: 1.2),
-      ),
       child: Row(
-        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          const Icon(Icons.workspaces_outline, size: 16, color: AppColors.naranja),
-          const SizedBox(width: 6),
-          Text(
-            '${_obrasFiltradas.length} obras',
-            style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: AppColors.naranja),
+          Image.asset(
+            'assets/images/logo_gestobra.png',
+            height: compact ? 42 : 52,
+            errorBuilder: (context, error, stackTrace) {
+              return Icon(
+                Icons.business, 
+                color: AppColors.naranja, 
+                size: compact ? 42 : 52
+              );
+            },
+          ),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Text(
+              'Mis obras',
+              style: TextStyle(
+                fontSize: compact ? 22 : 26,
+                fontWeight: FontWeight.bold,
+                color: AppColors.textoNegro,
+                letterSpacing: 0.8,
+              ),
+              overflow: TextOverflow.ellipsis,
+            ),
           ),
         ],
       ),
@@ -342,29 +253,43 @@ class _ObrasListScreenState extends State<ObrasListScreen> {
   }
 
   Widget _buildStatsRowMobile() {
-    return Row(
+    // Usamos Wrap en lugar de Row para que no se desborde ni desaparezca nada en móvil
+    return Wrap(
+      spacing: 10,
+      runSpacing: 10,
       children: [
-        Expanded(child: _buildStatCard('Total Obras', '${_obras.length}', Icons.folder_shared, AppColors.naranja)),
-        const SizedBox(width: 10),
-        Expanded(child: _buildStatCard('En Proceso', '${_obras.where((o) => o['estadoKey'] == 'en_ejecucion').length}', Icons.engineering, AppColors.estadoVerde)),
-        const SizedBox(width: 10),
-        Expanded(child: _buildStatCard('Pendientes', '${_obras.where((o) => o['estadoKey'] == 'planificada' || o['estadoKey'] == 'suspendida').length}', Icons.schedule, AppColors.estadoAmarillo)),
+        SizedBox(
+          width: 150, // Ancho fijo para que quepan y salten de línea
+          child: _buildStatCard('Total Obras', '${_obras.length}', Icons.folder_shared, AppColors.naranja),
+        ),
+        SizedBox(
+          width: 150,
+          child: _buildStatCard('En Proceso', '${_obras.where((o) => o['estadoKey'] == 'en_ejecucion').length}', Icons.engineering, AppColors.estadoVerde),
+        ),
+        SizedBox(
+          width: 150,
+          child: _buildStatCard('Pendientes', '${_obras.where((o) => o['estadoKey'] == 'planificada' || o['estadoKey'] == 'suspendida').length}', Icons.schedule, AppColors.estadoAmarillo),
+        ),
+        SizedBox(
+          width: 150,
+          child: _buildStatCard('Finalizadas', '${_obras.where((o) => o['estadoKey'] == 'finalizada').length}', Icons.task_alt, AppColors.estadoVerde),
+        ),
       ],
     );
   }
 
   Widget _buildStatCard(String titulo, String valor, IconData icono, Color color) {
     return Container(
-      padding: const EdgeInsets.all(12),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
       decoration: BoxDecoration(
         color: AppColors.blanco,
         borderRadius: BorderRadius.circular(14),
         border: Border.all(color: AppColors.gris, width: 1.2),
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisSize: MainAxisSize.min,
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
         children: [
+          // Ícono en su cajita
           Container(
             padding: const EdgeInsets.all(8),
             decoration: BoxDecoration(
@@ -373,17 +298,33 @@ class _ObrasListScreenState extends State<ObrasListScreen> {
             ),
             child: Icon(icono, color: color, size: 18),
           ),
-          const SizedBox(height: 10),
+          const SizedBox(width: 10),
+          
+          // Número grande
           Text(
             valor,
-            style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: AppColors.textoNegro),
+            style: const TextStyle(
+              fontSize: 22,
+              fontWeight: FontWeight.bold,
+              color: AppColors.textoNegro,
+              height: 1.0,
+            ),
           ),
-          const SizedBox(height: 2),
-          Text(
-            titulo,
-            style: const TextStyle(fontSize: 11, color: AppColors.textoGris, fontWeight: FontWeight.w500),
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
+          const SizedBox(width: 6),
+          
+          // Texto (Título) pequeño
+          Expanded(
+            child: Text(
+              titulo,
+              style: const TextStyle(
+                fontSize: 11,
+                color: AppColors.textoGris,
+                fontWeight: FontWeight.w500,
+                height: 1.0,
+              ),
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+            ),
           ),
         ],
       ),
@@ -543,7 +484,7 @@ class _ObrasListScreenState extends State<ObrasListScreen> {
 }
 
 // ────────────────────────────────────────────────────────────
-// Tarjeta de obra (sin cambios)
+// Tarjeta de obra
 // ────────────────────────────────────────────────────────────
 class _ObraCard extends StatelessWidget {
   final Map<String, dynamic> obra;
