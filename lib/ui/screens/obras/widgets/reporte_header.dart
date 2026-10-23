@@ -19,6 +19,7 @@ class ReporteHeader extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          // ─── Fila superior: logo IZQUIERDA + título DERECHA ───
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -87,6 +88,8 @@ class ReporteHeader extends StatelessWidget {
           const SizedBox(height: 12),
           const Divider(height: 1),
           const SizedBox(height: 12),
+
+          // ─── Datos en 2 columnas ───
           LayoutBuilder(
             builder: (context, constraints) {
               const double anchoMin = 320;
@@ -104,6 +107,7 @@ class ReporteHeader extends StatelessWidget {
                 spacing: gap,
                 runSpacing: 8,
                 children: [
+                  // Columna Izquierda
                   SizedBox(
                     width: anchoCol,
                     child: Column(
@@ -118,6 +122,7 @@ class ReporteHeader extends StatelessWidget {
                       ],
                     ),
                   ),
+                  // Columna Derecha
                   SizedBox(
                     width: anchoCol,
                     child: Column(

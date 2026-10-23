@@ -61,17 +61,40 @@ class _ReportesSectionState extends State<ReportesSection> {
       'avanceAlbanileria': 0,
       'avanceGeneral': 25,
       'actividades': [
-        {'actividad': 'Limpieza y desmonte del terreno', 'fase': 'Preliminares', 'responsable': 'Cuadrilla 1 - Don Pedro', 'avance': 100},
-        {'actividad': 'Trazo y nivelación topográfica', 'fase': 'Preliminares', 'responsable': 'Topógrafo Miguel', 'avance': 100},
+        {
+          'actividad': 'Limpieza y desmonte del terreno', 
+          'fase': 'Preliminares', 
+          'responsable': 'Cuadrilla 1 - Don Pedro', 
+          'avance': 100,
+          'materiales_usados': 'Herramienta menor, combustible'
+        },
+        {
+          'actividad': 'Trazo y nivelación topográfica', 
+          'fase': 'Preliminares', 
+          'responsable': 'Topógrafo Miguel', 
+          'avance': 100,
+          'materiales_usados': 'Cal, estacas, hilo'
+        },
       ],
       'materiales': [
         {'material': 'Cemento Gris Portland CPC 30R', 'cantidad': 10, 'unidad': 'Bultos'},
       ],
       'incidencias': [],
-      // SE QUITÓ LA IMAGEN DE "Firmas"
       'evidencias': [
         {'url': 'https://images.unsplash.com/photo-1541888946425-d81bb19240f5?w=400&h=300&fit=crop', 'titulo': 'Demolición'},
         {'url': 'https://images.unsplash.com/photo-1504307651254-35680f356dfd?w=400&h=300&fit=crop', 'titulo': 'Excavación'},
+      ],
+      'notasGenerales': 'SE INFORMA A LA RESIDENCIA OPERATIVA QUE SE ESPERA LA LLEGADA DE SUMINISTROS ADICIONALES PARA CONTINUAR CON LOS TRABAJOS.',
+      'personal': [
+        {'categoria': 'Superintendente de Construcción', 'cantidad': 1},
+        {'categoria': 'Residente de Obra', 'cantidad': 1},
+        {'categoria': 'Topógrafo', 'cantidad': 2},
+        {'categoria': 'Ayudantes Generales', 'cantidad': 8},
+      ],
+      'maquinaria': [
+        {'equipo': 'Retroexcavadora CAT 320', 'cantidad': 1},
+        {'equipo': 'Camión de Volteo', 'cantidad': 2},
+        {'equipo': 'Herramienta Menor', 'cantidad': 1},
       ],
     },
     'Semanal': {
@@ -91,8 +114,20 @@ class _ReportesSectionState extends State<ReportesSection> {
       'avanceAlbanileria': 0,
       'avanceGeneral': 28,
       'actividades': [
-        {'actividad': 'Limpieza y desmonte del terreno', 'fase': 'Preliminares', 'responsable': 'Cuadrilla 1 - Don Pedro', 'avance': 100},
-        {'actividad': 'Armado de acero en zapatas y dados', 'fase': 'Cimentación', 'responsable': 'Fierrero Juan y ayudante', 'avance': 85},
+        {
+          'actividad': 'Limpieza y desmonte del terreno', 
+          'fase': 'Preliminares', 
+          'responsable': 'Cuadrilla 1 - Don Pedro', 
+          'avance': 100,
+          'materiales_usados': 'Herramienta menor, combustible'
+        },
+        {
+          'actividad': 'Armado de acero en zapatas y dados', 
+          'fase': 'Cimentación', 
+          'responsable': 'Fierrero Juan y ayudante', 
+          'avance': 85,
+          'materiales_usados': 'Varilla 3/8, alambre recocido'
+        },
       ],
       'materiales': [
         {'material': 'Cemento Gris Portland CPC 30R', 'cantidad': 40, 'unidad': 'Bultos'},
@@ -101,10 +136,23 @@ class _ReportesSectionState extends State<ReportesSection> {
       'incidencias': [
         {'tipo': 'Clima', 'descripcion': 'Lluvia intensa durante la mañana', 'fecha': '07/09/2026', 'estado': 'Resuelta'},
       ],
-      // SE QUITÓ LA IMAGEN DE "Firmas"
       'evidencias': [
         {'url': 'https://images.unsplash.com/photo-1541888946425-d81bb19240f5?w=400&h=300&fit=crop', 'titulo': 'Demolición'},
         {'url': 'https://images.unsplash.com/photo-1504307651254-35680f356dfd?w=400&h=300&fit=crop', 'titulo': 'Excavación'},
+      ],
+      'notasGenerales': 'EL DÍA DE HOY SE CONTINÚA CON LA AMPLIACIÓN DE LA CIMENTACIÓN. SE SOLICITA REVISIÓN DEL ACERO COLOCADO ANTES DEL COLADO.',
+      'personal': [
+        {'categoria': 'Superintendente de Construcción', 'cantidad': 1},
+        {'categoria': 'Residente de Obra', 'cantidad': 1},
+        {'categoria': 'Ingeniero de Campo', 'cantidad': 1},
+        {'categoria': 'Maestro de Obra', 'cantidad': 1},
+        {'categoria': 'Albañiles', 'cantidad': 6},
+        {'categoria': 'Fierreros', 'cantidad': 4},
+      ],
+      'maquinaria': [
+        {'equipo': 'Retroexcavadora 416E', 'cantidad': 1},
+        {'equipo': 'Revolvedora de 1 saco', 'cantidad': 2},
+        {'equipo': 'Vibrador para concreto', 'cantidad': 2},
       ],
     },
     'Quincenal': {
@@ -127,6 +175,15 @@ class _ReportesSectionState extends State<ReportesSection> {
       'materiales': [],
       'incidencias': [],
       'evidencias': [],
+      'notasGenerales': 'SE CONCLUYE LA PRIMERA QUINCENA CON UN AVANCE DEL 35%. SE MANTIENE EL RITMO DE TRABAJO.',
+      'personal': [
+        {'categoria': 'Superintendente', 'cantidad': 1},
+        {'categoria': 'Cabos', 'cantidad': 2},
+        {'categoria': 'Peones', 'cantidad': 10},
+      ],
+      'maquinaria': [
+        {'equipo': 'Camión Grúa', 'cantidad': 1},
+      ],
     },
     'Acumulado': {
       'semana': 'Acumulado Histórico',
@@ -148,6 +205,9 @@ class _ReportesSectionState extends State<ReportesSection> {
       'materiales': [],
       'incidencias': [],
       'evidencias': [],
+      'notasGenerales': 'RESUMEN DE ACTIVIDADES DEL MES. SE CUMPLIERON LOS OBJETIVOS PLANIFICADOS.',
+      'personal': [],
+      'maquinaria': [],
     },
   };
 
@@ -180,15 +240,10 @@ class _ReportesSectionState extends State<ReportesSection> {
           child: ConstrainedBox(
             constraints: const BoxConstraints(maxWidth: 1400),
             child: Padding(
-              padding: EdgeInsets.only(
-                left: pad,
-                right: pad,
-                bottom: pad,
-              ),
+              padding: EdgeInsets.only(left: pad, right: pad, bottom: pad),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  // ─── 1. MARCO INDEPENDIENTE PARA LA BARRA SUPERIOR ───
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                     decoration: BoxDecoration(
@@ -198,10 +253,7 @@ class _ReportesSectionState extends State<ReportesSection> {
                     ),
                     child: _buildBarraSuperior(),
                   ),
-                  
                   SizedBox(height: pad * 0.75),
-
-                  // ─── 2. MARCO DEL REPORTE ───
                   Container(
                     width: double.infinity,
                     padding: EdgeInsets.all(pad),
@@ -220,10 +272,20 @@ class _ReportesSectionState extends State<ReportesSection> {
                         ReporteActividadesTabla(datos: _datosReporte),
                         SizedBox(height: pad * 0.75),
                         ReporteMaterialesTabla(datos: _datosReporte),
+                        
+                        // ─── NUEVAS SECCIONES WEB ───
                         SizedBox(height: pad * 0.75),
+                        _buildPersonalYMaquinariaWeb(),
+                        SizedBox(height: pad * 0.75),
+
                         ReporteIncidenciasParos(datos: _datosReporte),
                         SizedBox(height: pad * 0.75),
                         ReporteEvidenciasGrid(datos: _datosReporte),
+                        
+                        // ─── NOTAS GENERALES ───
+                        SizedBox(height: pad * 0.75),
+                        _buildNotasGeneralesWeb(),
+
                         SizedBox(height: pad),
                         ReporteFirmas(datos: _datosReporte),
                       ],
@@ -235,6 +297,93 @@ class _ReportesSectionState extends State<ReportesSection> {
           ),
         );
       },
+    );
+  }
+
+  Widget _buildPersonalYMaquinariaWeb() {
+    final personal = _datosReporte['personal'] as List? ?? [];
+    final maquinaria = _datosReporte['maquinaria'] as List? ?? [];
+
+    Widget buildTabla(String titulo, List items, String col1, String col2, String key) {
+      return Expanded(
+        child: Container(
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: AppColors.gris, width: 1.2),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: AppColors.textoNegro,
+                  borderRadius: const BorderRadius.vertical(top: Radius.circular(10)),
+                ),
+                child: Text(titulo, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12)),
+              ),
+              if (items.isEmpty)
+                const Padding(padding: EdgeInsets.all(12), child: Text('Sin registros', style: TextStyle(fontSize: 12))),
+              ...items.map((item) {
+                return Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    border: Border(bottom: BorderSide(color: AppColors.gris.withValues(alpha: 0.2))),
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Expanded(child: Text(item[key].toString(), style: const TextStyle(fontSize: 12))),
+                      Text(item['cantidad'].toString(), style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
+                    ],
+                  ),
+                );
+              }),
+            ],
+          ),
+        ),
+      );
+    }
+
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        buildTabla('PERSONAL', personal, 'Categoría', 'Cant.', 'categoria'),
+        const SizedBox(width: 16),
+        buildTabla('MAQUINARIA / EQUIPO', maquinaria, 'Equipo', 'Cant.', 'equipo'),
+      ],
+    );
+  }
+
+  Widget _buildNotasGeneralesWeb() {
+    return Container(
+      width: double.infinity,
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: AppColors.gris, width: 1.2),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: AppColors.textoNegro,
+              borderRadius: const BorderRadius.vertical(top: Radius.circular(10)),
+            ),
+            child: const Text('NOTAS GENERALES', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12)),
+          ),
+          Padding(
+            padding: const EdgeInsets.all(16),
+            child: Text(
+              _datosReporte['notasGenerales'] ?? 'Sin notas.',
+              style: const TextStyle(fontSize: 12, color: AppColors.textoNegro),
+            ),
+          ),
+        ],
+      ),
     );
   }
 
