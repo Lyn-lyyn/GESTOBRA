@@ -83,6 +83,10 @@ class _ObrasListScreenState extends State<ObrasListScreen> {
     super.dispose();
   }
 
+  bool _isDesktop(BuildContext context) {
+    return MediaQuery.of(context).size.width >= 900;
+  }
+
   List<Map<String, dynamic>> get _obrasFiltradas {
     final query = _busquedaController.text.trim().toLowerCase();
 
@@ -113,293 +117,367 @@ class _ObrasListScreenState extends State<ObrasListScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final desktop = _isDesktop(context);
+
     return Scaffold(
       backgroundColor: AppColors.blanco,
-      body: LayoutBuilder(
-        builder: (context, constraints) {
-          final double pad = (constraints.maxWidth * 0.02).clamp(16.0, 24.0);
+      body: SafeArea(
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            final double pad = (constraints.maxWidth * 0.02).clamp(16.0, 24.0);
 
-          return SingleChildScrollView(
-            padding: EdgeInsets.all(pad),
-            child: Center(
-              child: ConstrainedBox(
-                constraints: const BoxConstraints(maxWidth: 1000),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    // ─── Cabecera principal (Borde oscuro y marcado) ───
-                    Container(
-                      padding: const EdgeInsets.all(18),
-                      decoration: BoxDecoration(
-                        color: AppColors.grisfondo,
-                        borderRadius: BorderRadius.circular(16),
-                        border: Border.all(
-                          color: AppColors.gris, // Borde sólido y oscuro
-                          width: 1.2,
-                        ),
-                      ),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Expanded(
-                            child: Row(
-                              children: [
-                                Image.asset(
-                                  'assets/images/logo_gestobra.png',
-                                  height: 56,
-                                  errorBuilder: (context, error, stackTrace) {
-                                    return const Icon(Icons.business, color: AppColors.naranja, size: 48);
-                                  },
-                                ),
-                                const SizedBox(width: 16),
-                                Expanded(
-                                  child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                    children: [
-                                      const Text(
-                                        'MIS OBRAS',
-                                        style: TextStyle(
-                                          fontSize: 22,
-                                          fontWeight: FontWeight.bold,
-                                          color: AppColors.textoNegro,
-                                          letterSpacing: 0.5,
-                                        ),
-                                        overflow: TextOverflow.ellipsis,
-                                      ),
-                                      const SizedBox(height: 3),
-                                      Text(
-                                        'Gestión y seguimiento de proyectos',
-                                        style: TextStyle(
-                                          fontSize: 13,
-                                          color: AppColors.textoGris,
-                                        ),
-                                        overflow: TextOverflow.ellipsis,
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                          const SizedBox(width: 8),
-                          Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-                            decoration: BoxDecoration(
-                              color: AppColors.blanco,
-                              borderRadius: BorderRadius.circular(20),
-                              border: Border.all(
-                                color: AppColors.gris,
-                                width: 1.2,
-                              ),
-                            ),
-                            child: Text(
-                              '${_obrasFiltradas.length} obras',
-                              style: const TextStyle(
-                                fontSize: 13,
-                                fontWeight: FontWeight.bold,
-                                color: AppColors.naranja,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(height: 20),
-
-                    // ─── Contenedor principal (Borde oscuro y marcado) ───
-                    Container(
-                      padding: const EdgeInsets.all(18),
-                      decoration: BoxDecoration(
-                        color: AppColors.grisfondo,
-                        borderRadius: BorderRadius.circular(16),
-                        border: Border.all(
-                          color: AppColors.gris, // Borde sólido y oscuro
-                          width: 1.2,
-                        ),
-                      ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          // ─── Tarjetas de Resumen ───
-                          Row(
-                            children: [
-                              Expanded(
-                                child: _buildStatCard(
-                                  'Total Obras',
-                                  '${_obras.length}',
-                                  Icons.folder_shared,
-                                  AppColors.naranja,
-                                ),
-                              ),
-                              const SizedBox(width: 12),
-                              Expanded(
-                                child: _buildStatCard(
-                                  'En Proceso',
-                                  '${_obras.where((o) => o['estadoKey'] == 'en_ejecucion').length}',
-                                  Icons.engineering,
-                                  AppColors.estadoVerde,
-                                ),
-                              ),
-                              const SizedBox(width: 12),
-                              Expanded(
-                                child: _buildStatCard(
-                                  'Pendientes / Plan',
-                                  '${_obras.where((o) => o['estadoKey'] == 'planificada' || o['estadoKey'] == 'suspendida').length}',
-                                  Icons.schedule,
-                                  AppColors.estadoAmarillo,
-                                ),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 20),
-
-                          // ─── Buscador + Filtros ───
-                          _buildBuscadorYFiltros(),
-                          const SizedBox(height: 20),
-
-                          // ─── Lista de Obras ───
-                          _obrasFiltradas.isEmpty
-                              ? _buildSinResultados()
-                              : ListView.builder(
-                                  shrinkWrap: true,
-                                  physics: const NeverScrollableScrollPhysics(),
-                                  itemCount: _obrasFiltradas.length,
-                                  itemBuilder: (context, index) {
-                                    return _ObraCard(
-                                      obra: _obrasFiltradas[index],
-                                      onTap: () => _abrirObra(_obrasFiltradas[index]),
-                                    );
-                                  },
-                                ),
-                        ],
-                      ),
-                    ),
-                  ],
+            return SingleChildScrollView(
+              padding: EdgeInsets.all(pad),
+              child: Center(
+                // Aumentamos el maxWidth para que use más pantalla (igual que Dashboard)
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 1400),
+                  child: desktop
+                      ? _buildDesktopLayout()
+                      : _buildMobileLayout(),
                 ),
               ),
-            ),
-          );
-        },
+            );
+          },
+        ),
       ),
     );
   }
 
-  Widget _buildStatCard(String titulo, String valor, IconData icono, Color color) {
+  // ============================================================
+  // LAYOUT ESCRITORIO
+  // ============================================================
+  Widget _buildDesktopLayout() {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // ─── Columna IZQUIERDA (Panel de contexto) ───
+        SizedBox(
+          width: 320, // Ancho fijo más compacto
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              _buildHeaderPanel(compact: false),
+              const SizedBox(height: 16),
+              _buildStatsGrid2x2(), // <--- AQUÍ LA MAGIA: 2x2
+            ],
+          ),
+        ),
+        const SizedBox(width: 16),
+        // ─── Columna DERECHA (Buscador + Lista) ───
+        Expanded(
+          child: _buildListPanel(),
+        ),
+      ],
+    );
+  }
+
+  // ============================================================
+  // LAYOUT MÓVIL
+  // ============================================================
+  Widget _buildMobileLayout() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        _buildHeaderPanel(compact: true),
+        const SizedBox(height: 16),
+        _buildStatsRowMobile(),
+        const SizedBox(height: 16),
+        _buildListPanel(showHeader: true),
+      ],
+    );
+  }
+
+  // ============================================================
+  // CABECERA (MIS OBRAS)
+  // ============================================================
+  Widget _buildHeaderPanel({required bool compact}) {
+    if (compact) {
+      return Container(
+        padding: const EdgeInsets.all(18),
+        decoration: BoxDecoration(
+          color: AppColors.grisfondo,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: AppColors.gris, width: 1.2),
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Expanded(
+              child: Row(
+                children: [
+                  Image.asset(
+                    'assets/images/logo_gestobra.png',
+                    height: 48,
+                    errorBuilder: (context, error, stackTrace) {
+                      return const Icon(Icons.business, color: AppColors.naranja, size: 42);
+                    },
+                  ),
+                  const SizedBox(width: 14),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: const [
+                        Text(
+                          'MIS OBRAS',
+                          style: TextStyle(
+                            fontSize: 20,
+                            fontWeight: FontWeight.bold,
+                            color: AppColors.textoNegro,
+                            letterSpacing: 0.5,
+                          ),
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        SizedBox(height: 3),
+                        Text(
+                          'Gestión y seguimiento de proyectos',
+                          style: TextStyle(fontSize: 12, color: AppColors.textoGris),
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(width: 8),
+            _buildCountBadge(),
+          ],
+        ),
+      );
+    }
+
+    // Escritorio
     return Container(
-      padding: const EdgeInsets.all(14),
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: AppColors.grisfondo,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: AppColors.gris, width: 1.2),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Image.asset(
+                'assets/images/logo_gestobra.png',
+                height: 48,
+                errorBuilder: (context, error, stackTrace) {
+                  return const Icon(Icons.business, color: AppColors.naranja, size: 42);
+                },
+              ),
+              const SizedBox(width: 12),
+              const Expanded(
+                child: Text(
+                  'GestObra',
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppColors.textoNegro),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 18),
+          const Text(
+            'MIS OBRAS',
+            style: TextStyle(
+              fontSize: 22,
+              fontWeight: FontWeight.bold,
+              color: AppColors.textoNegro,
+              letterSpacing: 0.8,
+            ),
+          ),
+          const SizedBox(height: 6),
+          
+          Align(alignment: Alignment.centerLeft, child: _buildCountBadge()),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildCountBadge() {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
       decoration: BoxDecoration(
         color: AppColors.blanco,
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(
-          color: AppColors.gris, // Borde oscuro y marcado
-          width: 1.2,
-        ),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: AppColors.gris, width: 1.2),
       ),
       child: Row(
+        mainAxisSize: MainAxisSize.min,
         children: [
-          Container(
-            padding: const EdgeInsets.all(10),
-            decoration: BoxDecoration(
-              color: color.withValues(alpha: 0.12),
-              borderRadius: BorderRadius.circular(10),
-            ),
-            child: Icon(icono, color: color, size: 20),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  valor,
-                  style: const TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                    color: AppColors.textoNegro,
-                  ),
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  titulo,
-                  style: const TextStyle(
-                    fontSize: 11,
-                    color: AppColors.textoGris,
-                    fontWeight: FontWeight.w500,
-                  ),
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ],
-            ),
+          const Icon(Icons.workspaces_outline, size: 16, color: AppColors.naranja),
+          const SizedBox(width: 6),
+          Text(
+            '${_obrasFiltradas.length} obras',
+            style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: AppColors.naranja),
           ),
         ],
       ),
     );
   }
 
-  Widget _buildBuscadorYFiltros() {
+  // ============================================================
+  // STATS: 2x2 (Desktop) y Fila (Móvil)
+  // ============================================================
+  Widget _buildStatsGrid2x2() {
+    return Column(
+      children: [
+        Row(
+          children: [
+            Expanded(child: _buildStatCard('Total Obras', '${_obras.length}', Icons.folder_shared, AppColors.naranja)),
+            const SizedBox(width: 12),
+            Expanded(child: _buildStatCard('En Proceso', '${_obras.where((o) => o['estadoKey'] == 'en_ejecucion').length}', Icons.engineering, AppColors.estadoVerde)),
+          ],
+        ),
+        const SizedBox(height: 12),
+        Row(
+          children: [
+            Expanded(child: _buildStatCard('Pendientes', '${_obras.where((o) => o['estadoKey'] == 'planificada' || o['estadoKey'] == 'suspendida').length}', Icons.schedule, AppColors.estadoAmarillo)),
+            const SizedBox(width: 12),
+            Expanded(child: _buildStatCard('Finalizadas', '${_obras.where((o) => o['estadoKey'] == 'finalizada').length}', Icons.task_alt, AppColors.estadoVerde)),
+          ],
+        ),
+      ],
+    );
+  }
+
+  Widget _buildStatsRowMobile() {
     return Row(
       children: [
-        Expanded(
-          child: TextField(
-            controller: _busquedaController,
-            onChanged: (_) => setState(() {}),
-            decoration: InputDecoration(
-              hintText: 'Buscar por título, código o cliente...',
-              hintStyle: const TextStyle(
-                fontSize: 13,
-                color: AppColors.textoGris,
-              ),
-              prefixIcon: const Icon(
-                Icons.search,
-                color: AppColors.naranja,
-                size: 22,
-              ),
-              filled: true,
-              fillColor: AppColors.blanco,
-              contentPadding: const EdgeInsets.symmetric(vertical: 15),
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
-                borderSide: BorderSide(
-                  color: AppColors.gris, // Borde oscuro y marcado
-                  width: 1.2,
+        Expanded(child: _buildStatCard('Total Obras', '${_obras.length}', Icons.folder_shared, AppColors.naranja)),
+        const SizedBox(width: 10),
+        Expanded(child: _buildStatCard('En Proceso', '${_obras.where((o) => o['estadoKey'] == 'en_ejecucion').length}', Icons.engineering, AppColors.estadoVerde)),
+        const SizedBox(width: 10),
+        Expanded(child: _buildStatCard('Pendientes', '${_obras.where((o) => o['estadoKey'] == 'planificada' || o['estadoKey'] == 'suspendida').length}', Icons.schedule, AppColors.estadoAmarillo)),
+      ],
+    );
+  }
+
+  Widget _buildStatCard(String titulo, String valor, IconData icono, Color color) {
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: AppColors.blanco,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: AppColors.gris, width: 1.2),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: color.withValues(alpha: 0.12),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Icon(icono, color: color, size: 18),
+          ),
+          const SizedBox(height: 10),
+          Text(
+            valor,
+            style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: AppColors.textoNegro),
+          ),
+          const SizedBox(height: 2),
+          Text(
+            titulo,
+            style: const TextStyle(fontSize: 11, color: AppColors.textoGris, fontWeight: FontWeight.w500),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ============================================================
+  // PANEL DERECHO (Buscador + Lista)
+  // ============================================================
+  Widget _buildListPanel({bool showHeader = false}) {
+    return Container(
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        color: AppColors.grisfondo,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: AppColors.gris, width: 1.2),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          if (showHeader) ...[
+            const Text(
+              'Listado de obras',
+              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppColors.textoNegro),
+            ),
+            const SizedBox(height: 12),
+          ],
+          _buildBuscadorYFiltros(),
+          const SizedBox(height: 18),
+          _obrasFiltradas.isEmpty
+              ? _buildSinResultados()
+              : ListView.builder(
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(),
+                  itemCount: _obrasFiltradas.length,
+                  itemBuilder: (context, index) {
+                    return _ObraCard(
+                      obra: _obrasFiltradas[index],
+                      onTap: () => _abrirObra(_obrasFiltradas[index]),
+                    );
+                  },
                 ),
-              ),
-              enabledBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
-                borderSide: BorderSide(
-                  color: AppColors.gris, // Borde oscuro y marcado
-                  width: 1.2,
-                ),
-              ),
-              focusedBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
-                borderSide: const BorderSide(color: AppColors.naranja, width: 1.5),
-              ),
+        ],
+      ),
+    );
+  }
+
+  // ============================================================
+  // BUSCADOR + FILTROS
+  // ============================================================
+  Widget _buildBuscadorYFiltros() {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final isNarrow = constraints.maxWidth < 500;
+
+        final search = TextField(
+          controller: _busquedaController,
+          onChanged: (_) => setState(() {}),
+          decoration: InputDecoration(
+            hintText: 'Buscar por título, código o cliente...',
+            hintStyle: const TextStyle(fontSize: 13, color: AppColors.textoGris),
+            prefixIcon: const Icon(Icons.search, color: AppColors.naranja, size: 22),
+            filled: true,
+            fillColor: AppColors.blanco,
+            contentPadding: const EdgeInsets.symmetric(vertical: 15),
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: const BorderSide(color: AppColors.gris, width: 1.2),
+            ),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: const BorderSide(color: AppColors.gris, width: 1.2),
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: const BorderSide(color: AppColors.naranja, width: 1.5),
             ),
           ),
-        ),
-        const SizedBox(width: 12),
-        Container(
+        );
+
+        final filter = Container(
           height: 52,
           padding: const EdgeInsets.symmetric(horizontal: 14),
           decoration: BoxDecoration(
             color: AppColors.blanco,
             borderRadius: BorderRadius.circular(12),
-            border: Border.all(
-              color: AppColors.gris, // Borde oscuro y marcado
-              width: 1.2,
-            ),
+            border: Border.all(color: AppColors.gris, width: 1.2),
           ),
           child: Center(
             child: DropdownButtonHideUnderline(
               child: DropdownButton<String>(
                 value: _filtro,
                 icon: const Icon(Icons.filter_list, size: 18, color: AppColors.naranja),
-                style: const TextStyle(
-                  fontSize: 13,
-                  color: AppColors.textoNegro,
-                  fontWeight: FontWeight.bold,
-                ),
+                style: const TextStyle(fontSize: 13, color: AppColors.textoNegro, fontWeight: FontWeight.bold),
                 items: ['Todas', 'Planificadas', 'En ejecución', 'Suspendidas', 'Finalizadas']
                     .map((f) => DropdownMenuItem(value: f, child: Text(f)))
                     .toList(),
@@ -407,8 +485,27 @@ class _ObrasListScreenState extends State<ObrasListScreen> {
               ),
             ),
           ),
-        ),
-      ],
+        );
+
+        if (isNarrow) {
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              search,
+              const SizedBox(height: 10),
+              Align(alignment: Alignment.centerRight, child: filter),
+            ],
+          );
+        }
+
+        return Row(
+          children: [
+            Expanded(child: search),
+            const SizedBox(width: 12),
+            filter,
+          ],
+        );
+      },
     );
   }
 
@@ -424,21 +521,14 @@ class _ObrasListScreenState extends State<ObrasListScreen> {
               decoration: BoxDecoration(
                 color: AppColors.blanco,
                 shape: BoxShape.circle,
-                border: Border.all(
-                  color: AppColors.gris,
-                  width: 1.2,
-                ),
+                border: Border.all(color: AppColors.gris, width: 1.2),
               ),
               child: const Icon(Icons.search_off, size: 40, color: AppColors.naranja),
             ),
             const SizedBox(height: 16),
             const Text(
               'No se encontraron obras',
-              style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.bold,
-                color: AppColors.textoNegro,
-              ),
+              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppColors.textoNegro),
             ),
             const SizedBox(height: 6),
             const Text(
@@ -453,7 +543,7 @@ class _ObrasListScreenState extends State<ObrasListScreen> {
 }
 
 // ────────────────────────────────────────────────────────────
-// Tarjeta de obra mejorada
+// Tarjeta de obra (sin cambios)
 // ────────────────────────────────────────────────────────────
 class _ObraCard extends StatelessWidget {
   final Map<String, dynamic> obra;
@@ -463,16 +553,11 @@ class _ObraCard extends StatelessWidget {
 
   Color _colorEstado(String estadoKey) {
     switch (estadoKey) {
-      case 'planificada':
-        return AppColors.estadoAmarillo;
-      case 'en_ejecucion':
-        return AppColors.naranja;
-      case 'suspendida':
-        return AppColors.estadoRojo;
-      case 'finalizada':
-        return AppColors.estadoVerde;
-      default:
-        return AppColors.gris;
+      case 'planificada': return AppColors.estadoAmarillo;
+      case 'en_ejecucion': return AppColors.naranja;
+      case 'suspendida': return AppColors.estadoRojo;
+      case 'finalizada': return AppColors.estadoVerde;
+      default: return AppColors.gris;
     }
   }
 
@@ -485,10 +570,7 @@ class _ObraCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: AppColors.blanco,
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(
-          color: AppColors.gris, // Borde oscuro y marcado
-          width: 1.2,
-        ),
+        border: Border.all(color: AppColors.gris, width: 1.2),
       ),
       child: Material(
         color: Colors.transparent,
@@ -501,7 +583,6 @@ class _ObraCard extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // ─── Fila superior: código + estado ───
                 Row(
                   children: [
                     Container(
@@ -512,19 +593,12 @@ class _ObraCard extends StatelessWidget {
                       ),
                       child: Text(
                         obra['codigo'],
-                        style: const TextStyle(
-                          fontSize: 11,
-                          fontWeight: FontWeight.bold,
-                          color: AppColors.naranja,
-                        ),
+                        style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: AppColors.naranja),
                       ),
                     ),
                     const Spacer(),
                     Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 10,
-                        vertical: 4,
-                      ),
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                       decoration: BoxDecoration(
                         color: colorEstado.withValues(alpha: 0.12),
                         borderRadius: BorderRadius.circular(20),
@@ -536,19 +610,12 @@ class _ObraCard extends StatelessWidget {
                           Container(
                             width: 6,
                             height: 6,
-                            decoration: BoxDecoration(
-                              color: colorEstado,
-                              shape: BoxShape.circle,
-                            ),
+                            decoration: BoxDecoration(color: colorEstado, shape: BoxShape.circle),
                           ),
                           const SizedBox(width: 6),
                           Text(
                             obra['estado'],
-                            style: TextStyle(
-                              fontSize: 10,
-                              fontWeight: FontWeight.bold,
-                              color: colorEstado,
-                            ),
+                            style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: colorEstado),
                           ),
                         ],
                       ),
@@ -556,28 +623,17 @@ class _ObraCard extends StatelessWidget {
                   ],
                 ),
                 const SizedBox(height: 12),
-
-                // ─── Título ───
                 Text(
                   obra['titulo'],
-                  style: const TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                    color: AppColors.textoNegro,
-                  ),
+                  style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppColors.textoNegro),
                 ),
                 const SizedBox(height: 10),
-
-                // ─── Información interna en gris suave para contraste ───
                 Container(
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
                     color: AppColors.grisfondo,
                     borderRadius: BorderRadius.circular(10),
-                    border: Border.all(
-                      color: AppColors.gris.withValues(alpha: 0.5),
-                      width: 1.0,
-                    ),
+                    border: Border.all(color: AppColors.gris.withValues(alpha: 0.5), width: 1.0),
                   ),
                   child: Column(
                     children: [
@@ -592,8 +648,6 @@ class _ObraCard extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(height: 14),
-
-                // ─── Barra de progreso ───
                 Row(
                   children: [
                     Expanded(
@@ -610,11 +664,7 @@ class _ObraCard extends StatelessWidget {
                     const SizedBox(width: 12),
                     Text(
                       obra['avanceTexto'],
-                      style: TextStyle(
-                        fontSize: 13,
-                        fontWeight: FontWeight.bold,
-                        color: colorEstado,
-                      ),
+                      style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: colorEstado),
                     ),
                   ],
                 ),
@@ -634,11 +684,7 @@ class _ObraCard extends StatelessWidget {
         Expanded(
           child: Text(
             texto,
-            style: const TextStyle(
-              fontSize: 12,
-              color: AppColors.textoNegro,
-              fontWeight: FontWeight.w500,
-            ),
+            style: const TextStyle(fontSize: 12, color: AppColors.textoNegro, fontWeight: FontWeight.w500),
             overflow: TextOverflow.ellipsis,
           ),
         ),
