@@ -142,9 +142,7 @@ class _ObrasListScreenState extends State<ObrasListScreen> {
     );
   }
 
-  // ============================================================
-  // LAYOUT ESCRITORIO
-  // ============================================================
+
   Widget _buildDesktopLayout() {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -156,7 +154,7 @@ class _ObrasListScreenState extends State<ObrasListScreen> {
             children: [
               _buildHeaderPanel(compact: false),
               const SizedBox(height: 16),
-              _buildStatsGrid2x2(),
+              _buildStatsGrid(esDesktop: true),
             ],
           ),
         ),
@@ -168,25 +166,21 @@ class _ObrasListScreenState extends State<ObrasListScreen> {
     );
   }
 
-  // ============================================================
-  // LAYOUT MÓVIL
-  // ============================================================
+  
   Widget _buildMobileLayout() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         _buildHeaderPanel(compact: true),
         const SizedBox(height: 16),
-        _buildStatsRowMobile(), // <--- Aquí está el cambio responsivo
+        _buildStatsGrid(esDesktop: false),
         const SizedBox(height: 16),
         _buildListPanel(showHeader: true),
       ],
     );
   }
 
-  // ============================================================
-  // CABECERA (MIS OBRAS)
-  // ============================================================
+  
   Widget _buildHeaderPanel({required bool compact}) {
     return Container(
       padding: EdgeInsets.all(compact ? 18 : 24),
@@ -212,7 +206,7 @@ class _ObrasListScreenState extends State<ObrasListScreen> {
           const SizedBox(width: 16),
           Expanded(
             child: Text(
-              'Mis obras',
+              'MIS OBRAS',
               style: TextStyle(
                 fontSize: compact ? 22 : 26,
                 fontWeight: FontWeight.bold,
@@ -227,60 +221,54 @@ class _ObrasListScreenState extends State<ObrasListScreen> {
     );
   }
 
-  // ============================================================
-  // STATS: 2x2 (Desktop) y Fila (Móvil)
-  // ============================================================
-  Widget _buildStatsGrid2x2() {
-    return Column(
-      children: [
-        Row(
-          children: [
-            Expanded(child: _buildStatCard('Total Obras', '${_obras.length}', Icons.folder_shared, AppColors.naranja)),
-            const SizedBox(width: 12),
-            Expanded(child: _buildStatCard('En Proceso', '${_obras.where((o) => o['estadoKey'] == 'en_ejecucion').length}', Icons.engineering, AppColors.estadoVerde)),
-          ],
-        ),
-        const SizedBox(height: 12),
-        Row(
-          children: [
-            Expanded(child: _buildStatCard('Pendientes', '${_obras.where((o) => o['estadoKey'] == 'planificada' || o['estadoKey'] == 'suspendida').length}', Icons.schedule, AppColors.estadoAmarillo)),
-            const SizedBox(width: 12),
-            Expanded(child: _buildStatCard('Finalizadas', '${_obras.where((o) => o['estadoKey'] == 'finalizada').length}', Icons.task_alt, AppColors.estadoVerde)),
-          ],
-        ),
-      ],
-    );
-  }
-
-  Widget _buildStatsRowMobile() {
-    // Usamos Wrap en lugar de Row para que no se desborde ni desaparezca nada en móvil
-    return Wrap(
-      spacing: 10,
-      runSpacing: 10,
-      children: [
-        SizedBox(
-          width: 150, // Ancho fijo para que quepan y salten de línea
-          child: _buildStatCard('Total Obras', '${_obras.length}', Icons.folder_shared, AppColors.naranja),
-        ),
-        SizedBox(
-          width: 150,
-          child: _buildStatCard('En Proceso', '${_obras.where((o) => o['estadoKey'] == 'en_ejecucion').length}', Icons.engineering, AppColors.estadoVerde),
-        ),
-        SizedBox(
-          width: 150,
-          child: _buildStatCard('Pendientes', '${_obras.where((o) => o['estadoKey'] == 'planificada' || o['estadoKey'] == 'suspendida').length}', Icons.schedule, AppColors.estadoAmarillo),
-        ),
-        SizedBox(
-          width: 150,
-          child: _buildStatCard('Finalizadas', '${_obras.where((o) => o['estadoKey'] == 'finalizada').length}', Icons.task_alt, AppColors.estadoVerde),
-        ),
-      ],
-    );
+  
+  Widget _buildStatsGrid({required bool esDesktop}) {
+    if (esDesktop) {
+      return Column(
+        children: [
+          Row(
+            children: [
+              Expanded(child: _buildStatCard('Total Obras', '${_obras.length}', Icons.folder_shared, AppColors.naranja)),
+              const SizedBox(width: 12),
+              Expanded(child: _buildStatCard('En Proceso', '${_obras.where((o) => o['estadoKey'] == 'en_ejecucion').length}', Icons.engineering, AppColors.estadoVerde)),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              Expanded(child: _buildStatCard('Pendientes', '${_obras.where((o) => o['estadoKey'] == 'planificada' || o['estadoKey'] == 'suspendida').length}', Icons.schedule, AppColors.estadoAmarillo)),
+              const SizedBox(width: 12),
+              Expanded(child: _buildStatCard('Finalizadas', '${_obras.where((o) => o['estadoKey'] == 'finalizada').length}', Icons.task_alt, AppColors.estadoVerde)),
+            ],
+          ),
+        ],
+      );
+    } else {
+      return Column(
+        children: [
+          Row(
+            children: [
+              Expanded(child: _buildStatCard('Total Obras', '${_obras.length}', Icons.folder_shared, AppColors.naranja)),
+              const SizedBox(width: 10),
+              Expanded(child: _buildStatCard('En Proceso', '${_obras.where((o) => o['estadoKey'] == 'en_ejecucion').length}', Icons.engineering, AppColors.estadoVerde)),
+            ],
+          ),
+          const SizedBox(height: 10),
+          Row(
+            children: [
+              Expanded(child: _buildStatCard('Pendientes', '${_obras.where((o) => o['estadoKey'] == 'planificada' || o['estadoKey'] == 'suspendida').length}', Icons.schedule, AppColors.estadoAmarillo)),
+              const SizedBox(width: 10),
+              Expanded(child: _buildStatCard('Finalizadas', '${_obras.where((o) => o['estadoKey'] == 'finalizada').length}', Icons.task_alt, AppColors.estadoVerde)),
+            ],
+          ),
+        ],
+      );
+    }
   }
 
   Widget _buildStatCard(String titulo, String valor, IconData icono, Color color) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 12),
       decoration: BoxDecoration(
         color: AppColors.blanco,
         borderRadius: BorderRadius.circular(14),
@@ -289,7 +277,6 @@ class _ObrasListScreenState extends State<ObrasListScreen> {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          // Ícono en su cajita
           Container(
             padding: const EdgeInsets.all(8),
             decoration: BoxDecoration(
@@ -299,31 +286,34 @@ class _ObrasListScreenState extends State<ObrasListScreen> {
             child: Icon(icono, color: color, size: 18),
           ),
           const SizedBox(width: 10),
-          
-          // Número grande
-          Text(
-            valor,
-            style: const TextStyle(
-              fontSize: 22,
-              fontWeight: FontWeight.bold,
-              color: AppColors.textoNegro,
-              height: 1.0,
-            ),
-          ),
-          const SizedBox(width: 6),
-          
-          // Texto (Título) pequeño
           Expanded(
-            child: Text(
-              titulo,
-              style: const TextStyle(
-                fontSize: 11,
-                color: AppColors.textoGris,
-                fontWeight: FontWeight.w500,
-                height: 1.0,
-              ),
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                Text(
+                  valor,
+                  style: const TextStyle(
+                    fontSize: 20, 
+                    fontWeight: FontWeight.bold, 
+                    color: AppColors.textoNegro,
+                    height: 1.0,
+                  ),
+                ),
+                const SizedBox(width: 6),
+                Expanded(
+                  child: Text(
+                    titulo,
+                    style: const TextStyle(
+                      fontSize: 11, 
+                      color: AppColors.textoGris, 
+                      fontWeight: FontWeight.w500,
+                      height: 1.0,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+              ],
             ),
           ),
         ],
@@ -331,9 +321,7 @@ class _ObrasListScreenState extends State<ObrasListScreen> {
     );
   }
 
-  // ============================================================
-  // PANEL DERECHO (Buscador + Lista)
-  // ============================================================
+ 
   Widget _buildListPanel({bool showHeader = false}) {
     return Container(
       padding: const EdgeInsets.all(18),
@@ -372,41 +360,42 @@ class _ObrasListScreenState extends State<ObrasListScreen> {
     );
   }
 
-  // ============================================================
-  // BUSCADOR + FILTROS
-  // ============================================================
-  Widget _buildBuscadorYFiltros() {
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final isNarrow = constraints.maxWidth < 500;
-
-        final search = TextField(
-          controller: _busquedaController,
-          onChanged: (_) => setState(() {}),
-          decoration: InputDecoration(
-            hintText: 'Buscar por título, código o cliente...',
-            hintStyle: const TextStyle(fontSize: 13, color: AppColors.textoGris),
-            prefixIcon: const Icon(Icons.search, color: AppColors.naranja, size: 22),
-            filled: true,
-            fillColor: AppColors.blanco,
-            contentPadding: const EdgeInsets.symmetric(vertical: 15),
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide: const BorderSide(color: AppColors.gris, width: 1.2),
-            ),
-            enabledBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide: const BorderSide(color: AppColors.gris, width: 1.2),
-            ),
-            focusedBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide: const BorderSide(color: AppColors.naranja, width: 1.5),
+  
+      Widget _buildBuscadorYFiltros() {
+    return Row(
+      children: [
+        Expanded(
+          child: SizedBox(
+            height: 46,
+            child: TextField(
+              controller: _busquedaController,
+              onChanged: (_) => setState(() {}),
+              decoration: InputDecoration(
+                hintText: 'Buscar por título, código o cliente...',
+                hintStyle: const TextStyle(fontSize: 13, color: AppColors.textoGris),
+                prefixIcon: const Icon(Icons.search, color: AppColors.naranja, size: 22),
+                filled: true,
+                fillColor: AppColors.blanco,
+                contentPadding: const EdgeInsets.symmetric(horizontal: 16),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: const BorderSide(color: AppColors.gris, width: 1.2),
+                ),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: const BorderSide(color: AppColors.gris, width: 1.2),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: const BorderSide(color: AppColors.naranja, width: 1.5),
+                ),
+              ),
             ),
           ),
-        );
-
-        final filter = Container(
-          height: 52,
+        ),
+        const SizedBox(width: 10),
+        Container(
+          height: 46,
           padding: const EdgeInsets.symmetric(horizontal: 14),
           decoration: BoxDecoration(
             color: AppColors.blanco,
@@ -426,27 +415,8 @@ class _ObrasListScreenState extends State<ObrasListScreen> {
               ),
             ),
           ),
-        );
-
-        if (isNarrow) {
-          return Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              search,
-              const SizedBox(height: 10),
-              Align(alignment: Alignment.centerRight, child: filter),
-            ],
-          );
-        }
-
-        return Row(
-          children: [
-            Expanded(child: search),
-            const SizedBox(width: 12),
-            filter,
-          ],
-        );
-      },
+        ),
+      ],
     );
   }
 
@@ -483,9 +453,7 @@ class _ObrasListScreenState extends State<ObrasListScreen> {
   }
 }
 
-// ────────────────────────────────────────────────────────────
-// Tarjeta de obra
-// ────────────────────────────────────────────────────────────
+
 class _ObraCard extends StatelessWidget {
   final Map<String, dynamic> obra;
   final VoidCallback onTap;

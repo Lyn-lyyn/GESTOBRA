@@ -28,86 +28,120 @@ class ReporteActividadesTabla extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 12),
+
+          // ─── CONTENEDOR QUE DA EL BORDE A TODA LA TABLA ───
           Container(
-            padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 12),
             decoration: BoxDecoration(
-              color: AppColors.grisfondo,
-              borderRadius: BorderRadius.circular(6),
               border: Border.all(color: AppColors.gris, width: 1.2),
+              borderRadius: BorderRadius.circular(6),
             ),
-            child: Row(
-              children: const [
-                Expanded(flex: 5, child: Text('Actividad', style: _th)),
-                Expanded(flex: 3, child: Text('Responsable', style: _th)),
-                Expanded(
-                  flex: 2,
-                  child: Text('Avance', style: _th, textAlign: TextAlign.right),
-                ),
-              ],
-            ),
-          ),
-          ...actividades.map<Widget>((a) {
-            return Container(
-              padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 12),
-              decoration: BoxDecoration(
-                border: Border(
-                  bottom: BorderSide(
-                    color: AppColors.gris.withValues(alpha: 0.4),
-                    width: 1.2,
-                  ),
-                ),
-              ),
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(5), // Un poco menor que el borde
+              child: Column(
                 children: [
-                  Expanded(
-                    flex: 5,
-                    child: RichText(
-                      text: TextSpan(
-                        style: const TextStyle(
-                          fontSize: 11,
-                          color: AppColors.textoNegro,
+                  // Encabezado de la tabla
+                  Container(
+                    padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 12),
+                    decoration: BoxDecoration(
+                      color: AppColors.grisfondo,
+                      border: Border(
+                        bottom: BorderSide(color: AppColors.gris, width: 1.2),
+                      ),
+                    ),
+                    child: Row(
+                      children: const [
+                        Expanded(flex: 4, child: Text('Actividad', style: _th)),
+                        Expanded(flex: 3, child: Text('Materiales', style: _th)),
+                        Expanded(flex: 3, child: Text('Responsable', style: _th)),
+                        Expanded(
+                          flex: 1,
+                          child: Text('Avance', style: _th, textAlign: TextAlign.right),
                         ),
+                      ],
+                    ),
+                  ),
+                  
+                  // Filas
+                  ...actividades.map<Widget>((a) {
+                    return Container(
+                      padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 12),
+                      decoration: BoxDecoration(
+                        border: Border(
+                          bottom: BorderSide(
+                            color: AppColors.gris.withValues(alpha: 0.4),
+                            width: 1,
+                          ),
+                        ),
+                      ),
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          TextSpan(text: a['actividad']),
-                          TextSpan(
-                            text: '  (${a['fase']})',
-                            style: const TextStyle(
-                              color: AppColors.textoGris,
-                              fontSize: 10,
-                              fontStyle: FontStyle.italic,
+                          // Columna Actividad
+                          Expanded(
+                            flex: 4,
+                            child: RichText(
+                              text: TextSpan(
+                                style: const TextStyle(
+                                  fontSize: 11,
+                                  color: AppColors.textoNegro,
+                                ),
+                                children: [
+                                  TextSpan(text: a['actividad']),
+                                  TextSpan(
+                                    text: '  (${a['fase']})',
+                                    style: const TextStyle(
+                                      color: AppColors.textoGris,
+                                      fontSize: 10,
+                                      fontStyle: FontStyle.italic,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                          // Columna Materiales
+                          Expanded(
+                            flex: 3,
+                            child: Text(
+                              a['materiales_usados'] ?? '-',
+                              style: const TextStyle(
+                                fontSize: 11,
+                                color: AppColors.textoGris,
+                              ),
+                            ),
+                          ),
+                          // Columna Responsable
+                          Expanded(
+                            flex: 3,
+                            child: Text(
+                              a['responsable'] ?? '-',
+                              style: const TextStyle(
+                                fontSize: 11,
+                                color: AppColors.textoNegro,
+                              ),
+                            ),
+                          ),
+                          // Columna Avance
+                          Expanded(
+                            flex: 1,
+                            child: Text(
+                              '${a['avance']}%',
+                              textAlign: TextAlign.right,
+                              style: const TextStyle(
+                                fontSize: 11,
+                                fontWeight: FontWeight.bold,
+                                color: AppColors.textoNegro,
+                              ),
                             ),
                           ),
                         ],
                       ),
-                    ),
-                  ),
-                  Expanded(
-                    flex: 3,
-                    child: Text(
-                      a['responsable'],
-                      style: const TextStyle(
-                        fontSize: 11,
-                        color: AppColors.textoNegro,
-                      ),
-                    ),
-                  ),
-                  Expanded(
-                    flex: 2,
-                    child: Text(
-                      '${a['avance']}%',
-                      textAlign: TextAlign.right,
-                      style: const TextStyle(
-                        fontSize: 11,
-                        fontWeight: FontWeight.bold,
-                        color: AppColors.textoNegro,
-                      ),
-                    ),
-                  ),
+                    );
+                  }),
                 ],
               ),
-            );
-          }),
+            ),
+          ),
         ],
       ),
     );
