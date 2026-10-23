@@ -5,6 +5,7 @@ import 'sections/materiales_section.dart';
 import 'sections/evidencias_section.dart';
 import 'sections/reportes_section.dart';
 import 'widgets/nueva_actividad_modal.dart';
+import 'sections/pipeline_actividades_section.dart';
 //ESTA ES LA PANTALLA DE DETALLES DE LA OBRA (PERFIL DE O¿LA OBRA)
 //LAS SECCIONES (BOTONES BITACORA,EVIDENCIAS,ETC) LOS ENCONTRARAN DENTRO DE LA CARPETA SECTIONS
 class ObraDetailScreen extends StatefulWidget {
@@ -18,6 +19,7 @@ class ObraDetailScreen extends StatefulWidget {
 
 class _ObraDetailScreenState extends State<ObraDetailScreen> {
   int _selectedTabIndex = 0;
+  bool _showPipeline = false;
   String _faseSeleccionada = 'Todas las fases';
 
   bool _isDesktop(BuildContext context) {
@@ -39,6 +41,8 @@ class _ObraDetailScreenState extends State<ObraDetailScreen> {
       'descripcion': 'Retiro de maleza, escombros y nivelación superficial del terreno con maquinaria ligera',
       'responsable': 'Cuadrilla 1 - Don Pedro',
       'programado': 'Programado 2026/09/07 al 2026/09/09',
+      'fechaInicio': DateTime(2026, 9, 7),
+      'fechaFin': DateTime(2026, 9, 9),
       'reporte': 'Concluida sin novedades',
       'avance': 1.0,
       'ponderacion': '5%',
@@ -51,6 +55,8 @@ class _ObraDetailScreenState extends State<ObraDetailScreen> {
       'descripcion': 'Colocación de valas de madera y tendido de hilos según planos arquitectónicos y estructurales',
       'responsable': 'Topógrafo Miguel Narvaez',
       'programado': 'Programado 2026/09/10 al 2026/09/11',
+      'fechaInicio': DateTime(2026, 9, 10),
+      'fechaFin': DateTime(2026, 9, 11),
       'reporte': 'Verificados ejes perimetrales con el perito responsable',
       'avance': 1.0,
       'ponderacion': '5%',
@@ -63,6 +69,8 @@ class _ObraDetailScreenState extends State<ObraDetailScreen> {
       'descripcion': 'Excavación a cielo abierto a 1.60 m de profundidad para 12 zapatas aisladas y zanjas de liga',
       'responsable': 'Cuadrilla 2 - Operador Retro',
       'programado': 'Programado 2026/09/12 al 2026/09/16',
+      'fechaInicio': DateTime(2026, 9, 12),
+      'fechaFin': DateTime(2026, 9, 16),
       'reporte': 'Suelo arcilloso duro. Se alcanzó estrato resistente a 1.55m',
       'avance': 1.0,
       'ponderacion': '10%',
@@ -90,6 +98,8 @@ class _ObraDetailScreenState extends State<ObraDetailScreen> {
                 children: [
                   _buildObraHeader(),
                   const SizedBox(height: 16),
+                  _buildPipelineButton(),
+                  const SizedBox(height: 12),
                   _buildTabs(),
                 ],
               ),
@@ -110,6 +120,8 @@ class _ObraDetailScreenState extends State<ObraDetailScreen> {
           children: [
             _buildObraHeader(),
             const SizedBox(height: 16),
+            _buildPipelineButton(),
+            const SizedBox(height: 12),
             _buildTabs(),
             const SizedBox(height: 16),
             _buildTabContent(),
@@ -270,17 +282,41 @@ class _ObraDetailScreenState extends State<ObraDetailScreen> {
   }
 
   // 2. TABS DE NAVEGACIÓN (CORREGIDO: Scroll con espacio extra al final)
+  Widget _buildPipelineButton() {
+    return SizedBox(
+      width: double.infinity,
+      height: 48,
+      child: ElevatedButton.icon(
+        onPressed: () => setState(() => _showPipeline = true),
+        icon: const Icon(Icons.view_timeline_outlined, size: 19),
+        label: const Text('Vista de pipeline',
+            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+        style: ElevatedButton.styleFrom(
+          backgroundColor:
+              _showPipeline ? AppColors.naranja : AppColors.noseleccionado,
+          foregroundColor: _showPipeline ? Colors.white : AppColors.gris,
+          alignment: Alignment.centerLeft,
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+        ),
+      ),
+    );
+  }
+
  Widget _buildTabs() {
   final tabs = ['ACTIVIDADES', 'BITÁCORA', 'MATERIALES', 'EVIDENCIAS', 'REPORTES'];
   
   return Row(
     children: List.generate(tabs.length, (index) {
-      final isSelected = _selectedTabIndex == index;
+      final isSelected = !_showPipeline && _selectedTabIndex == index;
       return Expanded(
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 2.0),
           child: GestureDetector(
-            onTap: () => setState(() => _selectedTabIndex = index),
+            onTap: () => setState(() {
+              _selectedTabIndex = index;
+              _showPipeline = false;
+            }),
             child: Container(
               padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 4),
               decoration: BoxDecoration(
@@ -658,6 +694,21 @@ Widget _buildActividadesSection() {
   }
 
   Widget _buildTabContent() {
+  if (_showPipeline) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _buildActionBar(),
+        const SizedBox(height: 16),
+        PipelineActividadesSection(
+          actividades: _actividades,
+          fases: _fases,
+          faseSeleccionada: _faseSeleccionada,
+        ),
+      ],
+    );
+  }
+
   return IndexedStack(
     index: _selectedTabIndex,
     children: [
