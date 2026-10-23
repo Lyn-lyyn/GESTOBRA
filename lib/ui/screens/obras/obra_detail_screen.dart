@@ -83,16 +83,38 @@ class _ObraDetailScreenState extends State<ObraDetailScreen> {
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: _buildAppBar(),
-    body: _isDesktop(context)
-    // ============ VISTA DE ESCRITORIO ============
-    ? SingleChildScrollView(
-        padding: const EdgeInsets.all(16.0),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Columna IZQUIERDA: Cabecera + Tabs
-            SizedBox(
-              width: 420, // Ancho fijo para la columna izquierda
+      body: _isDesktop(context)
+          // ============ VISTA DE ESCRITORIO ============
+          ? SingleChildScrollView(
+              padding: const EdgeInsets.all(16.0),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Columna IZQUIERDA: Cabecera + Tabs
+                  SizedBox(
+                    width: 420,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        _buildObraHeader(),
+                        const SizedBox(height: 16),
+                        _buildPipelineButton(),
+                        const SizedBox(height: 12),
+                        _buildTabs(),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(width: 16),
+                  // Columna DERECHA: Contenido del tab
+                  Expanded(
+                    child: _buildTabContent(),
+                  ),
+                ],
+              ),
+            )
+          // ============ VISTA DE MÓVIL ============
+          : SingleChildScrollView(
+              padding: const EdgeInsets.all(16.0),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -101,68 +123,11 @@ class _ObraDetailScreenState extends State<ObraDetailScreen> {
                   _buildPipelineButton(),
                   const SizedBox(height: 12),
                   _buildTabs(),
+                  const SizedBox(height: 16),
+                  _buildTabContent(),
                 ],
               ),
             ),
-            const SizedBox(width: 16),
-            // Columna DERECHA: Contenido del tab
-            Expanded(
-              child: _buildTabContent(),
-            ),
-          ],
-        ),
-      )
-    // ============ VISTA DE MÓVIL (como está actualmente) ============
-    : SingleChildScrollView(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            _buildObraHeader(),
-            const SizedBox(height: 16),
-            _buildPipelineButton(),
-            const SizedBox(height: 12),
-            _buildTabs(),
-            const SizedBox(height: 16),
-            _buildTabContent(),
-          ],
-        ),
-      ),
-    );
-  }
-
-  // NUEVO SELECTOR CON BOTONES
-  Widget _buildSelectorTiempo() {
-    final opciones = ['Diario', 'Semanal', 'Quincenal', 'Acumulado'];
-
-    return Wrap(
-      spacing: 8,
-      runSpacing: 8,
-      children: opciones.map((opcion) {
-        final isSelected = _tipoReporte == opcion;
-        return GestureDetector(
-          onTap: () => setState(() => _tipoReporte = opcion),
-          child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-            decoration: BoxDecoration(
-              color: isSelected ? AppColors.naranja : AppColors.blanco,
-              borderRadius: BorderRadius.circular(20),
-              border: Border.all(
-                color: isSelected ? AppColors.naranja : AppColors.gris,
-                width: 1.2,
-              ),
-            ),
-            child: Text(
-              opcion,
-              style: TextStyle(
-                fontSize: 12,
-                fontWeight: FontWeight.bold,
-                color: isSelected ? Colors.white : AppColors.textoGris,
-              ),
-            ),
-          ),
-        );
-      }).toList(),
     );
   }
 
@@ -203,8 +168,7 @@ class _ObraDetailScreenState extends State<ObraDetailScreen> {
     );
   }
 
-  // ... (El resto de los métodos: _buildObraHeader, _buildTabs, _buildActionBar, _buildFaseDropdown, _buildNuevaActividadButton, _abrirModalNuevaActividad, _buildFasesResumen, _buildFaseCard, _buildActividadCard, _buildActividadesSection, _buildBadge, _buildIconText, _buildTabContent se quedan exactamente igual que en tu código anterior)
-  
+  // 1. CABECERA DE LA OBRA
   Widget _buildObraHeader() {
     return Container(
       width: double.infinity,
@@ -262,13 +226,13 @@ class _ObraDetailScreenState extends State<ObraDetailScreen> {
               children: [
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.center,
-                  children: [
-                    const Text(
+                  children: const [
+                    Text(
                       'AVANCE GENERAL',
                       style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: AppColors.gris),
                     ),
-                    const SizedBox(height: 4),
-                    const Text(
+                    SizedBox(height: 4),
+                    Text(
                       '40%',
                       style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: AppColors.naranja),
                     ),
@@ -288,10 +252,10 @@ class _ObraDetailScreenState extends State<ObraDetailScreen> {
                           ),
                           child: ClipRRect(
                             borderRadius: BorderRadius.circular(4),
-                            child: LinearProgressIndicator(
+                            child: const LinearProgressIndicator(
                               value: 0.40,
-                              backgroundColor: Colors.grey.shade200,
-                              valueColor: const AlwaysStoppedAnimation<Color>(AppColors.naranja),
+                              backgroundColor: Colors.white,
+                              valueColor: AlwaysStoppedAnimation<Color>(AppColors.naranja),
                               minHeight: 8,
                             ),
                           ),
@@ -313,7 +277,6 @@ class _ObraDetailScreenState extends State<ObraDetailScreen> {
     );
   }
 
-  // 2. TABS DE NAVEGACIÓN (CORREGIDO: Scroll con espacio extra al final)
   Widget _buildPipelineButton() {
     return SizedBox(
       width: double.infinity,
@@ -324,8 +287,7 @@ class _ObraDetailScreenState extends State<ObraDetailScreen> {
         label: const Text('Vista de pipeline',
             style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
         style: ElevatedButton.styleFrom(
-          backgroundColor:
-              _showPipeline ? AppColors.naranja : AppColors.noseleccionado,
+          backgroundColor: _showPipeline ? AppColors.naranja : AppColors.noseleccionado,
           foregroundColor: _showPipeline ? Colors.white : AppColors.gris,
           alignment: Alignment.centerLeft,
           padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -335,44 +297,44 @@ class _ObraDetailScreenState extends State<ObraDetailScreen> {
     );
   }
 
- Widget _buildTabs() {
-  final tabs = ['ACTIVIDADES', 'BITÁCORA', 'MATERIALES', 'EVIDENCIAS', 'REPORTES'];
-  
-  return Row(
-    children: List.generate(tabs.length, (index) {
-      final isSelected = !_showPipeline && _selectedTabIndex == index;
-      return Expanded(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 2.0),
-          child: GestureDetector(
-            onTap: () => setState(() {
-              _selectedTabIndex = index;
-              _showPipeline = false;
-            }),
-            child: Container(
-              padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 4),
-              decoration: BoxDecoration(
-                color: isSelected ? AppColors.naranja : AppColors.noseleccionado,
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Center(
-                child: Text(
-                  tabs[index],
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    fontSize: 10,
-                    fontWeight: FontWeight.bold,
-                    color: isSelected ? Colors.white : AppColors.gris,
+  Widget _buildTabs() {
+    final tabs = ['ACTIVIDADES', 'BITÁCORA', 'MATERIALES', 'EVIDENCIAS', 'REPORTES'];
+
+    return Row(
+      children: List.generate(tabs.length, (index) {
+        final isSelected = !_showPipeline && _selectedTabIndex == index;
+        return Expanded(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 2.0),
+            child: GestureDetector(
+              onTap: () => setState(() {
+                _selectedTabIndex = index;
+                _showPipeline = false;
+              }),
+              child: Container(
+                padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 4),
+                decoration: BoxDecoration(
+                  color: isSelected ? AppColors.naranja : AppColors.noseleccionado,
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Center(
+                  child: Text(
+                    tabs[index],
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      fontSize: 10,
+                      fontWeight: FontWeight.bold,
+                      color: isSelected ? Colors.white : AppColors.gris,
+                    ),
                   ),
                 ),
               ),
             ),
           ),
-        ),
-      );
-    }),
-  );
-}
+        );
+      }),
+    );
+  }
 
   Widget _buildActionBar() {
     return Container(
@@ -411,7 +373,7 @@ class _ObraDetailScreenState extends State<ObraDetailScreen> {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 12),
         decoration: BoxDecoration(
-          color: const Color(0xFFE0E0E0),
+          color: AppColors.noseleccionado,
           borderRadius: BorderRadius.circular(8),
         ),
         child: DropdownButton<String>(
@@ -472,20 +434,17 @@ class _ObraDetailScreenState extends State<ObraDetailScreen> {
     return LayoutBuilder(
       builder: (context, constraints) {
         final isDesktop = constraints.maxWidth > 900;
-        
+
         if (isDesktop) {
           return Wrap(
             spacing: 12,
             runSpacing: 12,
             children: _fases.map((fase) {
-              return SizedBox(
-                width: 200,
-                child: _buildFaseCard(fase),
-              );
+              return SizedBox(width: 200, child: _buildFaseCard(fase));
             }).toList(),
           );
         }
-        
+
         return Row(
           children: _fases.map((fase) {
             return Expanded(child: _buildFaseCard(fase));
@@ -680,7 +639,7 @@ class _ObraDetailScreenState extends State<ObraDetailScreen> {
             style: TextStyle(
               fontSize: 10,
               fontWeight: FontWeight.bold,
-              color: isOutlined ? color : color,
+              color: color,
             ),
           ),
         ],
@@ -705,47 +664,48 @@ class _ObraDetailScreenState extends State<ObraDetailScreen> {
     );
   }
 
+  // 🔥 AQUÍ ESTABA EL PROBLEMA DE SINTAXIS, YA ESTÁ CORREGIDO
   Widget _buildTabContent() {
-  if (_showPipeline) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        _buildActionBar(),
-        const SizedBox(height: 16),
-        PipelineActividadesSection(
-          actividades: _actividades,
-          fases: _fases,
-          faseSeleccionada: _faseSeleccionada,
-        ),
-      ],
-    );
-  }
-
-  return IndexedStack(
-    index: _selectedTabIndex,
-    children: [
-      Column(
+    if (_showPipeline) {
+      return Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           _buildActionBar(),
           const SizedBox(height: 16),
-          _buildFasesResumen(),
-          const SizedBox(height: 20),
-          _buildActividadesSection(),
+          PipelineActividadesSection(
+            actividades: _actividades,
+            fases: _fases,
+            faseSeleccionada: _faseSeleccionada,
+          ),
         ],
       );
-    } else if (_selectedTabIndex == 1) {
-      return BitacoraSection(obra: widget.obra);
-    } else if (_selectedTabIndex == 2) {
-      return MaterialesSection(obra: widget.obra);
-    } else if (_selectedTabIndex == 3) {
-      return EvidenciasSection(obra: widget.obra, fasesDisponibles: _fases);
-    } else if (_selectedTabIndex == 4) {
-      return ReportesSection(
-        obra: widget.obra,
-        tipoReporteInicial: _tipoReporte, 
-      );
     }
-    return const SizedBox.shrink();
+
+    // Usamos IndexedStack para mantener el estado de las pestañas al cambiar
+    return IndexedStack(
+      index: _selectedTabIndex,
+      children: [
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            _buildActionBar(),
+            const SizedBox(height: 16),
+            _buildFasesResumen(),
+            const SizedBox(height: 20),
+            _buildActividadesSection(),
+          ],
+        ),
+        BitacoraSection(obra: widget.obra),
+        MaterialesSection(obra: widget.obra),
+        EvidenciasSection(
+          obra: widget.obra,
+          fasesDisponibles: _fases,
+        ),
+        ReportesSection(
+          obra: widget.obra,
+          tipoReporteInicial: _tipoReporte,
+        ),
+      ],
+    );
   }
 }
