@@ -10,12 +10,52 @@ class AdminObrasScreen extends StatefulWidget {
 }
 
 class _AdminObrasScreenState extends State<AdminObrasScreen> {
-  // Datos mock
+  // Datos mock con los nuevos campos
   final List<Map<String, dynamic>> _obras = [
-    {'codigo': 'OBRA-001', 'titulo': 'Edificio Corporativo', 'residente': 'Sin asignar', 'estado': 'Pendiente'},
-    {'codigo': 'OBRA-002', 'titulo': 'Vivienda 2 Plantas', 'residente': 'Ing. Laura Sánchez', 'estado': 'En Proceso'},
-    {'codigo': 'OBRA-003', 'titulo': 'Pavimentación Municipal', 'residente': 'Ing. Carlos Márquez', 'estado': 'En Proceso'},
-    {'codigo': 'OBRA-004', 'titulo': 'Ampliación de Bodega Industrial', 'residente': 'Sin asignar', 'estado': 'Pendiente'},
+    {
+      'codigo': 'OBRA-001', 
+      'titulo': 'Edificio Corporativo', 
+      'cliente': 'Inmobiliaria del Golfo',
+      'ubicacion': 'Boca del Río, Veracruz',
+      'descripcion': 'Edificio de oficinas de 4 niveles con estacionamiento subterráneo.',
+      'fechaInicio': '01/10/2026',
+      'fechaTermino': '30/04/2027',
+      'residente': 'Sin asignar', 
+      'estado': 'Pendiente'
+    },
+    {
+      'codigo': 'OBRA-002', 
+      'titulo': 'Vivienda 2 Plantas', 
+      'cliente': 'Sr. Juan Pérez',
+      'ubicacion': 'Cuitláhuac, Veracruz',
+      'descripcion': 'Construcción de vivienda residencial unifamiliar de 2 plantas.',
+      'fechaInicio': '15/09/2026',
+      'fechaTermino': '15/01/2027',
+      'residente': 'Ing. Laura Sánchez', 
+      'estado': 'En Proceso'
+    },
+    {
+      'codigo': 'OBRA-003', 
+      'titulo': 'Pavimentación Municipal', 
+      'cliente': 'Gobierno municipal',
+      'ubicacion': 'Cuitláhuac, Veracruz',
+      'descripcion': 'Pavimentación con concreto hidráulico en calle principal.',
+      'fechaInicio': '01/08/2026',
+      'fechaTermino': '30/11/2026',
+      'residente': 'Ing. Carlos Márquez', 
+      'estado': 'En Proceso'
+    },
+    {
+      'codigo': 'OBRA-004', 
+      'titulo': 'Ampliación de Bodega Industrial', 
+      'cliente': 'Logística del Sureste',
+      'ubicacion': 'Manzanillo, Colima',
+      'descripcion': 'Ampliación de nave industrial de 500 m2 con estructura metálica.',
+      'fechaInicio': '10/11/2026',
+      'fechaTermino': '10/03/2027',
+      'residente': 'Sin asignar', 
+      'estado': 'Pendiente'
+    },
   ];
 
   final List<String> _residentesDisponibles = [
@@ -73,60 +113,249 @@ class _AdminObrasScreenState extends State<AdminObrasScreen> {
 
   void _abrirModalNuevaObra() {
     final formKey = GlobalKey<FormState>();
+    
+    // Controladores
     final tituloCtrl = TextEditingController();
     final clienteCtrl = TextEditingController();
+    final ubicacionCtrl = TextEditingController();
+    final descripcionCtrl = TextEditingController();
+    final fechaInicioCtrl = TextEditingController();
+    final fechaFinCtrl = TextEditingController();
+    final otraFaseCtrl = TextEditingController();
+
+    DateTime? fechaInicio;
+    DateTime? fechaFin;
+
+    // Fases
+    final List<String> fasesBase = [
+      'Preliminares',
+      'Cimentación',
+      'Estructura',
+      'Albañilería',
+      'Instalaciones',
+      'Acabados y pruebas',
+    ];
+    final Set<String> fasesSeleccionadas = {};
+    final List<String> fasesPersonalizadas = [];
 
     showDialog(
       context: context,
+      barrierDismissible: false,
       builder: (context) {
-        return AlertDialog(
-          title: const Text('Registrar Nueva Obra'),
-          content: SizedBox(
-            width: 400,
-            child: Form(
-              key: formKey,
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  TextFormField(
-                    controller: tituloCtrl,
-                    decoration: const InputDecoration(labelText: 'Nombre de la Obra', border: OutlineInputBorder()),
-                    validator: (v) => v!.isEmpty ? 'Requerido' : null,
-                  ),
-                  const SizedBox(height: 12),
-                  TextFormField(
-                    controller: clienteCtrl,
-                    decoration: const InputDecoration(labelText: 'Cliente', border: OutlineInputBorder()),
-                    validator: (v) => v!.isEmpty ? 'Requerido' : null,
-                  ),
-                ],
-              ),
-            ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context), 
-              child: const Text('Cancelar', style: TextStyle(color: AppColors.textoGris)),
-            ),
-            ElevatedButton(
-              onPressed: () {
-                if (formKey.currentState!.validate()) {
-                  setState(() {
-                    _obras.add({
-                      'codigo': 'OBRA-00${_obras.length + 1}',
-                      'titulo': tituloCtrl.text,
-                      'residente': 'Sin asignar',
-                      'estado': 'Pendiente',
-                    });
+        return StatefulBuilder(
+          builder: (context, setModalState) {
+            
+            Future<void> seleccionarFecha(bool esInicio) async {
+              final fecha = await showDatePicker(
+                context: context,
+                initialDate: DateTime.now(),
+                firstDate: DateTime(2020),
+                lastDate: DateTime(2100),
+                helpText: esInicio ? 'Fecha de inicio' : 'Fecha de término',
+                cancelText: 'Cancelar',
+                confirmText: 'Aceptar',
+              );
+              if (fecha != null) {
+                setModalState(() {
+                  if (esInicio) {
+                    fechaInicio = fecha;
+                    fechaInicioCtrl.text = '${fecha.day.toString().padLeft(2, '0')}/${fecha.month.toString().padLeft(2, '0')}/${fecha.year}';
+                  } else {
+                    fechaFin = fecha;
+                    fechaFinCtrl.text = '${fecha.day.toString().padLeft(2, '0')}/${fecha.month.toString().padLeft(2, '0')}/${fecha.year}';
+                  }
+                });
+              }
+            }
+
+            void agregarOtraFase() {
+              final texto = otraFaseCtrl.text.trim();
+              if (texto.isEmpty) return;
+              if (fasesBase.contains(texto) || fasesPersonalizadas.contains(texto)) {
+                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Esa fase ya está en la lista')));
+                return;
+              }
+              setModalState(() {
+                fasesPersonalizadas.add(texto);
+                fasesSeleccionadas.add(texto);
+                otraFaseCtrl.clear();
+              });
+            }
+
+            Widget buildChip(String fase) {
+              final sel = fasesSeleccionadas.contains(fase);
+              return FilterChip(
+                label: Text(fase, style: const TextStyle(fontSize: 11)),
+                selected: sel,
+                selectedColor: AppColors.naranja.withValues(alpha: 0.2),
+                checkmarkColor: AppColors.naranja,
+                side: BorderSide(color: sel ? AppColors.naranja : AppColors.gris),
+                onSelected: (v) {
+                  setModalState(() {
+                    if (v) {
+                      fasesSeleccionadas.add(fase);
+                    } else {
+                      fasesSeleccionadas.remove(fase);
+                    }
                   });
-                  Navigator.pop(context);
-                  ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Obra registrada correctamente')));
-                }
-              },
-              style: ElevatedButton.styleFrom(backgroundColor: AppColors.naranja),
-              child: const Text('Guardar'),
-            ),
-          ],
+                },
+              );
+            }
+
+            return AlertDialog(
+              title: const Text('Registrar Nueva Obra'),
+              content: SizedBox(
+                width: 520,
+                child: Form(
+                  key: formKey,
+                  child: SingleChildScrollView(
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        TextFormField(
+                          controller: tituloCtrl,
+                          decoration: const InputDecoration(labelText: 'Nombre de la Obra *', border: OutlineInputBorder()),
+                          validator: (v) => v!.isEmpty ? 'Requerido' : null,
+                        ),
+                        const SizedBox(height: 12),
+                        TextFormField(
+                          controller: clienteCtrl,
+                          decoration: const InputDecoration(labelText: 'Cliente *', border: OutlineInputBorder()),
+                          validator: (v) => v!.isEmpty ? 'Requerido' : null,
+                        ),
+                        const SizedBox(height: 12),
+                        
+                        // Ubicación
+                        TextFormField(
+                          controller: ubicacionCtrl,
+                          decoration: const InputDecoration(labelText: 'Ubicación de la obra *', border: OutlineInputBorder(), prefixIcon: Icon(Icons.location_on_outlined)),
+                          validator: (v) => v!.isEmpty ? 'Requerido' : null,
+                        ),
+                        const SizedBox(height: 12),
+
+                        // Descripción
+                        TextFormField(
+                          controller: descripcionCtrl,
+                          maxLines: 3,
+                          decoration: const InputDecoration(labelText: 'Descripción de la obra', border: OutlineInputBorder(), prefixIcon: Icon(Icons.description_outlined)),
+                        ),
+                        const SizedBox(height: 12),
+
+                        // Fechas
+                        Row(
+                          children: [
+                            Expanded(
+                              child: TextFormField(
+                                controller: fechaInicioCtrl,
+                                readOnly: true,
+                                onTap: () => seleccionarFecha(true),
+                                decoration: const InputDecoration(labelText: 'Fecha de inicio *', border: OutlineInputBorder(), prefixIcon: Icon(Icons.calendar_today_outlined)),
+                                validator: (v) => v!.isEmpty ? 'Requerido' : null,
+                              ),
+                            ),
+                            const SizedBox(width: 10),
+                            Expanded(
+                              child: TextFormField(
+                                controller: fechaFinCtrl,
+                                readOnly: true,
+                                onTap: () => seleccionarFecha(false),
+                                decoration: const InputDecoration(labelText: 'Fecha de término *', border: OutlineInputBorder(), prefixIcon: Icon(Icons.event_available_outlined)),
+                                validator: (v) => v!.isEmpty ? 'Requerido' : null,
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 16),
+
+                        // Fases
+                        const Text('Fases que abarcará el trabajo *', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+                        const SizedBox(height: 8),
+                        Container(
+                          width: double.infinity,
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(
+                            color: AppColors.blanco,
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(color: AppColors.gris),
+                          ),
+                          child: Wrap(
+                            spacing: 8,
+                            runSpacing: 8,
+                            children: [
+                              ...fasesBase.map(buildChip),
+                              ...fasesPersonalizadas.map(buildChip),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(height: 12),
+
+                        // Agregar otra fase
+                        Row(
+                          children: [
+                            Expanded(
+                              child: TextFormField(
+                                controller: otraFaseCtrl,
+                                decoration: const InputDecoration(labelText: 'Otra fase (opcional)', border: OutlineInputBorder(), prefixIcon: Icon(Icons.add_circle_outline)),
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            SizedBox(
+                              height: 50,
+                              child: ElevatedButton(
+                                onPressed: agregarOtraFase,
+                                style: ElevatedButton.styleFrom(backgroundColor: AppColors.naranja),
+                                child: const Text('Añadir'),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(context), 
+                  child: const Text('Cancelar', style: TextStyle(color: AppColors.textoGris)),
+                ),
+                ElevatedButton(
+                  onPressed: () {
+                    if (formKey.currentState!.validate()) {
+                      if (fechaFin != null && fechaInicio != null && fechaFin!.isBefore(fechaInicio!)) {
+                        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('La fecha de término no puede ser anterior a la de inicio')));
+                        return;
+                      }
+                      if (fasesSeleccionadas.isEmpty) {
+                        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Selecciona al menos una fase')));
+                        return;
+                      }
+
+                      setState(() {
+                        _obras.add({
+                          'codigo': 'OBRA-00${_obras.length + 1}',
+                          'titulo': tituloCtrl.text,
+                          'cliente': clienteCtrl.text,
+                          'ubicacion': ubicacionCtrl.text,
+                          'descripcion': descripcionCtrl.text,
+                          'fechaInicio': fechaInicioCtrl.text,
+                          'fechaTermino': fechaFinCtrl.text,
+                          'fases': fasesSeleccionadas.toList(),
+                          'residente': 'Sin asignar',
+                          'estado': 'Pendiente',
+                        });
+                      });
+                      Navigator.pop(context);
+                      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Obra registrada correctamente')));
+                    }
+                  },
+                  style: ElevatedButton.styleFrom(backgroundColor: AppColors.naranja),
+                  child: const Text('Guardar'),
+                ),
+              ],
+            );
+          },
         );
       },
     );
@@ -151,19 +380,16 @@ class _AdminObrasScreenState extends State<AdminObrasScreen> {
       ),
       body: Center(
         child: ConstrainedBox(
-          // Aumentamos el límite para aprovechar pantallas grandes
           constraints: const BoxConstraints(maxWidth: 1400),
           child: LayoutBuilder(
             builder: (context, constraints) {
               return GridView.builder(
                 padding: const EdgeInsets.all(20),
-                // Aquí está la magia: definimos un ancho máximo por tarjeta (380px)
-                // Flutter calculará automáticamente cuántas columnas caben
                 gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
                   maxCrossAxisExtent: 380, 
                   crossAxisSpacing: 16,
                   mainAxisSpacing: 16,
-                  mainAxisExtent: 210, // Altura fija ideal para el contenido
+                  mainAxisExtent: 290, // <-- Altura aumentada para albergar los nuevos datos
                 ),
                 itemCount: _obras.length,
                 itemBuilder: (context, index) {
@@ -214,29 +440,58 @@ class _AdminObrasScreenState extends State<AdminObrasScreen> {
                           ),
                         ),
                         
-                        // ─── Cuerpo Tarjeta ───
+                        // ─── Cuerpo Tarjeta (NUEVOS DATOS) ───
                         Expanded(
                           child: Padding(
-                            padding: const EdgeInsets.all(16),
+                            padding: const EdgeInsets.all(14),
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
+                                // Título
                                 Text(
                                   obra['titulo'], 
                                   style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: AppColors.textoNegro), 
-                                  maxLines: 2, 
+                                  maxLines: 1, 
                                   overflow: TextOverflow.ellipsis
                                 ),
+                                const SizedBox(height: 4),
+                                
+                                // Cliente
+                                Text(
+                                  obra['cliente'] ?? 'Cliente no definido', 
+                                  style: const TextStyle(fontWeight: FontWeight.w500, fontSize: 12, color: AppColors.textoGris), 
+                                  maxLines: 1, 
+                                  overflow: TextOverflow.ellipsis
+                                ),
+                                const SizedBox(height: 10),
+
+                                // Ubicación
+                                _buildIconRow(Icons.location_on_outlined, obra['ubicacion'] ?? 'Sin ubicación'),
+                                const SizedBox(height: 6),
+                                
+                                // Descripción
+                                _buildIconRow(Icons.description_outlined, obra['descripcion'] ?? 'Sin descripción', maxLines: 2),
+                                const SizedBox(height: 6),
+                                
+                                // Fechas
+                                _buildIconRow(Icons.calendar_today_outlined, 
+                                  (obra['fechaInicio'] != null && obra['fechaTermino'] != null) 
+                                    ? '${obra['fechaInicio']} al ${obra['fechaTermino']}'
+                                    : 'Fechas sin definir'
+                                ),
+                                
                                 const Spacer(),
+                                
+                                // Residente
                                 Row(
                                   children: [
                                     const Icon(Icons.person_outline, size: 16, color: AppColors.textoGris),
-                                    const SizedBox(width: 8),
+                                    const SizedBox(width: 6),
                                     Expanded(
                                       child: Text(
                                         sinAsignar ? 'Sin residente asignado' : obra['residente'],
                                         style: TextStyle(
-                                          fontSize: 13, 
+                                          fontSize: 12, 
                                           fontWeight: FontWeight.w600, 
                                           color: sinAsignar ? AppColors.estadoRojo : AppColors.textoNegro
                                         ),
@@ -282,7 +537,7 @@ class _AdminObrasScreenState extends State<AdminObrasScreen> {
                                     children: [
                                       Icon(Icons.visibility, size: 16, color: AppColors.textoGris),
                                       SizedBox(width: 6),
-                                      Text('Detalle', style: TextStyle(color: AppColors.textoGris, fontWeight: FontWeight.bold, fontSize: 12)),
+                                      Text('Ver Detalle', style: TextStyle(color: AppColors.textoGris, fontWeight: FontWeight.bold, fontSize: 12)),
                                     ],
                                   ),
                                 ),
@@ -299,6 +554,25 @@ class _AdminObrasScreenState extends State<AdminObrasScreen> {
           ),
         ),
       ),
+    );
+  }
+
+  // ─── Helper para crear las filas con ícono ───
+  Widget _buildIconRow(IconData icon, String text, {int maxLines = 1}) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Icon(icon, size: 14, color: AppColors.textoGris),
+        const SizedBox(width: 6),
+        Expanded(
+          child: Text(
+            text,
+            maxLines: maxLines,
+            overflow: TextOverflow.ellipsis,
+            style: const TextStyle(fontSize: 11, color: AppColors.textoGris, height: 1.3),
+          ),
+        ),
+      ],
     );
   }
 }
