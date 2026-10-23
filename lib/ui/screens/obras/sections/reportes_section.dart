@@ -61,20 +61,8 @@ class _ReportesSectionState extends State<ReportesSection> {
       'avanceAlbanileria': 0,
       'avanceGeneral': 25,
       'actividades': [
-        {
-          'actividad': 'Limpieza y desmonte del terreno', 
-          'fase': 'Preliminares', 
-          'responsable': 'Cuadrilla 1 - Don Pedro', 
-          'avance': 100,
-          'materiales_usados': 'Herramienta menor, combustible'
-        },
-        {
-          'actividad': 'Trazo y nivelación topográfica', 
-          'fase': 'Preliminares', 
-          'responsable': 'Topógrafo Miguel', 
-          'avance': 100,
-          'materiales_usados': 'Cal, estacas, hilo'
-        },
+        {'actividad': 'Limpieza y desmonte del terreno', 'fase': 'Preliminares', 'responsable': 'Cuadrilla 1 - Don Pedro', 'avance': 100, 'materiales_usados': 'Herramienta menor, combustible'},
+        {'actividad': 'Trazo y nivelación topográfica', 'fase': 'Preliminares', 'responsable': 'Topógrafo Miguel', 'avance': 100, 'materiales_usados': 'Cal, estacas, hilo'},
       ],
       'materiales': [
         {'material': 'Cemento Gris Portland CPC 30R', 'cantidad': 10, 'unidad': 'Bultos'},
@@ -114,20 +102,8 @@ class _ReportesSectionState extends State<ReportesSection> {
       'avanceAlbanileria': 0,
       'avanceGeneral': 28,
       'actividades': [
-        {
-          'actividad': 'Limpieza y desmonte del terreno', 
-          'fase': 'Preliminares', 
-          'responsable': 'Cuadrilla 1 - Don Pedro', 
-          'avance': 100,
-          'materiales_usados': 'Herramienta menor, combustible'
-        },
-        {
-          'actividad': 'Armado de acero en zapatas y dados', 
-          'fase': 'Cimentación', 
-          'responsable': 'Fierrero Juan y ayudante', 
-          'avance': 85,
-          'materiales_usados': 'Varilla 3/8, alambre recocido'
-        },
+        {'actividad': 'Limpieza y desmonte del terreno', 'fase': 'Preliminares', 'responsable': 'Cuadrilla 1 - Don Pedro', 'avance': 100, 'materiales_usados': 'Herramienta menor, combustible'},
+        {'actividad': 'Armado de acero en zapatas y dados', 'fase': 'Cimentación', 'responsable': 'Fierrero Juan y ayudante', 'avance': 85, 'materiales_usados': 'Varilla 3/8, alambre recocido'},
       ],
       'materiales': [
         {'material': 'Cemento Gris Portland CPC 30R', 'cantidad': 40, 'unidad': 'Bultos'},
@@ -273,7 +249,6 @@ class _ReportesSectionState extends State<ReportesSection> {
                         SizedBox(height: pad * 0.75),
                         ReporteMaterialesTabla(datos: _datosReporte),
                         
-                        // ─── NUEVAS SECCIONES WEB ───
                         SizedBox(height: pad * 0.75),
                         _buildPersonalYMaquinariaWeb(),
                         SizedBox(height: pad * 0.75),
@@ -282,7 +257,6 @@ class _ReportesSectionState extends State<ReportesSection> {
                         SizedBox(height: pad * 0.75),
                         ReporteEvidenciasGrid(datos: _datosReporte),
                         
-                        // ─── NOTAS GENERALES ───
                         SizedBox(height: pad * 0.75),
                         _buildNotasGeneralesWeb(),
 

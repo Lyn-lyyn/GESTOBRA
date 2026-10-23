@@ -84,13 +84,11 @@ class _ObraDetailScreenState extends State<ObraDetailScreen> {
       backgroundColor: Colors.white,
       appBar: _buildAppBar(),
       body: _isDesktop(context)
-          // ============ VISTA DE ESCRITORIO ============
           ? SingleChildScrollView(
               padding: const EdgeInsets.all(16.0),
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Columna IZQUIERDA: Cabecera + Tabs
                   SizedBox(
                     width: 420,
                     child: Column(
@@ -101,18 +99,22 @@ class _ObraDetailScreenState extends State<ObraDetailScreen> {
                         _buildPipelineButton(),
                         const SizedBox(height: 12),
                         _buildTabs(),
+                        
+                        // AQUÍ ESTÁN TUS BOTONES
+                        if (_selectedTabIndex == 4 && !_showPipeline) ...[
+                          const SizedBox(height: 16),
+                          _buildSelectorTiempo(),
+                        ],
                       ],
                     ),
                   ),
                   const SizedBox(width: 16),
-                  // Columna DERECHA: Contenido del tab
                   Expanded(
                     child: _buildTabContent(),
                   ),
                 ],
               ),
             )
-          // ============ VISTA DE MÓVIL ============
           : SingleChildScrollView(
               padding: const EdgeInsets.all(16.0),
               child: Column(
@@ -123,11 +125,52 @@ class _ObraDetailScreenState extends State<ObraDetailScreen> {
                   _buildPipelineButton(),
                   const SizedBox(height: 12),
                   _buildTabs(),
+                  
+                  // AQUÍ ESTÁN TUS BOTONES EN MÓVIL
+                  if (_selectedTabIndex == 4 && !_showPipeline) ...[
+                    const SizedBox(height: 16),
+                    _buildSelectorTiempo(),
+                  ],
+                  
                   const SizedBox(height: 16),
                   _buildTabContent(),
                 ],
               ),
             ),
+    );
+  }
+
+  Widget _buildSelectorTiempo() {
+    final opciones = ['Diario', 'Semanal', 'Quincenal', 'Acumulado'];
+
+    return Wrap(
+      spacing: 8,
+      runSpacing: 8,
+      children: opciones.map((opcion) {
+        final isSelected = _tipoReporte == opcion;
+        return GestureDetector(
+          onTap: () => setState(() => _tipoReporte = opcion),
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+            decoration: BoxDecoration(
+              color: isSelected ? AppColors.naranja : AppColors.blanco,
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(
+                color: isSelected ? AppColors.naranja : AppColors.gris,
+                width: 1.2,
+              ),
+            ),
+            child: Text(
+              opcion,
+              style: TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.bold,
+                color: isSelected ? Colors.white : AppColors.textoGris,
+              ),
+            ),
+          ),
+        );
+      }).toList(),
     );
   }
 
@@ -168,7 +211,6 @@ class _ObraDetailScreenState extends State<ObraDetailScreen> {
     );
   }
 
-  // 1. CABECERA DE LA OBRA
   Widget _buildObraHeader() {
     return Container(
       width: double.infinity,
@@ -664,7 +706,6 @@ class _ObraDetailScreenState extends State<ObraDetailScreen> {
     );
   }
 
-  // 🔥 AQUÍ ESTABA EL PROBLEMA DE SINTAXIS, YA ESTÁ CORREGIDO
   Widget _buildTabContent() {
     if (_showPipeline) {
       return Column(
@@ -681,7 +722,6 @@ class _ObraDetailScreenState extends State<ObraDetailScreen> {
       );
     }
 
-    // Usamos IndexedStack para mantener el estado de las pestañas al cambiar
     return IndexedStack(
       index: _selectedTabIndex,
       children: [
