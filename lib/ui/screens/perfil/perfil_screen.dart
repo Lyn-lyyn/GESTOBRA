@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:gestobra/config/theme/app_colors.dart';
+import 'package:gestobra/ui/screens/auth/login_screen.dart';
 
 class PerfilScreen extends StatefulWidget {
   const PerfilScreen({super.key});
@@ -14,8 +15,8 @@ class _PerfilScreenState extends State<PerfilScreen> {
     'nombre': 'Tilín Martínez Cruz',
     'puesto': 'Ing. Residente de Obra',
     'idEmpleado': '#892173',
-    'especialidad': 'Construcción Civil', // Restaurado
-    'vigencia': '2026 - 2027',            // Restaurado
+    'especialidad': 'Construcción Civil',
+    'vigencia': '2026 - 2027',
     'edad': '32 años',
     'fechaNacimiento': '15 de Marzo de 1994',
     'curp': 'MACR940315HDFRZN01',
@@ -44,11 +45,11 @@ class _PerfilScreenState extends State<PerfilScreen> {
     final desktop = _isDesktop(context);
 
     return Scaffold(
-      backgroundColor: AppColors.blanco,
+      backgroundColor: desktop ? const Color(0xFFF9F9FB) : AppColors.blanco,
       body: SafeArea(
         child: LayoutBuilder(
           builder: (context, constraints) {
-            final double pad = (constraints.maxWidth * 0.02).clamp(16.0, 24.0);
+            final double pad = (constraints.maxWidth * 0.02).clamp(16.0, 32.0);
 
             return SingleChildScrollView(
               padding: EdgeInsets.all(pad),
@@ -68,7 +69,7 @@ class _PerfilScreenState extends State<PerfilScreen> {
   }
 
   // ============================================================
-  // DISEÑO ESCRITORIO (2 Columnas)
+  // DISEÑO ESCRITORIO (2 Columnas Mejorado)
   // ============================================================
   Widget _buildDesktopLayout() {
     return Row(
@@ -80,13 +81,55 @@ class _PerfilScreenState extends State<PerfilScreen> {
           child: _buildCredencialFisica(),
         ),
         const SizedBox(width: 24),
-        // ─── Columna DERECHA: Datos e Información ───
+        
+        // ─── Columna DERECHA: Panel de Información ───
         Expanded(
           child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              _buildPanelInformacion(),
-              const SizedBox(height: 20),
-              _buildOpcionCerrarSesion(),
+              _buildDesktopHeaderInfo(),
+              const SizedBox(height: 24),
+              
+              // Grid de 2 columnas para la información
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Expanded(
+                    child: Column(
+                      children: [
+                        _buildDesktopSectionCard('Datos Generales', [
+                          _buildInfoRow(Icons.person_outline, 'Edad', _datosUsuario['edad']!),
+                          _buildInfoRow(Icons.cake_outlined, 'Fecha de Nacimiento', _datosUsuario['fechaNacimiento']!),
+                          _buildInfoRow(Icons.badge_outlined, 'CURP', _datosUsuario['curp']!),
+                          _buildInfoRow(Icons.home_outlined, 'Dirección', _datosUsuario['direccion']!),
+                        ]),
+                        const SizedBox(height: 24),
+                        _buildDesktopSectionCard('Datos de Contacto', [
+                          _buildInfoRow(Icons.phone_outlined, 'Teléfono', _datosUsuario['telefono']!),
+                          _buildInfoRow(Icons.email_outlined, 'Correo Electrónico', _datosUsuario['correo']!),
+                        ]),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(width: 24),
+                  Expanded(
+                    child: Column(
+                      children: [
+                        _buildDesktopSectionCard('Información Médica (Emergencias)', [
+                          _buildInfoRow(Icons.bloodtype_outlined, 'Tipo de Sangre', _datosUsuario['tipoSangre']!, isImportant: true),
+                          _buildInfoRow(Icons.warning_amber_outlined, 'Alergias', _datosUsuario['alergias']!, isImportant: true),
+                          _buildInfoRow(Icons.medical_services_outlined, 'Padecimientos', _datosUsuario['padecimientos']!),
+                          const Divider(height: 20, color: Colors.black12),
+                          _buildInfoRow(Icons.contact_emergency_outlined, 'Contacto de Emergencia', _datosUsuario['contactoEmergencia']!, isImportant: true),
+                          _buildInfoRow(Icons.phone_in_talk_outlined, 'Tel. Emergencia', _datosUsuario['telEmergencia']!, isImportant: true),
+                        ]),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 32),
+              _buildDesktopCerrarSesion(),
             ],
           ),
         ),
@@ -94,8 +137,117 @@ class _PerfilScreenState extends State<PerfilScreen> {
     );
   }
 
+  // ─── Widgets exclusivos de la vista de Escritorio ───
+
+  Widget _buildDesktopHeaderInfo() {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Colors.grey.shade300),
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: const [
+              Text('Mi Perfil', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.black87)),
+              SizedBox(height: 4),
+              Text('Gestiona tu información personal y de contacto', style: TextStyle(fontSize: 13, color: Colors.grey)),
+            ],
+          ),
+          OutlinedButton.icon(
+            onPressed: () {
+              ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Módulo de edición en desarrollo...')));
+            },
+            icon: const Icon(Icons.edit_outlined, size: 18),
+            label: const Text('Editar Perfil'),
+            style: OutlinedButton.styleFrom(
+              foregroundColor: AppColors.naranja,
+              side: const BorderSide(color: AppColors.naranja),
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildDesktopSectionCard(String titulo, List<Widget> children) {
+    return Container(
+      padding: const EdgeInsets.all(24),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Colors.grey.shade300),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            titulo,
+            style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: AppColors.naranja),
+          ),
+          const SizedBox(height: 20),
+          ...children,
+        ],
+      ),
+    );
+  }
+
+  Widget _buildDesktopCerrarSesion() {
+    return Align(
+      alignment: Alignment.centerRight,
+      child: SizedBox(
+        width: 250,
+        child: Container(
+          decoration: BoxDecoration(
+            color: AppColors.estadoRojo.withOpacity(0.05),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: AppColors.estadoRojo.withOpacity(0.3), width: 1.2),
+          ),
+          child: Material(
+            color: Colors.transparent,
+            child: InkWell(
+              onTap: () {
+                Navigator.pushAndRemoveUntil(
+                  context,
+                  MaterialPageRoute(builder: (_) => const LoginScreen()),
+                  (route) => false,
+                );
+              },
+              borderRadius: BorderRadius.circular(12),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: const [
+                    Icon(Icons.logout, color: AppColors.estadoRojo, size: 20),
+                    SizedBox(width: 10),
+                    Text(
+                      'CERRAR SESIÓN',
+                      style: TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.bold,
+                        color: AppColors.estadoRojo,
+                        letterSpacing: 0.5,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
   // ============================================================
-  // DISEÑO MÓVIL (1 Columna)
+  // DISEÑO MÓVIL (Sin cambios)
   // ============================================================
   Widget _buildMobileLayout() {
     return Column(
@@ -111,7 +263,7 @@ class _PerfilScreenState extends State<PerfilScreen> {
   }
 
   // ============================================================
-  // TARJETA DE CREDENCIAL (FÍSICA)
+  // WIDGETS COMPARTIDOS (Móvil)
   // ============================================================
   Widget _buildCredencialFisica() {
     return Container(
@@ -129,7 +281,6 @@ class _PerfilScreenState extends State<PerfilScreen> {
       ),
       child: Column(
         children: [
-          // ─── Cabecera Oscura ───
           Container(
             padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 20),
             decoration: const BoxDecoration(
@@ -176,13 +327,10 @@ class _PerfilScreenState extends State<PerfilScreen> {
               ],
             ),
           ),
-
-          // ─── Cuerpo de la Credencial ───
           Padding(
             padding: const EdgeInsets.all(24),
             child: Column(
               children: [
-                // Foto con botón de editar integrado
                 Stack(
                   alignment: Alignment.bottomRight,
                   children: [
@@ -234,8 +382,6 @@ class _PerfilScreenState extends State<PerfilScreen> {
                   ),
                 ),
                 const SizedBox(height: 20),
-
-                // Datos rápidos en credencial (Restaurados)
                 Container(
                   padding: const EdgeInsets.all(14),
                   decoration: BoxDecoration(
@@ -254,8 +400,6 @@ class _PerfilScreenState extends State<PerfilScreen> {
                   ),
                 ),
                 const SizedBox(height: 24),
-
-                // Código de barras simulado
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: List.generate(
@@ -302,9 +446,6 @@ class _PerfilScreenState extends State<PerfilScreen> {
     );
   }
 
-  // ============================================================
-  // PANEL DE INFORMACIÓN (DATOS GENERALES Y MÉDICOS)
-  // ============================================================
   Widget _buildPanelInformacion() {
     return Container(
       padding: const EdgeInsets.all(24),
@@ -340,8 +481,6 @@ class _PerfilScreenState extends State<PerfilScreen> {
             ],
           ),
           const SizedBox(height: 20),
-
-          // ─── Sección: Datos Generales ───
           _buildSubtitulo('Datos Generales'),
           const SizedBox(height: 10),
           _buildInfoCard([
@@ -351,8 +490,6 @@ class _PerfilScreenState extends State<PerfilScreen> {
             _buildInfoRow(Icons.home_outlined, 'Dirección', _datosUsuario['direccion']!),
           ]),
           const SizedBox(height: 20),
-
-          // ─── Sección: Contacto ───
           _buildSubtitulo('Datos de Contacto'),
           const SizedBox(height: 10),
           _buildInfoCard([
@@ -360,8 +497,6 @@ class _PerfilScreenState extends State<PerfilScreen> {
             _buildInfoRow(Icons.email_outlined, 'Correo Electrónico', _datosUsuario['correo']!),
           ]),
           const SizedBox(height: 20),
-
-          // ─── Sección: Datos Médicos ───
           _buildSubtitulo('Información Médica (Emergencias)'),
           const SizedBox(height: 10),
           _buildInfoCard([
@@ -434,9 +569,6 @@ class _PerfilScreenState extends State<PerfilScreen> {
     );
   }
 
-  // ============================================================
-  // BOTÓN CERRAR SESIÓN
-  // ============================================================
   Widget _buildOpcionCerrarSesion() {
     return Container(
       width: double.infinity,
@@ -450,8 +582,11 @@ class _PerfilScreenState extends State<PerfilScreen> {
         borderRadius: BorderRadius.circular(14),
         child: InkWell(
           onTap: () {
-            // Acción para cerrar sesión (ej. limpiar token y navegar al Login)
-            // Navigator.pushAndRemoveUntil(context, MaterialPageRoute(builder: (_) => LoginScreen()), (route) => false);
+            Navigator.pushAndRemoveUntil(
+              context,
+              MaterialPageRoute(builder: (_) => const LoginScreen()),
+              (route) => false,
+            );
           },
           borderRadius: BorderRadius.circular(14),
           child: Padding(
