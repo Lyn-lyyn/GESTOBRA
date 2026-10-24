@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../../config/theme/app_colors.dart';
 import '../obras/obra_detail_screen.dart';
-//ESTA ES LA PANTALLA PRINCIPAL DE LA APLICACION (DASHBOARD)
+
 class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key});
 
@@ -79,16 +79,157 @@ class _DashboardScreenState extends State<DashboardScreen> {
     },
   ];
 
-  // Detectar si es pantalla de escritorio (>= 900px)
   bool _isDesktop(BuildContext context) {
     return MediaQuery.of(context).size.width >= 900;
   }
 
   @override
   Widget build(BuildContext context) {
+    if (_isDesktop(context)) {
+      return _buildDesktopLayout();
+    }
+    return _buildMobileLayout();
+  }
+
+  // ============================================================
+  // VISTA DE ESCRITORIO (Estilo Opción 1)
+  // ============================================================
+  Widget _buildDesktopLayout() {
+    return Scaffold(
+      backgroundColor: const Color(0xFFF9F9FB),
+      appBar: AppBar(
+        backgroundColor: Colors.white,
+        elevation: 1,
+        automaticallyImplyLeading: false,
+        title: Container(
+          width: 400,
+          height: 40,
+          decoration: BoxDecoration(
+            color: const Color(0xFFF0F0F0),
+            borderRadius: BorderRadius.circular(20),
+          ),
+          child: const TextField(
+            decoration: InputDecoration(
+              hintText: 'Buscar obra, cliente o reporte...',
+              hintStyle: TextStyle(fontSize: 13, color: Colors.grey),
+              prefixIcon: Icon(Icons.search, size: 20, color: Colors.grey),
+              border: InputBorder.none,
+              contentPadding: EdgeInsets.symmetric(vertical: 10),
+            ),
+          ),
+        ),
+        actions: [
+          IconButton(icon: const Icon(Icons.notifications_none, color: Colors.grey), onPressed: () {}),
+          const SizedBox(width: 16),
+          const CircleAvatar(
+            backgroundColor: AppColors.naranja,
+            radius: 18,
+            child: Text('M', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+          ),
+          const SizedBox(width: 12),
+          const Text('Marcos', style: TextStyle(color: Colors.black87, fontWeight: FontWeight.bold)),
+          const SizedBox(width: 32),
+        ],
+      ),
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.all(32.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: _stats.map((stat) {
+                return Expanded(
+                  child: Container(
+                    margin: const EdgeInsets.only(right: 16),
+                    padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 24),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: Colors.grey.shade300),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          stat['titulo'],
+                          style: const TextStyle(fontSize: 13, color: Colors.grey, fontWeight: FontWeight.bold),
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          stat['valor'],
+                          style: TextStyle(fontSize: 32, fontWeight: FontWeight.bold, color: stat['color']),
+                        ),
+                      ],
+                    ),
+                  ),
+                );
+              }).toList(),
+            ),
+            const SizedBox(height: 32),
+
+            const Text(
+              'Proyectos y obras civiles',
+              style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.black87),
+            ),
+            const SizedBox(height: 16),
+
+            GridView.builder(
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
+                maxCrossAxisExtent: 320,
+                mainAxisExtent: 260,
+                crossAxisSpacing: 16,
+                mainAxisSpacing: 16,
+              ),
+              itemCount: _obras.length,
+              itemBuilder: (context, index) {
+                return _buildDesktopObraCard(_obras[index]);
+              },
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // ============================================================
+  // VISTA MÓVIL (Exactamente tu diseño original)
+  // ============================================================
+  Widget _buildMobileLayout() {
     return Scaffold(
       backgroundColor: Colors.white,
-      appBar: _buildAppBar(),
+      appBar: AppBar(
+        backgroundColor: Colors.white,
+        elevation: 0,
+        automaticallyImplyLeading: false,
+        title: Row(
+          children: [
+            Image.asset(
+              'assets/images/logo_gestobra.png',
+              height: 30,
+              errorBuilder: (context, error, stackTrace) =>
+                  const Icon(Icons.construction, color: AppColors.naranja, size: 30),
+            ),
+            const SizedBox(width: 8),
+            const Text(
+              'GestObra',
+              style: TextStyle(
+                color: Colors.black,
+                fontWeight: FontWeight.bold,
+                fontSize: 20,
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.notifications_outlined, color: AppColors.naranja),
+            onPressed: () {},
+          ),
+          const SizedBox(width: 8),
+        ],
+      ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16.0),
         child: Column(
@@ -103,75 +244,16 @@ class _DashboardScreenState extends State<DashboardScreen> {
               ),
             ),
             const SizedBox(height: 16),
-
-            // LAYOUT ADAPTATIVO
-            if (_isDesktop(context))
-              // ============ VISTA DE ESCRITORIO ============
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // Columna IZQUIERDA: Estadísticas
-                  Expanded(
-                    flex: 2,
-                    child: _buildMainStatsContainer(),
-                  ),
-                  const SizedBox(width: 16),
-                  // Columna DERECHA: Proyectos
-                  Expanded(
-                    flex: 5,
-                    child: _buildProjectsSection(),
-                  ),
-                ],
-              )
-            else
-              // ============ VISTA DE MÓVIL ============
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  _buildMainStatsContainer(),
-                  const SizedBox(height: 20),
-                  _buildProjectsSection(),
-                ],
-              ),
+            _buildMainStatsContainer(),
+            const SizedBox(height: 20),
+            _buildProjectsSection(),
           ],
         ),
       ),
     );
   }
 
-  PreferredSizeWidget _buildAppBar() {
-    return AppBar(
-      backgroundColor: Colors.white,
-      elevation: 0,
-      automaticallyImplyLeading: false,
-      title: Row(
-        children: [
-          Image.asset(
-            'assets/images/logo_gestobra.png',
-            height: 30,
-            errorBuilder: (context, error, stackTrace) =>
-                const Icon(Icons.construction, color: AppColors.naranja, size: 30),
-          ),
-          const SizedBox(width: 8),
-          const Text(
-            'GestObra',
-            style: TextStyle(
-              color: Colors.black,
-              fontWeight: FontWeight.bold,
-              fontSize: 20,
-            ),
-          ),
-        ],
-      ),
-      actions: [
-        IconButton(
-          icon: const Icon(Icons.notifications_outlined, color: AppColors.naranja),
-          onPressed: () {},
-        ),
-        const SizedBox(width: 8),
-      ],
-    );
-  }
+  // ─── WIDGETS DE LA VISTA MÓVIL (TAL CUAL LOS TENÍAS) ───
 
   Widget _buildMainStatsContainer() {
     return Container(
@@ -213,8 +295,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
             style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
           ),
           const SizedBox(height: 12),
-
-          // BUSCADOR
           Container(
             height: 42,
             decoration: BoxDecoration(
@@ -236,10 +316,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
               ),
             ),
           ),
-
           const SizedBox(height: 10),
-
-          // Filtros
           if (isSmallScreen)
             Row(
               children: [
@@ -261,10 +338,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 _buildFilterChip('Concluidas', false),
               ],
             ),
-
           const SizedBox(height: 16),
-
-          // Grid de Obras
           GridView.builder(
             shrinkWrap: true,
             physics: const NeverScrollableScrollPhysics(),
@@ -276,7 +350,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
             ),
             itemCount: _obras.length,
             itemBuilder: (context, index) {
-              return _buildObraCard(_obras[index], context);
+              return _buildMobileObraCard(_obras[index], context);
             },
           ),
         ],
@@ -396,7 +470,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
     );
   }
 
-  Widget _buildObraCard(Map<String, dynamic> obra, BuildContext context) {
+  Widget _buildMobileObraCard(Map<String, dynamic> obra, BuildContext context) {
     final bool isCompleted = obra['avance'] >= 1.0;
 
     return Material(
@@ -446,10 +520,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
               ),
               const SizedBox(height: 6),
 
-              _buildDetailRow(Icons.business, obra['cliente']),
-              _buildDetailRow(Icons.location_on, obra['ubicacion']),
-              _buildDetailRow(Icons.person, obra['supervisor']),
-              _buildDetailRow(Icons.calendar_today, obra['fecha']),
+              _buildDetailRow(Icons.business, obra['cliente'], 9.5),
+              _buildDetailRow(Icons.location_on, obra['ubicacion'], 9.5),
+              _buildDetailRow(Icons.person, obra['supervisor'], 9.5),
+              _buildDetailRow(Icons.calendar_today, obra['fecha'], 9.5),
 
               const Spacer(),
 
@@ -488,19 +562,91 @@ class _DashboardScreenState extends State<DashboardScreen> {
     );
   }
 
-  Widget _buildDetailRow(IconData icon, String text) {
+  // ─── Componentes para Escritorio ───
+  Widget _buildDesktopObraCard(Map<String, dynamic> obra) {
+    final bool isCompleted = obra['avance'] >= 1.0;
+
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        borderRadius: BorderRadius.circular(12),
+        onTap: () {
+          Navigator.push(context, MaterialPageRoute(builder: (context) => ObraDetailScreen(obra: obra)));
+        },
+        child: Container(
+          padding: const EdgeInsets.all(20),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: Colors.grey.shade300),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                decoration: BoxDecoration(
+                  color: obra['colorEstado'].withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(6),
+                ),
+                child: Text(
+                  obra['estado'],
+                  style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: obra['colorEstado']),
+                ),
+              ),
+              const SizedBox(height: 12),
+              Text(
+                obra['titulo'],
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: Colors.black87),
+              ),
+              const SizedBox(height: 8),
+              _buildDetailRow(Icons.business, obra['cliente'], 11.5),
+              _buildDetailRow(Icons.location_on, obra['ubicacion'], 11.5),
+              _buildDetailRow(Icons.person, obra['supervisor'], 11.5),
+              _buildDetailRow(Icons.calendar_today, obra['fecha'], 11.5),
+              const Spacer(),
+              Row(
+                children: [
+                  Expanded(
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(4),
+                      child: LinearProgressIndicator(
+                        value: obra['avance'],
+                        backgroundColor: Colors.grey.shade200,
+                        valueColor: AlwaysStoppedAnimation<Color>(isCompleted ? Colors.green : AppColors.naranja),
+                        minHeight: 8,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Text(
+                    '${(obra['avance'] * 100).toInt()}%',
+                    style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: isCompleted ? Colors.green : AppColors.naranja),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildDetailRow(IconData icon, String text, double fontSize) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 3.0),
       child: Row(
         children: [
-          Icon(icon, size: 11, color: AppColors.gris),
+          Icon(icon, size: fontSize + 2, color: AppColors.gris),
           const SizedBox(width: 4),
           Expanded(
             child: Text(
               text,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
-              style: const TextStyle(fontSize: 9.5, color: AppColors.gris),
+              style: TextStyle(fontSize: fontSize, color: AppColors.gris),
             ),
           ),
         ],

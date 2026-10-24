@@ -30,13 +30,6 @@ class ReportePdfService {
   }) async {
     final doc = pw.Document();
 
-    final estiloCuerpo = const pw.TextStyle(fontSize: 9);
-    final estiloSub = pw.TextStyle(
-      fontSize: 8,
-      color: PdfColors.grey700,
-    );
-
-    // ─── Cargar imágenes ───
     final logo = await _cargarImagenAsset('assets/images/logo_gestobra.png');
 
     final evidencias = (datos['evidencias'] as List?) ?? [];
@@ -46,355 +39,506 @@ class ReportePdfService {
       imagenesEvidencias.add(await _cargarImagenDesdeUrl(url));
     }
 
+    // Estilos generales
+    final estiloTituloSeccion = pw.TextStyle(
+      fontSize: 9,
+      fontWeight: pw.FontWeight.bold,
+      color: PdfColors.white,
+    );
+    final estiloCuerpo = const pw.TextStyle(fontSize: 8);
+    final estiloBold = pw.TextStyle(fontSize: 8, fontWeight: pw.FontWeight.bold);
+    final colorGrisFondo = PdfColor.fromHex('#E5E7EB');
+    final colorBorde = PdfColors.grey700;
+
     doc.addPage(
       pw.MultiPage(
         pageFormat: PdfPageFormat.a4,
-        margin: const pw.EdgeInsets.all(28),
-        build: (context) => [
-          // ─── ENCABEZADO ───
-          pw.Row(
-            mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
-            crossAxisAlignment: pw.CrossAxisAlignment.start,
+        margin: const pw.EdgeInsets.all(30),
+        
+        // ─── AQUÍ AGREGAMOS EL PIE DE PÁGINA ───
+        footer: (pw.Context context) {
+          return pw.Column(
+            mainAxisSize: pw.MainAxisSize.min,
             children: [
-              pw.Row(
-                children: [
-                  if (logo != null)
-                    pw.Image(logo, height: 24)
-                  else
-                    pw.Container(
-                      padding: const pw.EdgeInsets.all(4),
-                      decoration: pw.BoxDecoration(
-                        color: PdfColor.fromHex('#F57C00'),
-                        borderRadius: pw.BorderRadius.circular(4),
+              pw.Divider(color: colorBorde, height: 1),
+              pw.SizedBox(height: 6),
+              pw.Center(
+                child: pw.Text(
+                  'Documento generado por GestObra',
+                  style: const pw.TextStyle(fontSize: 7, color: PdfColors.grey600),
+                ),
+              ),
+            ],
+          );
+        },
+
+        build: (context) => [
+          // ─── ENCABEZADO CORPORATIVO ───
+          pw.Container(
+            decoration: pw.BoxDecoration(
+              border: pw.Border.all(color: colorBorde, width: 1),
+            ),
+            child: pw.Column(
+              children: [
+                pw.Container(
+                  padding: const pw.EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                  child: pw.Row(
+                    mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+                    crossAxisAlignment: pw.CrossAxisAlignment.center,
+                    children: [
+                      pw.Row(
+                        children: [
+                          if (logo != null) pw.Image(logo, height: 28),
+                          pw.SizedBox(width: 10),
+                          pw.Text('GestObra',
+                              style: pw.TextStyle(
+                                  fontSize: 16, fontWeight: pw.FontWeight.bold)),
+                        ],
                       ),
-                      child: pw.Text(
-                        'G',
+                      pw.Text(
+                        'REPORTE TÉCNICO #${datos['codigoReporte']}',
                         style: pw.TextStyle(
-                          color: PdfColors.white,
-                          fontWeight: pw.FontWeight.bold,
-                          fontSize: 12,
+                            fontSize: 10, fontWeight: pw.FontWeight.bold),
+                      ),
+                      pw.Column(
+                        crossAxisAlignment: pw.CrossAxisAlignment.end,
+                        children: [
+                          pw.Text('Periodo: ${datos['periodo']}',
+                              style: estiloCuerpo),
+                          pw.Text('Generado el: ${datos['fechaGeneracion']}',
+                              style: estiloCuerpo),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+                pw.Divider(height: 1, color: colorBorde),
+                pw.Container(
+                  padding: const pw.EdgeInsets.all(8),
+                  child: pw.Row(
+                    crossAxisAlignment: pw.CrossAxisAlignment.start,
+                    children: [
+                      pw.Expanded(
+                        flex: 1,
+                        child: pw.Column(
+                          crossAxisAlignment: pw.CrossAxisAlignment.start,
+                          children: [
+                            pw.RichText(
+                                text: pw.TextSpan(children: [
+                              pw.TextSpan(text: 'Obra: ', style: estiloBold),
+                              pw.TextSpan(text: obra['titulo'] ?? '', style: estiloCuerpo),
+                            ])),
+                            pw.SizedBox(height: 4),
+                            pw.RichText(
+                                text: pw.TextSpan(children: [
+                              pw.TextSpan(text: 'Cliente: ', style: estiloBold),
+                              pw.TextSpan(text: datos['cliente'] ?? '', style: estiloCuerpo),
+                            ])),
+                            pw.SizedBox(height: 4),
+                            pw.RichText(
+                                text: pw.TextSpan(children: [
+                              pw.TextSpan(text: 'Ubicación: ', style: estiloBold),
+                              pw.TextSpan(text: datos['ubicacion'] ?? '', style: estiloCuerpo),
+                            ])),
+                          ],
                         ),
                       ),
-                    ),
-                  pw.SizedBox(width: 6),
-                  pw.Text(
-                    'GestObra',
-                    style: pw.TextStyle(
-                      fontWeight: pw.FontWeight.bold,
-                      fontSize: 14,
-                      color: PdfColor.fromHex('#212121'),
-                    ),
+                      pw.Expanded(
+                        flex: 1,
+                        child: pw.Column(
+                          crossAxisAlignment: pw.CrossAxisAlignment.end,
+                          children: [
+                            pw.RichText(
+                                textAlign: pw.TextAlign.right,
+                                text: pw.TextSpan(children: [
+                              pw.TextSpan(text: 'Residente a Cargo: ', style: estiloBold),
+                              pw.TextSpan(text: datos['residente'] ?? '', style: estiloCuerpo),
+                            ])),
+                            pw.SizedBox(height: 4),
+                            pw.RichText(
+                                textAlign: pw.TextAlign.right,
+                                text: pw.TextSpan(children: [
+                              pw.TextSpan(text: 'Plazo Contractual: ', style: estiloBold),
+                              pw.TextSpan(text: datos['plazoContractual'] ?? '', style: estiloCuerpo),
+                            ])),
+                            pw.SizedBox(height: 4),
+                            pw.RichText(
+                                textAlign: pw.TextAlign.right,
+                                text: pw.TextSpan(children: [
+                              pw.TextSpan(text: 'Estado: ', style: estiloBold),
+                              pw.TextSpan(
+                                  text: datos['estado'] ?? '',
+                                  style: pw.TextStyle(
+                                    fontSize: 8,
+                                    fontWeight: pw.FontWeight.bold,
+                                    color: PdfColor.fromHex('#2E7D32'),
+                                  )),
+                            ])),
+                          ],
+                        ),
+                      ),
+                    ],
                   ),
-                ],
-              ),
-              pw.Column(
-                crossAxisAlignment: pw.CrossAxisAlignment.end,
+                ),
+              ],
+            ),
+          ),
+          pw.SizedBox(height: 10),
+
+          // ───  AVANCE ───
+          _tablaHeader('1. REPORTE DE AVANCE %', estiloTituloSeccion, colorGrisFondo, colorBorde),
+          pw.Table(
+            border: pw.TableBorder.all(color: colorBorde, width: 1),
+            columnWidths: {
+              0: const pw.FlexColumnWidth(3),
+              1: const pw.FlexColumnWidth(1.5),
+            },
+            children: [
+              pw.TableRow(
+                decoration: pw.BoxDecoration(color: PdfColor.fromHex('#F3F4F6')),
                 children: [
-                  pw.Text(
-                    'REPORTE TÉCNICO #${datos['codigoReporte']}',
-                    style: pw.TextStyle(
-                      fontWeight: pw.FontWeight.bold,
-                      fontSize: 10,
-                      color: PdfColor.fromHex('#212121'),
-                    ),
-                  ),
-                  pw.Text('Periodo: ${datos['periodo']}',
-                      style: const pw.TextStyle(fontSize: 8)),
-                  pw.Text('Generado el: ${datos['fechaGeneracion']}',
-                      style: const pw.TextStyle(fontSize: 8)),
+                  _celdaHeader('CONCEPTO / ACTIVIDAD', estiloBold),
+                  _celdaHeader('% AVANCE', estiloBold, align: pw.TextAlign.center),
+                ],
+              ),
+              _filaAvance('Preliminares', '${datos['avancePreliminares']}%', estiloCuerpo),
+              _filaAvance('Cimentación', '${datos['avanceCimentacion']}%', estiloCuerpo),
+              _filaAvance('Estructura', '${datos['avanceEstructura']}%', estiloCuerpo),
+              _filaAvance('Albañilería', '${datos['avanceAlbanileria']}%', estiloCuerpo),
+              pw.TableRow(
+                decoration: pw.BoxDecoration(color: colorGrisFondo),
+                children: [
+                  _celdaTexto('AVANCE GENERAL DE LA OBRA', estiloBold),
+                  _celdaTexto('${datos['avanceGeneral']}%', estiloBold, align: pw.TextAlign.center),
                 ],
               ),
             ],
           ),
-          pw.SizedBox(height: 8),
-          pw.Divider(color: PdfColors.grey400),
-          pw.SizedBox(height: 8),
+          pw.SizedBox(height: 10),
 
-          // ─── DATOS DE OBRA ───
-          pw.Row(
-            crossAxisAlignment: pw.CrossAxisAlignment.start,
-            children: [
-              pw.Expanded(
-                child: pw.Column(
-                  crossAxisAlignment: pw.CrossAxisAlignment.start,
-                  children: [
-                    _campo('Obra', obra['titulo'] ?? 'Obra'),
-                    _campo('Cliente', datos['cliente']),
-                    _campo('Ubicación', datos['ubicacion']),
-                  ],
-                ),
-              ),
-              pw.SizedBox(width: 16),
-              pw.Expanded(
-                child: pw.Column(
-                  crossAxisAlignment: pw.CrossAxisAlignment.start,
-                  children: [
-                    _campo('Residente a Cargo', datos['residente']),
-                    _campo('Plazo Contractual', datos['plazoContractual']),
-                    _campo('Estado', datos['estado']),
-                  ],
-                ),
-              ),
-            ],
-          ),
-          pw.SizedBox(height: 14),
-
-          // ─── 1. AVANCE ───
-          _seccion('1. Balance de Avance Físico del Periodo'),
-          pw.SizedBox(height: 6),
-          pw.Row(
-            children: [
-              _cuadro('Preliminares', '${datos['avancePreliminares']}%'),
-              pw.SizedBox(width: 8),
-              _cuadro('Cimentación', '${datos['avanceCimentacion']}%'),
-              pw.SizedBox(width: 8),
-              _cuadro('Estructura', '${datos['avanceEstructura']}%'),
-              pw.SizedBox(width: 8),
-              _cuadro('Albañilería', '${datos['avanceAlbanileria']}%'),
-            ],
-          ),
-          pw.SizedBox(height: 14),
-
-          // ─── 2. ACTIVIDADES ───
-          _seccion('2. Actividades y Frentes de Trabajo'),
-          pw.SizedBox(height: 6),
+          // ───  ACTIVIDADES Y FRENTES ───
+          _tablaHeader('2. ACTIVIDADES Y FRENTES DE TRABAJO', estiloTituloSeccion, colorGrisFondo, colorBorde),
           pw.TableHelper.fromTextArray(
-            headers: ['Actividad', 'Responsable', 'Avance'],
+            border: pw.TableBorder.all(color: colorBorde, width: 1),
+            headers: ['PARTIDA', 'DESCRIPCIÓN', 'MATERIALES', 'RESPONSABLE', '% AVANCE'],
+            headerStyle: estiloBold,
+            headerDecoration: pw.BoxDecoration(color: PdfColor.fromHex('#F3F4F6')),
+            headerAlignments: {
+              0: pw.Alignment.centerLeft,
+              1: pw.Alignment.centerLeft,
+              2: pw.Alignment.centerLeft,
+              3: pw.Alignment.centerLeft,
+              4: pw.Alignment.centerRight,
+            },
+            cellStyle: estiloCuerpo,
+            cellAlignments: {
+              0: pw.Alignment.centerLeft,
+              1: pw.Alignment.centerLeft,
+              2: pw.Alignment.centerLeft,
+              3: pw.Alignment.centerLeft,
+              4: pw.Alignment.centerRight,
+            },
+            columnWidths: {
+              0: const pw.FlexColumnWidth(2.5),
+              1: const pw.FlexColumnWidth(4),
+              2: const pw.FlexColumnWidth(2.5),
+              3: const pw.FlexColumnWidth(2.5),
+              4: const pw.FlexColumnWidth(1.2),
+            },
             data: (datos['actividades'] as List).map<List<String>>((a) {
               return [
-                '${a['actividad']} (${a['fase']})',
+                a['fase'].toString().toUpperCase(),
+                a['actividad'].toString(),
+                a['materiales_usados']?.toString() ?? '-',
                 a['responsable'].toString(),
                 '${a['avance']}%',
               ];
             }).toList(),
-            headerStyle: pw.TextStyle(
-              fontSize: 9,
-              fontWeight: pw.FontWeight.bold,
-              color: PdfColors.white,
-            ),
-            headerDecoration:
-                pw.BoxDecoration(color: PdfColor.fromHex('#1A1F36')),
-            cellStyle: const pw.TextStyle(fontSize: 8),
-            cellAlignment: pw.Alignment.centerLeft,
           ),
-          pw.SizedBox(height: 14),
+          pw.SizedBox(height: 10),
 
-          // ─── 3. MATERIALES (2 columnas: Material y Cantidad) ───
-          _seccion('3. Resumen de Materiales Utilizados en el Periodo'),
-          pw.SizedBox(height: 6),
+          // ───  MATERIALES ───
+          _tablaHeader('3. RESUMEN DE MATERIALES UTILIZADOS', estiloTituloSeccion, colorGrisFondo, colorBorde),
           pw.TableHelper.fromTextArray(
-            headers: ['Material', 'Cantidad'],
+            border: pw.TableBorder.all(color: colorBorde, width: 1),
+            headers: ['MATERIAL', 'CANTIDAD'],
+            headerStyle: estiloBold,
+            headerDecoration: pw.BoxDecoration(color: PdfColor.fromHex('#F3F4F6')),
+            headerAlignments: {
+              0: pw.Alignment.centerLeft,
+              1: pw.Alignment.centerRight,
+            },
+            cellStyle: estiloCuerpo,
+            cellAlignments: {
+              0: pw.Alignment.centerLeft,
+              1: pw.Alignment.centerRight,
+            },
+            columnWidths: {
+              0: const pw.FlexColumnWidth(7),
+              1: const pw.FlexColumnWidth(2),
+            },
             data: (datos['materiales'] as List).map<List<String>>((m) {
               return [
                 m['material'].toString(),
                 '${m['cantidad']} ${m['unidad']}',
               ];
             }).toList(),
-            headerStyle: pw.TextStyle(
-              fontSize: 9,
-              fontWeight: pw.FontWeight.bold,
-              color: PdfColors.white,
-            ),
-            headerDecoration:
-                pw.BoxDecoration(color: PdfColor.fromHex('#1A1F36')),
-            cellStyle: const pw.TextStyle(fontSize: 8),
-            columnWidths: {
-              0: const pw.FlexColumnWidth(6),  // Material
-              1: const pw.FlexColumnWidth(3),  // Cantidad + unidad
-            },
-            cellAlignments: {
-              0: pw.Alignment.centerLeft,
-              1: pw.Alignment.centerRight,
-            },
           ),
-          pw.SizedBox(height: 14),
+          pw.SizedBox(height: 10),
 
-          // ─── 4. INCIDENCIAS ───
-          _seccion('4. Incidencias / Paros Registrados en el Periodo'),
-          pw.SizedBox(height: 6),
-          (datos['incidencias'] as List).isEmpty
-              ? pw.Text('Sin incidencias ni paros registrados.',
-                  style: estiloCuerpo)
-              : pw.Column(
-                  crossAxisAlignment: pw.CrossAxisAlignment.start,
-                  children:
-                      (datos['incidencias'] as List).map<pw.Widget>((i) {
-                    return pw.Padding(
-                      padding: const pw.EdgeInsets.only(bottom: 6, top: 2),
-                      child: pw.Column(
-                        crossAxisAlignment: pw.CrossAxisAlignment.start,
-                        children: [
-                          pw.Text(
-                            '${i['tipo']} - ${i['descripcion']}',
-                            style: pw.TextStyle(
-                              fontSize: 9,
-                              fontWeight: pw.FontWeight.bold,
-                              color: PdfColor.fromHex('#212121'),
-                            ),
-                          ),
-                          pw.SizedBox(height: 1),
-                          pw.Text(
-                            'Estado: ${i['estado']}     Fecha: ${i['fecha']}',
-                            style: estiloSub,
-                          ),
-                        ],
-                      ),
-                    );
-                  }).toList(),
-                ),
-          pw.SizedBox(height: 20),
-
-          // ─── 5. EVIDENCIAS ───
-          _seccion('5. Evidencias Gráficas Representativas'),
-          pw.SizedBox(height: 8),
-          pw.Wrap(
-            spacing: 6,
-            runSpacing: 6,
-            children: List.generate(evidencias.length, (index) {
-              final img = imagenesEvidencias[index];
-              final ev = evidencias[index];
-              final titulo = ev is Map ? (ev['titulo'] ?? '') : '';
-
-              return pw.SizedBox(
-                width: 110,
+          // ───  PERSONAL Y MAQUINARIA ───
+          pw.Row(
+            crossAxisAlignment: pw.CrossAxisAlignment.start,
+            children: [
+              pw.Expanded(
                 child: pw.Column(
                   crossAxisAlignment: pw.CrossAxisAlignment.stretch,
                   children: [
-                    if (img != null)
-                      pw.Image(
-                        img,
-                        height: 75,
-                        fit: pw.BoxFit.cover,
-                      )
-                    else
-                      pw.Container(
-                        height: 75,
-                        color: PdfColors.grey300,
-                        alignment: pw.Alignment.center,
-                        child: pw.Text('Sin imagen',
-                            style: const pw.TextStyle(fontSize: 7)),
-                      ),
-                    pw.Container(
-                      padding: const pw.EdgeInsets.all(2),
-                      color: PdfColor.fromHex('#1A1F36'),
-                      child: pw.Text(
-                        titulo,
-                        textAlign: pw.TextAlign.center,
-                        style: const pw.TextStyle(
-                            color: PdfColors.white, fontSize: 7),
-                      ),
+                    _tablaHeader('PERSONAL', estiloTituloSeccion, colorGrisFondo, colorBorde),
+                    pw.Table(
+                      border: pw.TableBorder.all(color: colorBorde, width: 1),
+                      columnWidths: {
+                        0: const pw.FlexColumnWidth(5),
+                        1: const pw.FlexColumnWidth(1),
+                      },
+                      children: [
+                        pw.TableRow(
+                          decoration: pw.BoxDecoration(color: PdfColor.fromHex('#F3F4F6')),
+                          children: [
+                            _celdaHeader('CATEGORÍA', estiloBold),
+                            _celdaHeader('CANT.', estiloBold, align: pw.TextAlign.center),
+                          ],
+                        ),
+                        ...(datos['personal'] as List? ?? []).map((p) {
+                          return pw.TableRow(
+                            children: [
+                              _celdaTexto(p['categoria'].toString(), estiloCuerpo),
+                              _celdaTexto(p['cantidad'].toString(), estiloCuerpo, align: pw.TextAlign.center),
+                            ],
+                          );
+                        }),
+                      ],
                     ),
                   ],
                 ),
-              );
-            }),
+              ),
+              pw.SizedBox(width: 10),
+              pw.Expanded(
+                child: pw.Column(
+                  crossAxisAlignment: pw.CrossAxisAlignment.stretch,
+                  children: [
+                    _tablaHeader('MAQUINARIA / EQUIPO', estiloTituloSeccion, colorGrisFondo, colorBorde),
+                    pw.Table(
+                      border: pw.TableBorder.all(color: colorBorde, width: 1),
+                      columnWidths: {
+                        0: const pw.FlexColumnWidth(5),
+                        1: const pw.FlexColumnWidth(1),
+                      },
+                      children: [
+                        pw.TableRow(
+                          decoration: pw.BoxDecoration(color: PdfColor.fromHex('#F3F4F6')),
+                          children: [
+                            _celdaHeader('EQUIPO', estiloBold),
+                            _celdaHeader('CANT.', estiloBold, align: pw.TextAlign.center),
+                          ],
+                        ),
+                        ...(datos['maquinaria'] as List? ?? []).map((m) {
+                          return pw.TableRow(
+                            children: [
+                              _celdaTexto(m['equipo'].toString(), estiloCuerpo),
+                              _celdaTexto(m['cantidad'].toString(), estiloCuerpo, align: pw.TextAlign.center),
+                            ],
+                          );
+                        }),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ],
           ),
+          pw.SizedBox(height: 10),
 
-          // ─── ESPACIO GRANDE ANTES DE FIRMAS ───
-          pw.SizedBox(height: 120),
+          // ─── INCIDENCIAS ───
+          _tablaHeader('5. INCIDENCIAS / PAROS REGISTRADOS', estiloTituloSeccion, colorGrisFondo, colorBorde),
+          pw.Table(
+            border: pw.TableBorder.all(color: colorBorde, width: 1),
+            columnWidths: {
+              0: const pw.FlexColumnWidth(2),
+              1: const pw.FlexColumnWidth(5),
+              2: const pw.FlexColumnWidth(2),
+            },
+            children: [
+              pw.TableRow(
+                decoration: pw.BoxDecoration(color: PdfColor.fromHex('#F3F4F6')),
+                children: [
+                  _celdaHeader('TIPO', estiloBold),
+                  _celdaHeader('DESCRIPCIÓN', estiloBold),
+                  _celdaHeader('ESTADO / FECHA', estiloBold),
+                ],
+              ),
+              if ((datos['incidencias'] as List).isEmpty)
+                pw.TableRow(children: [
+                  _celdaTexto('-', estiloCuerpo),
+                  _celdaTexto('Sin incidencias reportadas', estiloCuerpo),
+                  _celdaTexto('-', estiloCuerpo),
+                ])
+              else
+                ...(datos['incidencias'] as List).map((i) {
+                  return pw.TableRow(
+                    children: [
+                      _celdaTexto(i['tipo'].toString().toUpperCase(), estiloCuerpo),
+                      _celdaTexto(i['descripcion'].toString(), estiloCuerpo),
+                      _celdaTexto('${i['estado']}\n${i['fecha']}', estiloCuerpo),
+                    ],
+                  );
+                }),
+            ],
+          ),
+          pw.SizedBox(height: 10),
+
+          // ───  EVIDENCIAS FOTOGRÁFICAS ───
+          pw.Wrap(
+            children: [
+              pw.Column(
+                crossAxisAlignment: pw.CrossAxisAlignment.stretch,
+                children: [
+                  _tablaHeader('6. REPORTE FOTOGRÁFICO', estiloTituloSeccion, colorGrisFondo, colorBorde),
+                  pw.Container(
+                    decoration: pw.BoxDecoration(
+                      border: pw.Border.all(color: colorBorde, width: 1),
+                    ),
+                    padding: const pw.EdgeInsets.all(8),
+                    child: evidencias.isEmpty
+                        ? pw.Padding(
+                            padding: const pw.EdgeInsets.all(8),
+                            child: pw.Text('No hay evidencias fotográficas registradas en este periodo.', style: estiloCuerpo),
+                          )
+                        : pw.Wrap(
+                            spacing: 10,
+                            runSpacing: 10,
+                            children: List.generate(evidencias.length, (index) {
+                              final img = imagenesEvidencias[index];
+                              final titulo = evidencias[index] is Map ? (evidencias[index]['titulo'] ?? '') : '';
+
+                              return pw.Container(
+                                width: 150,
+                                decoration: pw.BoxDecoration(
+                                  border: pw.Border.all(color: colorBorde, width: 1),
+                                ),
+                                child: pw.Column(
+                                  crossAxisAlignment: pw.CrossAxisAlignment.stretch,
+                                  children: [
+                                    if (img != null)
+                                      pw.Image(img, height: 100, fit: pw.BoxFit.cover)
+                                    else
+                                      pw.Container(
+                                        height: 100,
+                                        color: PdfColors.grey300,
+                                        alignment: pw.Alignment.center,
+                                        child: pw.Text('Sin imagen', style: estiloCuerpo),
+                                      ),
+                                    pw.Container(
+                                      padding: const pw.EdgeInsets.all(4),
+                                      decoration: pw.BoxDecoration(
+                                        color: PdfColor.fromHex('#F3F4F6'),
+                                        border: const pw.Border(top: pw.BorderSide(color: PdfColors.grey700, width: 1)),
+                                      ),
+                                      child: pw.Text(titulo,
+                                          textAlign: pw.TextAlign.center,
+                                          style: pw.TextStyle(
+                                              fontSize: 7, fontWeight: pw.FontWeight.bold)),
+                                    ),
+                                  ],
+                                ),
+                              );
+                            }),
+                          ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+          pw.SizedBox(height: 10),
+
+          // ─── 7. NOTAS GENERALES ───
+          _tablaHeader('7. NOTAS GENERALES', estiloTituloSeccion, colorGrisFondo, colorBorde),
+          pw.Container(
+            width: double.infinity,
+            padding: const pw.EdgeInsets.all(8),
+            decoration: pw.BoxDecoration(
+              border: pw.Border.all(color: colorBorde, width: 1),
+            ),
+            child: pw.Text(
+              datos['notasGenerales'] ?? 'SIN NOTAS',
+              style: estiloCuerpo,
+            ),
+          ),
+          
+          pw.SizedBox(height: 60),
 
           // ─── FIRMAS ───
           pw.Row(
             mainAxisAlignment: pw.MainAxisAlignment.spaceAround,
             children: [
-              _firma(datos['residente'], 'Residente de Obra / D.R.O.'),
-              _firma(datos['cliente'], 'Cliente / Supervisión Externa'),
+              _firmaFormal(datos['residente'], 'RESIDENTE DE OBRA', estiloBold, estiloCuerpo),
+              _firmaFormal(datos['cliente'], 'SUPERVISIÓN / CLIENTE', estiloBold, estiloCuerpo),
             ],
           ),
-
-          pw.SizedBox(height: 40),
-
-          pw.Divider(color: PdfColors.grey400),
-          pw.SizedBox(height: 6),
-          pw.Center(
-            child: pw.Text(
-              'Generado por GestObra - ${datos['fechaGeneracion']}',
-              style: const pw.TextStyle(fontSize: 8, color: PdfColors.grey600),
-            ),
-          ),
+          
         ],
       ),
     );
 
     await Printing.sharePdf(
       bytes: await doc.save(),
-      filename: 'reporte_${obra['codigo'] ?? 'obra'}.pdf',
+      filename: 'Reporte_Obra_${datos['periodo'].toString().replaceAll(' ', '_')}.pdf',
     );
   }
 
-  static pw.Widget _seccion(String texto) {
-    return pw.Text(
-      texto,
-      style: pw.TextStyle(
-        fontSize: 11,
-        fontWeight: pw.FontWeight.bold,
-        color: PdfColor.fromHex('#212121'),
+
+  static pw.Widget _tablaHeader(String titulo, pw.TextStyle estilo, PdfColor fondo, PdfColor borde) {
+    return pw.Container(
+      width: double.infinity,
+      padding: const pw.EdgeInsets.symmetric(vertical: 4, horizontal: 6),
+      decoration: pw.BoxDecoration(
+        color: PdfColor.fromHex('#1F2937'),
+        border: pw.Border.all(color: borde, width: 1),
       ),
+      child: pw.Text(titulo, style: estilo),
     );
   }
 
-  static pw.Widget _campo(String etiqueta, String valor) {
+  static pw.Widget _celdaHeader(String texto, pw.TextStyle estilo, {pw.TextAlign align = pw.TextAlign.left}) {
     return pw.Padding(
-      padding: const pw.EdgeInsets.only(bottom: 2),
-      child: pw.RichText(
-        text: pw.TextSpan(
-          style: const pw.TextStyle(fontSize: 9),
-          children: [
-            pw.TextSpan(
-              text: '$etiqueta: ',
-              style: pw.TextStyle(
-                fontWeight: pw.FontWeight.bold,
-                color: PdfColor.fromHex('#212121'),
-              ),
-            ),
-            pw.TextSpan(text: valor),
-          ],
-        ),
-      ),
+      padding: const pw.EdgeInsets.all(4),
+      child: pw.Text(texto, style: estilo, textAlign: align),
     );
   }
 
-  static pw.Widget _cuadro(String titulo, String valor) {
-    return pw.Expanded(
-      child: pw.Container(
-        padding: const pw.EdgeInsets.symmetric(vertical: 10),
-        decoration: pw.BoxDecoration(
-          border: pw.Border.all(color: PdfColors.grey400),
-          borderRadius: pw.BorderRadius.circular(4),
-        ),
-        child: pw.Column(
-          children: [
-            pw.Text(titulo, style: const pw.TextStyle(fontSize: 8)),
-            pw.SizedBox(height: 4),
-            pw.Text(
-              valor,
-              style: pw.TextStyle(
-                fontSize: 16,
-                fontWeight: pw.FontWeight.bold,
-                color: PdfColor.fromHex('#F57C00'),
-              ),
-            ),
-          ],
-        ),
-      ),
+  static pw.Widget _celdaTexto(String texto, pw.TextStyle estilo, {pw.TextAlign align = pw.TextAlign.left}) {
+    return pw.Padding(
+      padding: const pw.EdgeInsets.all(4),
+      child: pw.Text(texto, style: estilo, textAlign: align),
     );
   }
 
-  static pw.Widget _firma(String nombre, String cargo) {
+  static pw.TableRow _filaAvance(String concepto, String valor, pw.TextStyle estilo) {
+    return pw.TableRow(
+      children: [
+        _celdaTexto(concepto, estilo),
+        _celdaTexto(valor, estilo, align: pw.TextAlign.center),
+      ],
+    );
+  }
+
+  static pw.Widget _firmaFormal(String nombre, String cargo, pw.TextStyle estiloBold, pw.TextStyle estiloCuerpo) {
     return pw.Column(
       children: [
-        pw.Container(width: 180, height: 1, color: PdfColors.grey600),
-        pw.SizedBox(height: 14),
-        pw.Text(
-          nombre,
-          style: pw.TextStyle(
-            fontSize: 9,
-            fontWeight: pw.FontWeight.bold,
-            color: PdfColor.fromHex('#212121'),
-          ),
-        ),
-        pw.SizedBox(height: 2),
-        pw.Text(cargo, style: const pw.TextStyle(fontSize: 8)),
+        pw.Container(width: 180, height: 1, color: PdfColors.black),
+        pw.SizedBox(height: 4),
+        pw.Text(nombre, style: estiloBold),
+        pw.Text(cargo, style: pw.TextStyle(fontSize: 7)),
       ],
     );
   }

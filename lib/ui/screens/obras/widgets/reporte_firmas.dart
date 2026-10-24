@@ -53,11 +53,18 @@ class ReporteFirmas extends StatelessWidget {
       width: ancho,
       child: Column(
         children: [
+          // ─── ESPACIO VISUAL PARA LA FIRMA EN PANTALLA ───
+          const SizedBox(height: 80), 
+
+          // Línea de firma
           Container(
             height: 1.2,
             color: AppColors.gris,
           ),
+          
+          // Espacio entre la línea y el nombre
           const SizedBox(height: 16),
+          
           Text(
             nombre,
             textAlign: TextAlign.center,

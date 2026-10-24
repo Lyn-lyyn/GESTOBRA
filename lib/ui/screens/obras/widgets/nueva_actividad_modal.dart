@@ -99,6 +99,16 @@ class _NuevaActividadModalState extends State<NuevaActividadModal> {
       return;
     }
 
+    if (_fechaFin!.isBefore(_fechaInicio!)) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('La fecha de fin debe ser posterior al inicio'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+
     // Crear el objeto de la nueva actividad
     final nuevaActividad = {
       'fase': _faseSeleccionada!.toUpperCase(),
@@ -107,6 +117,8 @@ class _NuevaActividadModalState extends State<NuevaActividadModal> {
       'descripcion': _descripcionController.text,
       'responsable': _responsableSeleccionado,
       'programado': 'Programado ${_formatearFecha(_fechaInicio)} al ${_formatearFecha(_fechaFin)}',
+      'fechaInicio': _fechaInicio,
+      'fechaFin': _fechaFin,
       'reporte': 'Sin reportes aún',
       'avance': 0.0,
       'ponderacion': '5%',

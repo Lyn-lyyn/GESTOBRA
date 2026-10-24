@@ -6,7 +6,7 @@ import '../dashboard/main_scaffold.dart';
 import '../admin/admin_main_scaffold.dart';
 import 'register_screen.dart';
 import 'forgot_password_screen.dart';
-import '../admin/admin_dashboard_screen.dart'; // Ajusta la ruta si es necesario
+// import '../admin/admin_dashboard_screen.dart'; // Ajusta la ruta si es necesario
 //ESTE ES EL LOGIN DE LA APP
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
