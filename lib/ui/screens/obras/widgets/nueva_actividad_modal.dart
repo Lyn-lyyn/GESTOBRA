@@ -251,7 +251,7 @@ class _NuevaActividadModalState extends State<NuevaActividadModal> {
                       onPressed: () => Navigator.pop(context),
                       style: OutlinedButton.styleFrom(
                         foregroundColor: AppColors.gris,
-                        side: const BorderSide(color: AppColors.gris),
+                        side: const BorderSide(color: AppColors.bordeSuave),
                         padding: const EdgeInsets.symmetric(horizontal: 24),
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                       ),

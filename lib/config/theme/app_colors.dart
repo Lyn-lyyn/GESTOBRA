@@ -4,9 +4,11 @@ class AppColors {
   // Colores principales extraídos de tu diseño
   static const Color naranja = Color(0xFFF57C00); // Naranja GestObra principal
   static const Color noseleccionado = Color(0xFFE0E0E0); // para botones sin seleccionar en caso de que sean multiples opciones, en caso de que se seleccione debe cambiar a naranja
-  static const Color grisfondo = Color.fromARGB(232, 245, 245, 245); // el fondo de la app debe ser blanco, pero existen cuadros(contenedores) dentro de ella que deben ser de este gris, lo de dentro de esos contenedores ya puede ser blanco nuevamente
+  static const Color grisfondo = Color(0xFFF7F8FA); // Fondo claro y uniforme para las pantallas.
   static const Color blanco = Colors.white; // color blanko
-  static const Color gris = Color.fromRGBO(52, 51, 51, 1); //para bordes
+  static const Color gris = Color.fromRGBO(52, 51, 51, 1); // Texto e iconos secundarios.
+  static const Color bordeSuave = Color(0xFFDDE1E6); // Bordes discretos para tarjetas, campos y divisores.
+  static const Color fondoNavegacion = Color(0xFF2B2D31); // Barra lateral de escritorio.
   // Colores de texto
   static const Color textoNegro = Color(0xFF212121); //textos principales
   static const Color textoGris = Color(0xFF757575); //textos secundarios 

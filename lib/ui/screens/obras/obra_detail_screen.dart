@@ -81,7 +81,7 @@ class _ObraDetailScreenState extends State<ObraDetailScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: AppColors.grisfondo,
       appBar: _buildAppBar(),
       body: _isDesktop(context)
           ? SingleChildScrollView(
@@ -216,9 +216,9 @@ class _ObraDetailScreenState extends State<ObraDetailScreen> {
       width: double.infinity,
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: AppColors.grisfondo,
+        color: AppColors.blanco,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppColors.gris),
+        border: Border.all(color: AppColors.bordeSuave),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -261,7 +261,7 @@ class _ObraDetailScreenState extends State<ObraDetailScreen> {
             decoration: BoxDecoration(
               color: Colors.white,
               borderRadius: BorderRadius.circular(8),
-              border: Border.all(color: AppColors.gris),
+              border: Border.all(color: AppColors.bordeSuave),
             ),
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.end,
@@ -383,9 +383,9 @@ class _ObraDetailScreenState extends State<ObraDetailScreen> {
       width: double.infinity,
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: AppColors.grisfondo,
+        color: AppColors.blanco,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppColors.gris),
+        border: Border.all(color: AppColors.bordeSuave),
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.center,
@@ -501,9 +501,9 @@ class _ObraDetailScreenState extends State<ObraDetailScreen> {
       margin: const EdgeInsets.symmetric(horizontal: 4),
       padding: const EdgeInsets.all(8),
       decoration: BoxDecoration(
-        color: AppColors.grisfondo,
+        color: AppColors.blanco,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppColors.gris),
+        border: Border.all(color: AppColors.bordeSuave),
       ),
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
@@ -540,7 +540,7 @@ class _ObraDetailScreenState extends State<ObraDetailScreen> {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppColors.gris),
+        border: Border.all(color: AppColors.bordeSuave),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -648,9 +648,9 @@ class _ObraDetailScreenState extends State<ObraDetailScreen> {
       width: double.infinity,
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: AppColors.grisfondo,
+        color: AppColors.blanco,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppColors.gris),
+        border: Border.all(color: AppColors.bordeSuave),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,

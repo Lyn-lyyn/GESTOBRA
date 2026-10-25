@@ -52,7 +52,7 @@ class _AdminPersonalScreenState extends State<AdminPersonalScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.blanco,
+      backgroundColor: AppColors.grisfondo,
       appBar: AppBar(
         title: const Text('Directorio de Personal', style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold)),
         backgroundColor: AppColors.blanco,
@@ -85,9 +85,9 @@ class _AdminPersonalScreenState extends State<AdminPersonalScreen> {
 
                   return Container(
                     decoration: BoxDecoration(
-                      color: AppColors.grisfondo,
+                      color: AppColors.blanco,
                       borderRadius: BorderRadius.circular(16),
-                      border: Border.all(color: AppColors.gris, width: 1.2),
+                      border: Border.all(color: AppColors.bordeSuave, width: 1),
                     ),
                     child: Material(
                       color: Colors.transparent,
@@ -170,7 +170,7 @@ class _AdminPersonalScreenState extends State<AdminPersonalScreen> {
                                     onPressed: () => _vincularAObra(index),
                                     style: IconButton.styleFrom(
                                       backgroundColor: AppColors.blanco,
-                                      side: const BorderSide(color: AppColors.gris, width: 1),
+                                      side: const BorderSide(color: AppColors.bordeSuave, width: 1),
                                       padding: const EdgeInsets.all(10),
                                     ),
                                     icon: const Icon(Icons.link, color: AppColors.naranja, size: 20),

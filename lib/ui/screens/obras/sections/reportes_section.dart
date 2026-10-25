@@ -223,9 +223,9 @@ class _ReportesSectionState extends State<ReportesSection> {
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                     decoration: BoxDecoration(
-                      color: AppColors.grisfondo,
+                      color: AppColors.blanco,
                       borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: AppColors.gris, width: 1.2),
+                      border: Border.all(color: AppColors.bordeSuave, width: 1),
                     ),
                     child: _buildBarraSuperior(),
                   ),
@@ -234,9 +234,9 @@ class _ReportesSectionState extends State<ReportesSection> {
                     width: double.infinity,
                     padding: EdgeInsets.all(pad),
                     decoration: BoxDecoration(
-                      color: AppColors.grisfondo,
+                      color: AppColors.blanco,
                       borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: AppColors.gris, width: 1.2),
+                      border: Border.all(color: AppColors.bordeSuave, width: 1),
                     ),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -284,7 +284,7 @@ class _ReportesSectionState extends State<ReportesSection> {
           decoration: BoxDecoration(
             color: Colors.white,
             borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: AppColors.gris, width: 1.2),
+            border: Border.all(color: AppColors.bordeSuave, width: 1),
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -303,7 +303,7 @@ class _ReportesSectionState extends State<ReportesSection> {
                 return Container(
                   padding: const EdgeInsets.all(10),
                   decoration: BoxDecoration(
-                    border: Border(bottom: BorderSide(color: AppColors.gris.withValues(alpha: 0.2))),
+                    border: Border(bottom: BorderSide(color: AppColors.bordeSuave.withValues(alpha: 0.2))),
                   ),
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -336,7 +336,7 @@ class _ReportesSectionState extends State<ReportesSection> {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppColors.gris, width: 1.2),
+        border: Border.all(color: AppColors.bordeSuave, width: 1),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,

@@ -277,7 +277,7 @@ class _AdminObrasScreenState extends State<AdminObrasScreen> {
                           decoration: BoxDecoration(
                             color: AppColors.blanco,
                             borderRadius: BorderRadius.circular(12),
-                            border: Border.all(color: AppColors.gris),
+                            border: Border.all(color: AppColors.bordeSuave),
                           ),
                           child: Wrap(
                             spacing: 8,
@@ -364,7 +364,7 @@ class _AdminObrasScreenState extends State<AdminObrasScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.blanco,
+      backgroundColor: AppColors.grisfondo,
       appBar: AppBar(
         title: const Text('Gestión Global de Obras', style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold)),
         backgroundColor: AppColors.blanco,
@@ -400,7 +400,7 @@ class _AdminObrasScreenState extends State<AdminObrasScreen> {
                     decoration: BoxDecoration(
                       color: AppColors.blanco,
                       borderRadius: BorderRadius.circular(16),
-                      border: Border.all(color: AppColors.gris, width: 1.2),
+                      border: Border.all(color: AppColors.bordeSuave, width: 1),
                     ),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -409,9 +409,9 @@ class _AdminObrasScreenState extends State<AdminObrasScreen> {
                         Container(
                           padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
                           decoration: BoxDecoration(
-                            color: AppColors.grisfondo,
+                            color: AppColors.blanco,
                             borderRadius: const BorderRadius.vertical(top: Radius.circular(15)),
-                            border: const Border(bottom: BorderSide(color: AppColors.gris, width: 1.2)),
+                            border: const Border(bottom: BorderSide(color: AppColors.bordeSuave, width: 1.2)),
                           ),
                           child: Row(
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,

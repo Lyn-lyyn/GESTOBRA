@@ -14,7 +14,7 @@ class ReporteIncidenciasParos extends StatelessWidget {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppColors.gris, width: 1.2),
+        border: Border.all(color: AppColors.bordeSuave, width: 1),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -40,9 +40,9 @@ class ReporteIncidenciasParos extends StatelessWidget {
                 margin: const EdgeInsets.only(bottom: 8),
                 padding: const EdgeInsets.all(10),
                 decoration: BoxDecoration(
-                  color: AppColors.grisfondo,
+                  color: AppColors.blanco,
                   borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: AppColors.gris, width: 1.2),
+                  border: Border.all(color: AppColors.bordeSuave, width: 1),
                 ),
                 child: Row(
                   crossAxisAlignment: CrossAxisAlignment.start,

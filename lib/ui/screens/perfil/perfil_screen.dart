@@ -45,7 +45,7 @@ class _PerfilScreenState extends State<PerfilScreen> {
     final desktop = _isDesktop(context);
 
     return Scaffold(
-      backgroundColor: desktop ? const Color(0xFFF9F9FB) : AppColors.blanco,
+      backgroundColor: AppColors.grisfondo,
       body: SafeArea(
         child: LayoutBuilder(
           builder: (context, constraints) {
@@ -270,7 +270,7 @@ class _PerfilScreenState extends State<PerfilScreen> {
       decoration: BoxDecoration(
         color: AppColors.blanco,
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: AppColors.gris, width: 1.5),
+        border: Border.all(color: AppColors.bordeSuave, width: 1.5),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withValues(alpha: 0.05),
@@ -385,9 +385,9 @@ class _PerfilScreenState extends State<PerfilScreen> {
                 Container(
                   padding: const EdgeInsets.all(14),
                   decoration: BoxDecoration(
-                    color: AppColors.grisfondo,
+                    color: AppColors.blanco,
                     borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: AppColors.gris.withValues(alpha: 0.4)),
+                    border: Border.all(color: AppColors.bordeSuave.withValues(alpha: 0.4)),
                   ),
                   child: Column(
                     children: [
@@ -450,9 +450,9 @@ class _PerfilScreenState extends State<PerfilScreen> {
     return Container(
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
-        color: AppColors.grisfondo,
+        color: AppColors.blanco,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.gris, width: 1.2),
+        border: Border.all(color: AppColors.bordeSuave, width: 1),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -529,7 +529,7 @@ class _PerfilScreenState extends State<PerfilScreen> {
       decoration: BoxDecoration(
         color: AppColors.blanco,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppColors.gris.withValues(alpha: 0.5)),
+        border: Border.all(color: AppColors.bordeSuave.withValues(alpha: 0.5)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,

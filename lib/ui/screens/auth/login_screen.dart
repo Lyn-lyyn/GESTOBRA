@@ -18,7 +18,18 @@ class LoginScreen extends StatefulWidget {
 class _LoginScreenState extends State<LoginScreen> {
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
+  final _emailFocusNode = FocusNode();
+  final _passwordFocusNode = FocusNode();
   bool _isLoading = false;
+
+  @override
+  void dispose() {
+    _emailController.dispose();
+    _passwordController.dispose();
+    _emailFocusNode.dispose();
+    _passwordFocusNode.dispose();
+    super.dispose();
+  }
 
   // Detectar si es pantalla de escritorio (>= 900px)
   bool _isDesktop(BuildContext context) {
@@ -271,6 +282,9 @@ class _LoginScreenState extends State<LoginScreen> {
             icon: Icons.email_outlined,
             controller: _emailController,
             keyboardType: TextInputType.emailAddress,
+            focusNode: _emailFocusNode,
+            textInputAction: TextInputAction.next,
+            onSubmitted: (_) => _passwordFocusNode.requestFocus(),
           ),
           const SizedBox(height: 16),
 
@@ -280,6 +294,11 @@ class _LoginScreenState extends State<LoginScreen> {
             icon: Icons.lock_outline,
             isPassword: true,
             controller: _passwordController,
+            focusNode: _passwordFocusNode,
+            textInputAction: TextInputAction.done,
+            onSubmitted: (_) {
+              if (!_isLoading) _handleLogin();
+            },
           ),
 
           Align(

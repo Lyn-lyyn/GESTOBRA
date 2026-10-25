@@ -71,9 +71,9 @@ class _BitacoraSectionState extends State<BitacoraSection> {
       width: double.infinity,
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: AppColors.grisfondo,
+        color: AppColors.blanco,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppColors.gris),
+        border: Border.all(color: AppColors.bordeSuave),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -108,7 +108,7 @@ class _BitacoraSectionState extends State<BitacoraSection> {
               decoration: BoxDecoration(
                 color: AppColors.blanco,
                 borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: AppColors.gris),
+                border: Border.all(color: AppColors.bordeSuave),
               ),
               child: const Column(
                 children: [
@@ -175,7 +175,7 @@ class _BitacoraSectionState extends State<BitacoraSection> {
                           foto.toString(),
                           fit: BoxFit.cover,
                           errorBuilder: (context, error, stackTrace) => Container(
-                            color: AppColors.grisfondo,
+                            color: AppColors.blanco,
                             alignment: Alignment.center,
                             child: const Icon(Icons.broken_image_outlined, color: AppColors.gris),
                           ),
@@ -198,7 +198,7 @@ class _BitacoraSectionState extends State<BitacoraSection> {
       decoration: BoxDecoration(
         color: AppColors.blanco,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppColors.gris),
+        border: Border.all(color: AppColors.bordeSuave),
       ),
       child: LayoutBuilder(
         builder: (context, constraints) {
@@ -261,7 +261,7 @@ class _BitacoraSectionState extends State<BitacoraSection> {
                     style: const TextStyle(fontSize: 11),
                   ),
                   backgroundColor: AppColors.grisfondo,
-                  side: const BorderSide(color: AppColors.gris),
+                  side: const BorderSide(color: AppColors.bordeSuave),
                 );
               }).toList(),
             ),
@@ -616,7 +616,7 @@ Widget _buildRetrasosField() {
     decoration: BoxDecoration(
       color: AppColors.blanco,
       borderRadius: BorderRadius.circular(12),
-      border: Border.all(color: AppColors.gris),
+      border: Border.all(color: AppColors.bordeSuave),
     ),
     child: Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -681,7 +681,7 @@ Widget _buildEvidenciasField() {
     decoration: BoxDecoration(
       color: AppColors.blanco,
       borderRadius: BorderRadius.circular(12),
-      border: Border.all(color: AppColors.gris),
+      border: Border.all(color: AppColors.bordeSuave),
     ),
     child: Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -706,7 +706,7 @@ Widget _buildEvidenciasField() {
             height: 80,
             width: double.infinity,
             decoration: BoxDecoration(
-              color: AppColors.grisfondo,
+              color: AppColors.blanco,
               borderRadius: BorderRadius.circular(12),
               border: Border.all(color: AppColors.naranja),
             ),
@@ -745,7 +745,7 @@ Widget _buildFirmaField() {
     decoration: BoxDecoration(
       color: AppColors.blanco,
       borderRadius: BorderRadius.circular(12),
-      border: Border.all(color: AppColors.gris),
+      border: Border.all(color: AppColors.bordeSuave),
     ),
     child: Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -787,9 +787,9 @@ Widget _buildFirmaField() {
             height: 110,
             width: double.infinity,
             decoration: BoxDecoration(
-              color: AppColors.grisfondo,
+              color: AppColors.blanco,
               borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: AppColors.gris),
+              border: Border.all(color: AppColors.bordeSuave),
             ),
             child: _firmaAgregada
                 ? const Center(

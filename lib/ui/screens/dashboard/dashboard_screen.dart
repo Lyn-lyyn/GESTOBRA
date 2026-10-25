@@ -96,7 +96,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
   // ============================================================
   Widget _buildDesktopLayout() {
     return Scaffold(
-      backgroundColor: const Color(0xFFF9F9FB),
+      backgroundColor: AppColors.grisfondo,
       appBar: AppBar(
         backgroundColor: Colors.white,
         elevation: 1,
@@ -198,7 +198,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
   // ============================================================
   Widget _buildMobileLayout() {
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: AppColors.grisfondo,
       appBar: AppBar(
         backgroundColor: Colors.white,
         elevation: 0,
@@ -260,9 +260,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
       width: double.infinity,
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: AppColors.grisfondo,
+        color: AppColors.blanco,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppColors.gris),
+        border: Border.all(color: AppColors.bordeSuave),
       ),
       child: Column(
         children: [
@@ -283,9 +283,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
       width: double.infinity,
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: AppColors.grisfondo,
+        color: AppColors.blanco,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppColors.gris),
+        border: Border.all(color: AppColors.bordeSuave),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -366,7 +366,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: AppColors.gris),
+          border: Border.all(color: AppColors.bordeSuave),
         ),
         child: Column(
           children: [
@@ -398,7 +398,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppColors.gris),
+        border: Border.all(color: AppColors.bordeSuave),
       ),
       child: Row(
         children: [
@@ -490,7 +490,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
           decoration: BoxDecoration(
             color: Colors.white,
             borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: AppColors.gris),
+            border: Border.all(color: AppColors.bordeSuave),
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,

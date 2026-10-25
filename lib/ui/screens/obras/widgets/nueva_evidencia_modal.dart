@@ -336,7 +336,7 @@ class _NuevaEvidenciaModalState extends State<NuevaEvidenciaModal> {
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(11),
-      decoration: BoxDecoration(color: Colors.white, border: Border.all(color: AppColors.gris), borderRadius: BorderRadius.circular(10)),
+      decoration: BoxDecoration(color: Colors.white, border: Border.all(color: AppColors.bordeSuave), borderRadius: BorderRadius.circular(10)),
       child: child,
     );
   }

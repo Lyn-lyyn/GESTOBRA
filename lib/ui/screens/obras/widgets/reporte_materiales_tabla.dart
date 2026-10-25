@@ -14,7 +14,7 @@ class ReporteMaterialesTabla extends StatelessWidget {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppColors.gris, width: 1.2),
+        border: Border.all(color: AppColors.bordeSuave, width: 1),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -52,9 +52,9 @@ class ReporteMaterialesTabla extends StatelessWidget {
                         vertical: 10,
                       ),
                       decoration: BoxDecoration(
-                        color: AppColors.grisfondo,
+                        color: AppColors.blanco,
                         borderRadius: BorderRadius.circular(8),
-                        border: Border.all(color: AppColors.gris, width: 1.2),
+                        border: Border.all(color: AppColors.bordeSuave, width: 1),
                       ),
                       child: Row(
                         children: [
