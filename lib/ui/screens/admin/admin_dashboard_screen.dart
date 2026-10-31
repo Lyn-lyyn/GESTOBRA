@@ -8,7 +8,7 @@ class AdminDashboardScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.blanco,
+      backgroundColor: AppColors.grisfondo,
       appBar: _buildAppBar(),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(20),
@@ -138,9 +138,9 @@ class AdminDashboardScreen extends StatelessWidget {
       width: isMobile ? double.infinity : 260,
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: AppColors.grisfondo,
+        color: AppColors.blanco,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.gris, width: 1.2),
+        border: Border.all(color: AppColors.bordeSuave, width: 1),
       ),
       child: Row(
         children: [
@@ -172,7 +172,7 @@ class AdminDashboardScreen extends StatelessWidget {
       decoration: BoxDecoration(
         color: AppColors.blanco,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.gris, width: 1.2),
+        border: Border.all(color: AppColors.bordeSuave, width: 1),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -236,7 +236,7 @@ class AdminDashboardScreen extends StatelessWidget {
       decoration: BoxDecoration(
         color: AppColors.blanco,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.gris, width: 1.2),
+        border: Border.all(color: AppColors.bordeSuave, width: 1),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -269,7 +269,7 @@ class AdminDashboardScreen extends StatelessWidget {
       decoration: BoxDecoration(
         color: AppColors.blanco,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.gris, width: 1.2),
+        border: Border.all(color: AppColors.bordeSuave, width: 1),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -307,9 +307,9 @@ class AdminDashboardScreen extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: AppColors.grisfondo,
+        color: AppColors.blanco,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.gris, width: 1.2),
+        border: Border.all(color: AppColors.bordeSuave, width: 1),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,

@@ -14,7 +14,7 @@ class ReporteActividadesTabla extends StatelessWidget {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppColors.gris, width: 1.2),
+        border: Border.all(color: AppColors.bordeSuave, width: 1),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -32,7 +32,7 @@ class ReporteActividadesTabla extends StatelessWidget {
           // ─── CONTENEDOR QUE DA EL BORDE A TODA LA TABLA ───
           Container(
             decoration: BoxDecoration(
-              border: Border.all(color: AppColors.gris, width: 1.2),
+              border: Border.all(color: AppColors.bordeSuave, width: 1),
               borderRadius: BorderRadius.circular(6),
             ),
             child: ClipRRect(
@@ -43,9 +43,9 @@ class ReporteActividadesTabla extends StatelessWidget {
                   Container(
                     padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 12),
                     decoration: BoxDecoration(
-                      color: AppColors.grisfondo,
+                      color: AppColors.blanco,
                       border: Border(
-                        bottom: BorderSide(color: AppColors.gris, width: 1.2),
+                        bottom: BorderSide(color: AppColors.bordeSuave, width: 1.2),
                       ),
                     ),
                     child: Row(
@@ -68,7 +68,7 @@ class ReporteActividadesTabla extends StatelessWidget {
                       decoration: BoxDecoration(
                         border: Border(
                           bottom: BorderSide(
-                            color: AppColors.gris.withValues(alpha: 0.4),
+                            color: AppColors.bordeSuave.withValues(alpha: 0.4),
                             width: 1,
                           ),
                         ),

@@ -14,7 +14,7 @@ class ReporteEvidenciasGrid extends StatelessWidget {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppColors.gris, width: 1.2),
+        border: Border.all(color: AppColors.bordeSuave, width: 1),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -56,7 +56,7 @@ class ReporteEvidenciasGrid extends StatelessWidget {
                   return Container(
                     decoration: BoxDecoration(
                       borderRadius: BorderRadius.circular(8),
-                      border: Border.all(color: AppColors.gris, width: 1.2),
+                      border: Border.all(color: AppColors.bordeSuave, width: 1),
                     ),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -70,7 +70,7 @@ class ReporteEvidenciasGrid extends StatelessWidget {
                               url,
                               fit: BoxFit.cover,
                               errorBuilder: (_, __, ___) => Container(
-                                color: AppColors.grisfondo,
+                                color: AppColors.blanco,
                                 child: const Icon(
                                   Icons.broken_image,
                                   color: AppColors.gris,

@@ -112,9 +112,9 @@ class _MaterialesSectionState extends State<MaterialesSection> {
       width: double.infinity,
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: AppColors.grisfondo,
+        color: AppColors.blanco,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppColors.gris),
+        border: Border.all(color: AppColors.bordeSuave),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -135,9 +135,9 @@ class _MaterialesSectionState extends State<MaterialesSection> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
       decoration: BoxDecoration(
-        color: AppColors.grisfondo,
+        color: AppColors.blanco,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppColors.gris),
+        border: Border.all(color: AppColors.bordeSuave),
       ),
       child: LayoutBuilder(
         builder: (context, constraints) {
@@ -187,7 +187,7 @@ class _MaterialesSectionState extends State<MaterialesSection> {
           foregroundColor: AppColors.textoNegro,
           padding: const EdgeInsets.symmetric(horizontal: 12),
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-          side: const BorderSide(color: AppColors.gris),
+          side: const BorderSide(color: AppColors.bordeSuave),
         ),
       ),
     );
@@ -197,9 +197,9 @@ class _MaterialesSectionState extends State<MaterialesSection> {
     return Container(
       padding: const EdgeInsets.all(8),
       decoration: BoxDecoration(
-        color: AppColors.grisfondo,
+        color: AppColors.blanco,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppColors.gris),
+        border: Border.all(color: AppColors.bordeSuave),
       ),
       child: LayoutBuilder(
         builder: (context, constraints) {
@@ -222,8 +222,8 @@ class _MaterialesSectionState extends State<MaterialesSection> {
               filled: true,
               fillColor: Colors.white,
               contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-              border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: AppColors.gris)),
-              enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: AppColors.gris)),
+              border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: AppColors.bordeSuave)),
+              enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: AppColors.bordeSuave)),
               focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: AppColors.naranja, width: 1.5)),
             ),
           );
@@ -240,7 +240,7 @@ class _MaterialesSectionState extends State<MaterialesSection> {
   Widget _buildViewSelector() {
     return Container(
       padding: const EdgeInsets.all(3),
-      decoration: BoxDecoration(color: Colors.white, border: Border.all(color: AppColors.gris), borderRadius: BorderRadius.circular(20)),
+      decoration: BoxDecoration(color: Colors.white, border: Border.all(color: AppColors.bordeSuave), borderRadius: BorderRadius.circular(20)),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: ['Stock', 'Consumo', 'Kardex'].map((vista) {
@@ -300,7 +300,7 @@ class _MaterialesSectionState extends State<MaterialesSection> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 9),
       decoration: BoxDecoration(
-        color: AppColors.grisfondo,
+        color: AppColors.blanco,
         borderRadius: BorderRadius.circular(12),
         border: Border.all(color: critico ? AppColors.estadoRojo : AppColors.gris, width: critico ? 1.2 : 1),
       ),
@@ -359,7 +359,7 @@ class _MaterialesSectionState extends State<MaterialesSection> {
       width: double.infinity,
       margin: const EdgeInsets.only(bottom: 10),
       padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(color: AppColors.grisfondo, borderRadius: BorderRadius.circular(12), border: Border.all(color: AppColors.gris)),
+      decoration: BoxDecoration(color: AppColors.blanco, borderRadius: BorderRadius.circular(12), border: Border.all(color: AppColors.bordeSuave)),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -404,7 +404,7 @@ class _MaterialesSectionState extends State<MaterialesSection> {
     return Container(
       constraints: const BoxConstraints(minWidth: 190, maxWidth: 290),
       padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 7),
-      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(8), border: Border.all(color: AppColors.gris)),
+      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(8), border: Border.all(color: AppColors.bordeSuave)),
       child: Row(
         children: [
           Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text(item['nombre'].toString(), maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold)), const Text('Destino verificado', style: TextStyle(fontSize: 8, color: AppColors.textoGris))])),
@@ -431,13 +431,13 @@ class _MaterialesSectionState extends State<MaterialesSection> {
         Container(
           width: double.infinity,
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-          decoration: BoxDecoration(color: AppColors.grisfondo, border: Border.all(color: AppColors.gris), borderRadius: BorderRadius.circular(12)),
+          decoration: BoxDecoration(color: AppColors.blanco, border: Border.all(color: AppColors.bordeSuave), borderRadius: BorderRadius.circular(12)),
           child: const Row(children: [Icon(Icons.history, color: AppColors.naranja, size: 18), SizedBox(width: 6), Text('Bitácora de Movimientos y Kardex de Almacén', style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold))]),
         ),
         const SizedBox(height: 8),
         Container(
           width: double.infinity,
-          decoration: BoxDecoration(color: Colors.white, border: Border.all(color: AppColors.gris), borderRadius: BorderRadius.circular(12)),
+          decoration: BoxDecoration(color: Colors.white, border: Border.all(color: AppColors.bordeSuave), borderRadius: BorderRadius.circular(12)),
           child: LayoutBuilder(
             builder: (context, constraints) {
               final isMobile = constraints.maxWidth < 700;
@@ -503,7 +503,7 @@ class _MaterialesSectionState extends State<MaterialesSection> {
   Widget _emptyState(String message) => Container(
         width: double.infinity,
         padding: const EdgeInsets.all(24),
-        decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(12), border: Border.all(color: AppColors.gris)),
+        decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(12), border: Border.all(color: AppColors.bordeSuave)),
         child: Center(child: Text(message, style: const TextStyle(color: AppColors.textoGris, fontSize: 12))),
       );
 

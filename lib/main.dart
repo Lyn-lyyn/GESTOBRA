@@ -34,7 +34,7 @@ class MiApp extends StatelessWidget {
 }
 
 // ============================================================
-// FUNCIÓN DE PRUEBA (Puedes dejarla aquí temporalmente o borrarla)
+// FUNCIÓN DE PRUEBA (Puedes dejarla aquí temporalmente o boorrarla)
 // ============================================================
 Future<void> probarConexion() async {
   final url = Uri.parse('https://gestobra.alwaysdata.net/test_conexion.php');

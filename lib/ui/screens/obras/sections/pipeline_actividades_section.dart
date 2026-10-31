@@ -122,9 +122,9 @@ class _PipelineActividadesSectionState
     return Container(
       width: double.infinity,
       decoration: BoxDecoration(
-        color: AppColors.grisfondo,
+        color: AppColors.blanco,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppColors.gris),
+        border: Border.all(color: AppColors.bordeSuave),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -230,7 +230,7 @@ class _PipelineActividadesSectionState
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
         color: Colors.white,
-        border: Border.all(color: AppColors.gris.withOpacity(.35)),
+        border: Border.all(color: AppColors.bordeSuave.withOpacity(.35)),
         borderRadius: BorderRadius.circular(12),
       ),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
@@ -318,7 +318,7 @@ class _PipelineActividadesSectionState
       decoration: BoxDecoration(
         color: Colors.white,
         border: Border.symmetric(
-          horizontal: BorderSide(color: AppColors.gris.withOpacity(.35)),
+          horizontal: BorderSide(color: AppColors.bordeSuave.withOpacity(.35)),
         ),
       ),
       child: Row(
@@ -350,7 +350,7 @@ class _PipelineActividadesSectionState
         alignment: Alignment.centerLeft,
         padding: const EdgeInsets.symmetric(horizontal: 8),
         decoration: BoxDecoration(
-          border: Border(right: BorderSide(color: AppColors.gris.withOpacity(.2))),
+          border: Border(right: BorderSide(color: AppColors.bordeSuave.withOpacity(.2))),
         ),
         child: Text(text, style: style, overflow: TextOverflow.ellipsis),
       );
@@ -365,7 +365,7 @@ class _PipelineActividadesSectionState
           height: 58,
           alignment: Alignment.center,
           decoration: BoxDecoration(
-            border: Border(right: BorderSide(color: AppColors.gris.withOpacity(.2))),
+            border: Border(right: BorderSide(color: AppColors.bordeSuave.withOpacity(.2))),
           ),
           child: Text(
             '${_fechaCorta(date)}\n${date.year}',
@@ -462,7 +462,7 @@ class _PipelineActividadesSectionState
       height: _rowHeight,
       decoration: BoxDecoration(
         color: Colors.white,
-        border: Border(bottom: BorderSide(color: AppColors.gris.withOpacity(.22))),
+        border: Border(bottom: BorderSide(color: AppColors.bordeSuave.withOpacity(.22))),
       ),
       child: Row(children: [
         SizedBox(
@@ -522,7 +522,7 @@ class _PipelineActividadesSectionState
             return Stack(fit: StackFit.expand, children: [
               Row(children: List.generate(7, (_) => Expanded(
                 child: Container(decoration: BoxDecoration(
-                  border: Border(right: BorderSide(color: AppColors.gris.withOpacity(.15))),
+                  border: Border(right: BorderSide(color: AppColors.bordeSuave.withOpacity(.15))),
                 )),
               ))),
               Positioned(
@@ -585,7 +585,7 @@ class _PipelineActividadesSectionState
   Widget _dataCell(Widget child) => Container(
         height: _rowHeight,
         foregroundDecoration: BoxDecoration(
-          border: Border(right: BorderSide(color: AppColors.gris.withOpacity(.16))),
+          border: Border(right: BorderSide(color: AppColors.bordeSuave.withOpacity(.16))),
         ),
         child: child,
       );

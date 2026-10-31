@@ -66,7 +66,7 @@ class _MainScaffoldState extends State<MainScaffold> {
     return Container(
       width: 240,
       decoration: const BoxDecoration(
-        color: Color(0xFF2B2D31),
+        color: AppColors.fondoNavegacion,
         boxShadow: [
           BoxShadow(color: Colors.black12, blurRadius: 10, offset: Offset(2, 0)),
         ],
@@ -97,15 +97,6 @@ class _MainScaffoldState extends State<MainScaffold> {
           _buildSidebarItem(2, Icons.person_outline, 'Perfil'),
           
           const Spacer(),
-          
-          ListTile(
-            leading: const Icon(Icons.logout, color: Colors.white70),
-            title: const Text('Cerrar Sesión', style: TextStyle(color: Colors.white70)),
-            onTap: () {
-              // Lógica de cerrar sesión
-            },
-          ),
-          const SizedBox(height: 16),
         ],
       ),
     );

@@ -119,7 +119,7 @@ class _ObrasListScreenState extends State<ObrasListScreen> {
     final desktop = _isDesktop(context);
 
     return Scaffold(
-      backgroundColor: desktop ? const Color(0xFFF9F9FB) : AppColors.blanco,
+      backgroundColor: AppColors.grisfondo,
       body: SafeArea(
         child: LayoutBuilder(
           builder: (context, constraints) {
@@ -457,9 +457,9 @@ class _ObrasListScreenState extends State<ObrasListScreen> {
     return Container(
       padding: EdgeInsets.all(compact ? 18 : 24),
       decoration: BoxDecoration(
-        color: AppColors.grisfondo,
+        color: AppColors.blanco,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.gris, width: 1.2),
+        border: Border.all(color: AppColors.bordeSuave, width: 1),
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.center,
@@ -521,7 +521,7 @@ class _ObrasListScreenState extends State<ObrasListScreen> {
       decoration: BoxDecoration(
         color: AppColors.blanco,
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: AppColors.gris, width: 1.2),
+        border: Border.all(color: AppColors.bordeSuave, width: 1),
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.center,
@@ -574,9 +574,9 @@ class _ObrasListScreenState extends State<ObrasListScreen> {
     return Container(
       padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
-        color: AppColors.grisfondo,
+        color: AppColors.blanco,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.gris, width: 1.2),
+        border: Border.all(color: AppColors.bordeSuave, width: 1),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -626,11 +626,11 @@ class _ObrasListScreenState extends State<ObrasListScreen> {
                 contentPadding: const EdgeInsets.symmetric(horizontal: 16),
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12),
-                  borderSide: const BorderSide(color: AppColors.gris, width: 1.2),
+                  borderSide: const BorderSide(color: AppColors.bordeSuave, width: 1.2),
                 ),
                 enabledBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12),
-                  borderSide: const BorderSide(color: AppColors.gris, width: 1.2),
+                  borderSide: const BorderSide(color: AppColors.bordeSuave, width: 1.2),
                 ),
                 focusedBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12),
@@ -647,7 +647,7 @@ class _ObrasListScreenState extends State<ObrasListScreen> {
           decoration: BoxDecoration(
             color: AppColors.blanco,
             borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: AppColors.gris, width: 1.2),
+            border: Border.all(color: AppColors.bordeSuave, width: 1),
           ),
           child: Center(
             child: DropdownButtonHideUnderline(
@@ -679,7 +679,7 @@ class _ObrasListScreenState extends State<ObrasListScreen> {
               decoration: BoxDecoration(
                 color: AppColors.blanco,
                 shape: BoxShape.circle,
-                border: Border.all(color: AppColors.gris, width: 1.2),
+                border: Border.all(color: AppColors.bordeSuave, width: 1),
               ),
               child: const Icon(Icons.search_off, size: 40, color: AppColors.naranja),
             ),
@@ -728,7 +728,7 @@ class _ObraCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: AppColors.blanco,
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: AppColors.gris, width: 1.2),
+        border: Border.all(color: AppColors.bordeSuave, width: 1),
       ),
       child: Material(
         color: Colors.transparent,
@@ -789,9 +789,9 @@ class _ObraCard extends StatelessWidget {
                 Container(
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
-                    color: AppColors.grisfondo,
+                    color: AppColors.blanco,
                     borderRadius: BorderRadius.circular(10),
-                    border: Border.all(color: AppColors.gris.withValues(alpha: 0.5), width: 1.0),
+                    border: Border.all(color: AppColors.bordeSuave.withValues(alpha: 0.5), width: 1.0),
                   ),
                   child: Column(
                     children: [

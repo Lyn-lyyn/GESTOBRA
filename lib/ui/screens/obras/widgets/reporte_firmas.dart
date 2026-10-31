@@ -12,7 +12,7 @@ class ReporteFirmas extends StatelessWidget {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppColors.gris, width: 1.2),
+        border: Border.all(color: AppColors.bordeSuave, width: 1),
       ),
       child: LayoutBuilder(
         builder: (context, constraints) {

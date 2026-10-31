@@ -24,6 +24,20 @@ class _AdminMainScaffoldState extends State<AdminMainScaffold> {
 
   @override
   Widget build(BuildContext context) {
+    final isDesktop = MediaQuery.of(context).size.width >= 900;
+
+    if (isDesktop) {
+      return Scaffold(
+        backgroundColor: AppColors.grisfondo,
+        body: Row(
+          children: [
+            _buildDesktopSidebar(),
+            Expanded(child: _screens[_currentIndex]),
+          ],
+        ),
+      );
+    }
+
     return Scaffold(
       body: _screens[_currentIndex],
       bottomNavigationBar: BottomNavigationBar(
@@ -55,6 +69,102 @@ class _AdminMainScaffoldState extends State<AdminMainScaffold> {
             label: 'Perfil',
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildDesktopSidebar() {
+    return Container(
+      width: 240,
+      color: AppColors.fondoNavegacion,
+      child: Column(
+        children: [
+          Padding(
+            padding: const EdgeInsets.symmetric(vertical: 30, horizontal: 24),
+            child: Row(
+              children: [
+                Image.asset(
+                  'assets/images/GestObra_blanco.png',
+                  height: 32,
+                  errorBuilder: (_, __, ___) => const Icon(
+                    Icons.construction,
+                    color: AppColors.naranja,
+                    size: 32,
+                  ),
+                ),
+                const SizedBox(width: 12),
+                const Text(
+                  'GestObra',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 22,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          _buildDesktopItem(0, Icons.home_outlined, Icons.home, 'Inicio'),
+          _buildDesktopItem(
+            1,
+            Icons.business_center_outlined,
+            Icons.business_center,
+            'Obras',
+          ),
+          _buildDesktopItem(2, Icons.groups_outlined, Icons.groups, 'Personal'),
+          _buildDesktopItem(
+            3,
+            Icons.person_outline,
+            Icons.person,
+            'Perfil',
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildDesktopItem(
+    int index,
+    IconData icon,
+    IconData activeIcon,
+    String label,
+  ) {
+    final isSelected = _currentIndex == index;
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: () => setState(() => _currentIndex = index),
+        child: Container(
+          height: 56,
+          padding: const EdgeInsets.symmetric(horizontal: 24),
+          decoration: BoxDecoration(
+            color: isSelected ? const Color(0xFF3E4046) : Colors.transparent,
+            border: Border(
+              left: BorderSide(
+                color: isSelected ? AppColors.naranja : Colors.transparent,
+                width: 4,
+              ),
+            ),
+          ),
+          child: Row(
+            children: [
+              Icon(
+                isSelected ? activeIcon : icon,
+                color: isSelected ? AppColors.naranja : Colors.white70,
+                size: 22,
+              ),
+              const SizedBox(width: 16),
+              Text(
+                label,
+                style: TextStyle(
+                  color: isSelected ? Colors.white : Colors.white70,
+                  fontSize: 15,
+                  fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
+                ),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }
