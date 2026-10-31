@@ -4,6 +4,7 @@ import 'admin_dashboard_screen.dart';
 import 'admin_obras_screen.dart';
 import 'admin_personal_screen.dart';
 import 'admin_perfil_screen.dart';
+import 'admin_usuarios_screen.dart';
 
 class AdminMainScaffold extends StatefulWidget {
   const AdminMainScaffold({super.key});
@@ -19,6 +20,7 @@ class _AdminMainScaffoldState extends State<AdminMainScaffold> {
     const AdminDashboardScreen(),
     const AdminObrasScreen(),
     const AdminPersonalScreen(),
+    const AdminUsuariosScreen(),
     const AdminPerfilScreen(),
   ];
 
@@ -62,7 +64,11 @@ class _AdminMainScaffoldState extends State<AdminMainScaffold> {
             icon: Icon(Icons.groups_outlined),
             activeIcon: Icon(Icons.groups),
             label: 'Personal',
-          ),
+          ),BottomNavigationBarItem(
+  icon: Icon(Icons.manage_accounts_outlined),
+  activeIcon: Icon(Icons.manage_accounts),
+  label: 'Usuarios',
+),
           BottomNavigationBarItem(
             icon: Icon(Icons.admin_panel_settings_outlined),
             activeIcon: Icon(Icons.admin_panel_settings),
@@ -86,11 +92,12 @@ class _AdminMainScaffoldState extends State<AdminMainScaffold> {
                 Image.asset(
                   'assets/images/GestObra_blanco.png',
                   height: 32,
-                  errorBuilder: (_, __, ___) => const Icon(
-                    Icons.construction,
-                    color: AppColors.naranja,
-                    size: 32,
-                  ),
+                  errorBuilder:
+                      (_, __, ___) => const Icon(
+                        Icons.construction,
+                        color: AppColors.naranja,
+                        size: 32,
+                      ),
                 ),
                 const SizedBox(width: 12),
                 const Text(
@@ -114,10 +121,11 @@ class _AdminMainScaffoldState extends State<AdminMainScaffold> {
           _buildDesktopItem(2, Icons.groups_outlined, Icons.groups, 'Personal'),
           _buildDesktopItem(
             3,
-            Icons.person_outline,
-            Icons.person,
-            'Perfil',
+            Icons.manage_accounts_outlined,
+            Icons.manage_accounts,
+            'Usuarios',
           ),
+          _buildDesktopItem(4, Icons.person_outline, Icons.person, 'Perfil'),
         ],
       ),
     );

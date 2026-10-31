@@ -6,8 +6,10 @@ import '../dashboard/main_scaffold.dart';
 import '../admin/admin_main_scaffold.dart';
 import 'register_screen.dart';
 import 'forgot_password_screen.dart';
-// import '../admin/admin_dashboard_screen.dart'; // Ajusta la ruta si es necesario
-//ESTE ES EL LOGIN DE LA APP
+import 'dart:convert';
+import 'package:http/http.dart' as http;
+import '../../../servicios/auth_service.dart';
+
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
 
@@ -36,40 +38,67 @@ class _LoginScreenState extends State<LoginScreen> {
     return MediaQuery.of(context).size.width >= 900;
   }
 
-   void _handleLogin() async {
-    final email = _emailController.text.trim();
+  Future<void> _handleLogin() async {
+    final usuario = _emailController.text.trim();
     final password = _passwordController.text.trim();
 
-    // Validación en duro (mientras no hay BD)
-    if (email.isEmpty || password.isEmpty) {
+    if (usuario.isEmpty || password.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Por favor ingresa tus credenciales')),
       );
       return;
     }
-
     setState(() => _isLoading = true);
-    await Future.delayed(const Duration(seconds: 1)); // Simulamos carga en red
-    if (!mounted) return;
-    setState(() => _isLoading = false);
+    try {
+      final url = Uri.parse('https://gestobra67.alwaysdata.net/login.php');
 
-    // ─── RUTEO SEGÚN CREDENCIALES ───
-    if (email == 'Admin' && password == '123456') {
-  Navigator.pushReplacement(
-    context,
-    MaterialPageRoute(builder: (context) => const AdminMainScaffold()), // <-- Apunta al nuevo scaffold
-  );
-} else if (email == 'tilin' && password == '123456') {
-      // Ruta de Empleado (Actual)
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(builder: (context) => const MainScaffold()),
+      final response = await http.post(
+        url,
+        headers: {'Content-Type': 'application/json; charset=utf-8'},
+        body: jsonEncode({'usuario': usuario, 'password': password}),
       );
-    } else {
-      // Credenciales incorrectas
+
+      if (!mounted) return;
+      setState(() => _isLoading = false);
+
+      final data = jsonDecode(response.body);
+
+    if (data['estado'] == true) {
+  final user = data['usuario'] as Map<String, dynamic>;
+  final token = data['token'] as String?;
+  
+  if (token != null) await AuthService.guardarSesion(token, user);
+
+  final rol = (user['rol'] ?? '').toString();
+
+  // RUTEO:
+  if (rol == 'ADMINISTRADOR') {
+    // El admin va directo al panel de administración
+    Navigator.pushReplacement(
+      context,
+      MaterialPageRoute(builder: (_) => const AdminMainScaffold()),
+    );
+  } else {
+    // El DESARROLLADOR y todos los demás van a la App Normal
+    Navigator.pushReplacement(
+      context,
+      MaterialPageRoute(builder: (_) => const MainScaffold()),
+    );
+  }
+} else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(data['mensaje'] ?? 'Credenciales incorrectas'),
+            backgroundColor: AppColors.estadoRojo,
+          ),
+        );
+      }
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _isLoading = false);
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Usuario o contraseña incorrectos'),
+        SnackBar(
+          content: Text('Error de conexión: $e'),
           backgroundColor: AppColors.estadoRojo,
         ),
       );
@@ -92,59 +121,57 @@ class _LoginScreenState extends State<LoginScreen> {
             ),
           ),
           Positioned.fill(
-            child: Container(
-              color: Colors.black.withValues(alpha: 0.38),
-            ),
+            child: Container(color: Colors.black.withValues(alpha: 0.38)),
           ),
           SafeArea(
-            child: _isDesktop(context)
-            // ============ VISTA DE ESCRITORIO ============
-            ? Row(
-                children: [
-                  // Columna IZQUIERDA: Panel de branding
-                  Expanded(
-                    flex: 1,
-                    child: _buildBrandingPanel(),
-                  ),
-                  // Columna DERECHA: Formulario
-                  Expanded(
-                    flex: 1,
-                    child: Center(
+            child:
+                _isDesktop(context)
+                    // ============ VISTA DE ESCRITORIO ============
+                    ? Row(
+                      children: [
+                        // Columna IZQUIERDA: Panel de branding
+                        Expanded(flex: 1, child: _buildBrandingPanel()),
+                        // Columna DERECHA: Formulario
+                        Expanded(
+                          flex: 1,
+                          child: Center(
+                            child: SingleChildScrollView(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 48.0,
+                              ),
+                              child: _buildLoginForm(),
+                            ),
+                          ),
+                        ),
+                      ],
+                    )
+                    // ============ VISTA DE MÓVIL ============
+                    : Center(
                       child: SingleChildScrollView(
-                        padding: const EdgeInsets.symmetric(horizontal: 48.0),
-                        child: _buildLoginForm(),
-                      ),
-                    ),
-                  ),
-                ],
-              )
-            // ============ VISTA DE MÓVIL ============
-            : Center(
-                child: SingleChildScrollView(
-                  padding: const EdgeInsets.symmetric(horizontal: 24.0),
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      // Logo arriba del formulario
-                      Image.asset(
-                        'assets/images/logo_gestobra.png',
-                        height: 72,
-                      ),
-                      const SizedBox(height: 16),
-                      const Text(
-                        'GestObra',
-                        style: TextStyle(
-                          fontSize: 32,
-                          fontWeight: FontWeight.bold,
-                          color: AppColors.textoNegro,
+                        padding: const EdgeInsets.symmetric(horizontal: 24.0),
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            // Logo arriba del formulario
+                            Image.asset(
+                              'assets/images/logo_gestobra.png',
+                              height: 72,
+                            ),
+                            const SizedBox(height: 16),
+                            const Text(
+                              'GestObra',
+                              style: TextStyle(
+                                fontSize: 32,
+                                fontWeight: FontWeight.bold,
+                                color: AppColors.textoNegro,
+                              ),
+                            ),
+                            const SizedBox(height: 40),
+                            _buildLoginForm(),
+                          ],
                         ),
                       ),
-                      const SizedBox(height: 40),
-                      _buildLoginForm(),
-                    ],
-                  ),
-                ),
-              ),
+                    ),
           ),
         ],
       ),
@@ -169,8 +196,12 @@ class _LoginScreenState extends State<LoginScreen> {
                 Image.asset(
                   'assets/images/logo_gestobra.png',
                   height: 50,
-                  errorBuilder: (context, error, stackTrace) =>
-                      const Icon(Icons.construction, color: Colors.white, size: 50),
+                  errorBuilder:
+                      (context, error, stackTrace) => const Icon(
+                        Icons.construction,
+                        color: Colors.white,
+                        size: 50,
+                      ),
                 ),
                 const SizedBox(width: 12),
                 const Text(
@@ -234,10 +265,7 @@ class _LoginScreenState extends State<LoginScreen> {
         const SizedBox(height: 4),
         Text(
           label,
-          style: const TextStyle(
-            fontSize: 12,
-            color: Colors.white70,
-          ),
+          style: const TextStyle(fontSize: 12, color: Colors.white70),
         ),
       ],
     );
@@ -327,16 +355,17 @@ class _LoginScreenState extends State<LoginScreen> {
               foregroundColor: AppColors.blanco,
               padding: const EdgeInsets.symmetric(vertical: 16),
             ),
-            child: _isLoading
-                ? const SizedBox(
-                    height: 20,
-                    width: 20,
-                    child: CircularProgressIndicator(
-                      color: AppColors.blanco,
-                      strokeWidth: 2,
-                    ),
-                  )
-                : const Text('INICIAR SESIÓN'),
+            child:
+                _isLoading
+                    ? const SizedBox(
+                      height: 20,
+                      width: 20,
+                      child: CircularProgressIndicator(
+                        color: AppColors.blanco,
+                        strokeWidth: 2,
+                      ),
+                    )
+                    : const Text('INICIAR SESIÓN'),
           ),
 
           const SizedBox(height: 12),
@@ -345,9 +374,7 @@ class _LoginScreenState extends State<LoginScreen> {
             onPressed: () {
               Navigator.push(
                 context,
-                MaterialPageRoute(
-                  builder: (context) => const RegisterScreen(),
-                ),
+                MaterialPageRoute(builder: (context) => const RegisterScreen()),
               );
             },
             child: const Text(
