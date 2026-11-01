@@ -536,55 +536,68 @@ Widget _buildActividadesField() {
 
         return Padding(
           padding: const EdgeInsets.only(bottom: 6),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.end,
-            children: [
-              Expanded(
-                flex: 3,
-                child: CustomDropdownField(
-                  label: 'Material',
-                  showLabel: index == 0,
-                  hint: 'Selecciona',
-                  icon: Icons.inventory_2_outlined,
-                  value: material['material'] as String?,
-                  items: _materialesDisponibles,
-                  onChanged: (value) {
-                    setState(() {
-                      material['material'] = value;
-                    });
-                  },
-                ),
-              ),
-              const SizedBox(width: 10),
-              Expanded(
-                flex: 1,
-                child: CustomTextField(
-                  label: 'Cantidad',
-                  showLabel: index == 0,
-                  hint: '0',
-                  icon: Icons.numbers,
-                  controller: cantidadController,
-                  keyboardType: TextInputType.number,
-                ),
-              ),
-              if (_materialesSeleccionados.length > 1) ...[
-                const SizedBox(width: 4),
-                IconButton(
-                  tooltip: 'Eliminar material',
-                  onPressed: () {
-                    setState(() {
-                      (material['cantidad'] as TextEditingController)
-                          .dispose();
-                      _materialesSeleccionados.removeAt(index);
-                    });
-                  },
-                  icon: const Icon(
-                    Icons.remove_circle_outline,
-                    color: AppColors.estadoRojo,
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              final compact = constraints.maxWidth < 380;
+              final fields = Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Expanded(
+                    flex: 3,
+                    child: CustomDropdownField(
+                      label: 'Material',
+                      showLabel: index == 0,
+                      hint: 'Selecciona',
+                      icon: Icons.inventory_2_outlined,
+                      value: material['material'] as String?,
+                      items: _materialesDisponibles,
+                      onChanged: (value) => setState(() => material['material'] = value),
+                    ),
                   ),
-                ),
-              ],
-            ],
+                  const SizedBox(width: 12),
+                  Expanded(
+                    flex: 1,
+                    child: CustomTextField(
+                      label: 'Cantidad',
+                      showLabel: index == 0,
+                      hint: '0',
+                      icon: Icons.numbers,
+                      controller: cantidadController,
+                      keyboardType: TextInputType.number,
+                    ),
+                  ),
+                ],
+              );
+              return compact && _materialesSeleccionados.length > 1
+                  ? Column(
+                      children: [
+                        fields,
+                        Align(
+                          alignment: Alignment.centerRight,
+                          child: IconButton(
+                            tooltip: 'Eliminar material',
+                            onPressed: () => _eliminarMaterial(index, material),
+                            icon: const Icon(Icons.remove_circle_outline, color: AppColors.estadoRojo),
+                          ),
+                        ),
+                      ],
+                    )
+                  : Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Expanded(child: fields),
+                        if (_materialesSeleccionados.length > 1)
+                          SizedBox(
+                            width: 44,
+                            child: IconButton(
+                              tooltip: 'Eliminar material',
+                              onPressed: () => _eliminarMaterial(index, material),
+                              icon: const Icon(Icons.remove_circle_outline, color: AppColors.estadoRojo),
+                            ),
+                          ),
+                      ],
+                    );
+            },
           ),
         );
       }),
@@ -608,6 +621,13 @@ Widget _buildActividadesField() {
       ),
     ],
   );
+}
+
+void _eliminarMaterial(int index, Map<String, dynamic> material) {
+  setState(() {
+    (material['cantidad'] as TextEditingController).dispose();
+    _materialesSeleccionados.removeAt(index);
+  });
 }
 Widget _buildRetrasosField() {
   return Container(
@@ -874,13 +894,21 @@ Widget _buildFirmaField() {
 
   @override
   Widget build(BuildContext context) {
-    return AlertDialog(
-      title: const Text('Nueva bitácora'),
-      content: SingleChildScrollView(
-        child: SizedBox(
-          width: 500,
+    return Dialog(
+      backgroundColor: AppColors.grisfondo,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 560, maxHeight: 760),
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(22),
           child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              const Padding(
+                padding: EdgeInsets.only(bottom: 16),
+                child: Text('Nueva bitácora', style: TextStyle(fontSize: 20, fontWeight: FontWeight.w600)),
+              ),
               CustomTextField(
                 label: 'Fecha de bitácora *',
                 hint: 'Selecciona una fecha',
@@ -897,40 +925,52 @@ Widget _buildFirmaField() {
                 ),
               ),
               const SizedBox(height: 14),
-              CustomDropdownField(
-                label: 'Condición climática',
-                hint: 'Selecciona el clima',
-                icon: Icons.wb_sunny_outlined,
-                value: _climaSeleccionado,
-                items: const [
-                  'Soleado',
-                  'Nublado',
-                  'Lluvioso',
-                  'Tormenta',
-                  'Viento fuerte',
-                ],
-                onChanged: (value) {
-                  setState(() {
-                    _climaSeleccionado = value;
-                  });
-                },
-              ),
-              const SizedBox(height: 14),
+              LayoutBuilder(
+                builder: (context, constraints) {
+                  // El dropdown necesita un ancho mínimo para no cortar el texto ni
+                  // desbordar sus iconos dentro del diálogo.
+                  final compact = constraints.maxWidth < 480;
+                  final clima = CustomDropdownField(
+                    label: 'Clima',
+                    hint: 'Selecciona',
+                    icon: Icons.wb_sunny_outlined,
+                    value: _climaSeleccionado,
+                    items: const ['Soleado', 'Nublado', 'Lluvioso', 'Tormenta', 'Viento fuerte'],
+                    onChanged: (value) => setState(() => _climaSeleccionado = value),
+                  );
+                  final temperatura = CustomTextField(
+                    label: 'Temperatura',
+                    hint: '28',
+                    icon: Icons.thermostat_outlined,
+                    controller: _temperaturaController,
+                    keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                    suffixIcon: const Padding(
+                      padding: EdgeInsets.only(right: 12),
+                      child: Center(widthFactor: 1, child: Text('°C', style: TextStyle(color: AppColors.textoGris))),
+                    ),
+                  );
+                  final personal = CustomTextField(
+                    label: 'Personal',
+                    hint: '8',
+                    icon: Icons.groups_outlined,
+                    controller: _personalController,
+                    keyboardType: TextInputType.number,
+                  );
 
-              CustomTextField(
-                label: 'Temperatura ambiente',
-                hint: 'Ejemplo: 28 °C',
-                icon: Icons.thermostat_outlined,
-                controller: _temperaturaController,
-                keyboardType: TextInputType.number,
-              ),
-              const SizedBox(height: 14),
-              CustomTextField(
-                label: 'Personal presente',
-                hint: 'Ejemplo: 8',
-                icon: Icons.groups_outlined,
-                controller: _personalController,
-                keyboardType: TextInputType.number,
+                  if (compact) {
+                    return Column(children: [clima, const SizedBox(height: 14), temperatura, const SizedBox(height: 14), personal]);
+                  }
+                  return Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Expanded(flex: 5, child: clima),
+                      const SizedBox(width: 12),
+                      Expanded(flex: 4, child: temperatura),
+                      const SizedBox(width: 12),
+                      Expanded(flex: 4, child: personal),
+                    ],
+                  );
+                },
               ),
               const SizedBox(height: 14),
               _buildMaterialesField(),
@@ -958,27 +998,22 @@ Widget _buildFirmaField() {
               const SizedBox(height: 14),
               _buildFirmaField(),
               const SizedBox(height: 20),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.end,
+                children: [
+                  TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancelar', style: TextStyle(color: AppColors.textoGris))),
+                  const SizedBox(width: 8),
+                  ElevatedButton(
+                    onPressed: _guardar,
+                    style: ElevatedButton.styleFrom(backgroundColor: AppColors.naranja, foregroundColor: AppColors.blanco),
+                    child: const Text('Guardar'),
+                  ),
+                ],
+              ),
             ],
           ),
         ),
       ),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.pop(context),
-          child: const Text(
-            'Cancelar',
-            style: TextStyle(color: AppColors.textoGris),
-          ),
-        ),
-        ElevatedButton(
-          onPressed: _guardar,
-          style: ElevatedButton.styleFrom(
-            backgroundColor: AppColors.naranja,
-            foregroundColor: AppColors.blanco,
-          ),
-          child: const Text('Guardar'),
-        ),
-      ],
     );
   }
 }
