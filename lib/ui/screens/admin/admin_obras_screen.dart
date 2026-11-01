@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:gestobra/config/theme/app_colors.dart';
 import 'package:gestobra/ui/screens/obras/obra_detail_screen.dart';
+import 'package:gestobra/servicios/api_service.dart';
 
 class AdminObrasScreen extends StatefulWidget {
   const AdminObrasScreen({super.key});
@@ -10,133 +11,141 @@ class AdminObrasScreen extends StatefulWidget {
 }
 
 class _AdminObrasScreenState extends State<AdminObrasScreen> {
-  // Datos mock con los nuevos campos
-  final List<Map<String, dynamic>> _obras = [
-    {
-      'codigo': 'OBRA-001', 
-      'titulo': 'Edificio Corporativo', 
-      'cliente': 'Inmobiliaria del Golfo',
-      'ubicacion': 'Boca del Río, Veracruz',
-      'descripcion': 'Edificio de oficinas de 4 niveles con estacionamiento subterráneo.',
-      'fechaInicio': '01/10/2026',
-      'fechaTermino': '30/04/2027',
-      'residente': 'Sin asignar', 
-      'estado': 'Pendiente'
-    },
-    {
-      'codigo': 'OBRA-002', 
-      'titulo': 'Vivienda 2 Plantas', 
-      'cliente': 'Sr. Juan Pérez',
-      'ubicacion': 'Cuitláhuac, Veracruz',
-      'descripcion': 'Construcción de vivienda residencial unifamiliar de 2 plantas.',
-      'fechaInicio': '15/09/2026',
-      'fechaTermino': '15/01/2027',
-      'residente': 'Ing. Laura Sánchez', 
-      'estado': 'En Proceso'
-    },
-    {
-      'codigo': 'OBRA-003', 
-      'titulo': 'Pavimentación Municipal', 
-      'cliente': 'Gobierno municipal',
-      'ubicacion': 'Cuitláhuac, Veracruz',
-      'descripcion': 'Pavimentación con concreto hidráulico en calle principal.',
-      'fechaInicio': '01/08/2026',
-      'fechaTermino': '30/11/2026',
-      'residente': 'Ing. Carlos Márquez', 
-      'estado': 'En Proceso'
-    },
-    {
-      'codigo': 'OBRA-004', 
-      'titulo': 'Ampliación de Bodega Industrial', 
-      'cliente': 'Logística del Sureste',
-      'ubicacion': 'Manzanillo, Colima',
-      'descripcion': 'Ampliación de nave industrial de 500 m2 con estructura metálica.',
-      'fechaInicio': '10/11/2026',
-      'fechaTermino': '10/03/2027',
-      'residente': 'Sin asignar', 
-      'estado': 'Pendiente'
-    },
-  ];
+  bool _cargando = true;
+  List<Map<String, dynamic>> _obras = [];
 
-  final List<String> _residentesDisponibles = [
-    'Ing. Carlos Márquez',
-    'Ing. Laura Sánchez',
-    'Ing. Patricia Ríos',
-    'Ing. Roberto Díaz',
-  ];
+  @override
+  void initState() {
+    super.initState();
+    _cargarObras();
+  }
 
-  void _asignarResidente(int index) {
-    String? seleccionado = _obras[index]['residente'] == 'Sin asignar' ? null : _obras[index]['residente'];
+  // 👇 LA FUNCIÓN QUE FALTABA
+  Future<void> _cargarObras() async {
+    setState(() => _cargando = true);
+    try {
+      final res = await ApiService.get('obras.php');
+      if (res['estado'] == true) {
+        setState(() {
+          _obras = List<Map<String, dynamic>>.from(res['obras']).map((o) {
+            return {
+              'id_obra': o['id_obra'],
+              'codigo': o['codigo'],
+              'titulo': o['nombre'],
+              'cliente': o['nombre_cliente'] ?? 'Sin cliente',
+              'ubicacion': o['ubicacion'],
+              'descripcion': o['descripcion'] ?? '',
+              'fechaInicio': o['fecha_inicio'] ?? '--',
+              'fechaTermino': o['fecha_fin_estimada'] ?? '--',
+              'residente': 'Ver asignaciones', // Lo manejaremos en otra pantalla
+              'estado': o['estado_nombre'] == 'EN_EJECUCION' ? 'En Proceso' : 'Pendiente',
+            };
+          }).toList();
+          _cargando = false;
+        });
+      } else {
+        setState(() => _cargando = false);
+        _showError(res['mensaje'] ?? 'Error al cargar');
+      }
+    } catch (e) {
+      setState(() => _cargando = false);
+      _showError('Error de red: $e');
+    }
+  }
+
+  void _showError(String msg) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg), backgroundColor: AppColors.estadoRojo));
+  }
+
+  // 👇 BOTÓN ASIGNAR (YA FUNCIONAL)
+  void _asignarResidente(int index) async {
+    final resUsers = await ApiService.get('listar_usuarios.php');
+    if (resUsers['estado'] != true) return;
+    List<Map<String, dynamic>> usuarios = List<Map<String, dynamic>>.from(resUsers['usuarios']);
+
+    int? usuarioSeleccionado;
+    String rolSeleccionado = 'SUPERVISOR';
 
     showDialog(
       context: context,
       builder: (context) {
-        return AlertDialog(
-          title: const Text('Asignar Residente'),
-          content: StatefulBuilder(
-            builder: (context, setModalState) {
-              return DropdownButtonFormField<String>(
-                value: seleccionado,
-                decoration: const InputDecoration(
-                  labelText: 'Selecciona un empleado',
-                  border: OutlineInputBorder(),
+        return StatefulBuilder(
+          builder: (context, setModalState) {
+            return AlertDialog(
+              title: const Text('Asignar Personal a Obra'),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  DropdownButtonFormField<int>(
+                    decoration: const InputDecoration(labelText: 'Selecciona un empleado', border: OutlineInputBorder()),
+                    items: usuarios.map((u) => DropdownMenuItem(
+                      value: u['id_usuario'] as int,
+                      child: Text('${u['nombre']} ${u['apellido_paterno']}'),
+                    )).toList(),
+                    onChanged: (val) => setModalState(() => usuarioSeleccionado = val),
+                  ),
+                  const SizedBox(height: 12),
+                  DropdownButtonFormField<String>(
+                    value: rolSeleccionado,
+                    decoration: const InputDecoration(labelText: 'Rol', border: OutlineInputBorder()),
+                    items: ['SUPERVISOR', 'COORDINADOR', 'CAPTURISTA'].map((r) => DropdownMenuItem(value: r, child: Text(r))).toList(),
+                    onChanged: (val) => setModalState(() => rolSeleccionado = val!),
+                  ),
+                ],
+              ),
+              actions: [
+                TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancelar')),
+                ElevatedButton(
+                  onPressed: () async {
+                    if (usuarioSeleccionado == null) return;
+                    
+                    final res = await ApiService.post('asignaciones.php', {
+                      'id_obra': _obras[index]['id_obra'],
+                      'id_usuario': usuarioSeleccionado,
+                      'tipo_asignacion': rolSeleccionado,
+                    });
+
+                    if (res['estado'] == true) {
+                      Navigator.pop(context);
+                      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Asignado con éxito')));
+                      // No es necesario recargar las obras, pero podrías hacerlo si quieres actualizar algo visual.
+                    } else {
+                      _showError(res['mensaje'] ?? 'Error al asignar');
+                    }
+                  },
+                  style: ElevatedButton.styleFrom(backgroundColor: AppColors.naranja),
+                  child: const Text('Asignar'),
                 ),
-                items: _residentesDisponibles.map((r) => DropdownMenuItem(value: r, child: Text(r))).toList(),
-                onChanged: (val) => setModalState(() => seleccionado = val),
-              );
-            }
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context), 
-              child: const Text('Cancelar', style: TextStyle(color: AppColors.textoGris)),
-            ),
-            ElevatedButton(
-              onPressed: () {
-                if (seleccionado != null) {
-                  setState(() {
-                    _obras[index]['residente'] = seleccionado;
-                    if (_obras[index]['estado'] == 'Pendiente') _obras[index]['estado'] = 'En Proceso';
-                  });
-                  Navigator.pop(context);
-                  ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Residente asignado con éxito')));
-                }
-              },
-              style: ElevatedButton.styleFrom(backgroundColor: AppColors.naranja),
-              child: const Text('Asignar'),
-            ),
-          ],
+              ],
+            );
+          }
         );
       },
     );
   }
 
-  void _abrirModalNuevaObra() {
+  void _abrirModalNuevaObra() async {
+    // 1. Cargamos los clientes reales
+    final resClientes = await ApiService.get('clientes.php');
+    if (resClientes['estado'] != true) {
+      _showError('No se pudieron cargar los clientes');
+      return;
+    }
+    List<Map<String, dynamic>> clientes = List<Map<String, dynamic>>.from(resClientes['data']);
+
     final formKey = GlobalKey<FormState>();
-    
-    // Controladores
+
     final tituloCtrl = TextEditingController();
-    final clienteCtrl = TextEditingController();
     final ubicacionCtrl = TextEditingController();
     final descripcionCtrl = TextEditingController();
     final fechaInicioCtrl = TextEditingController();
     final fechaFinCtrl = TextEditingController();
-    final otraFaseCtrl = TextEditingController();
-
+    
+    int? clienteSeleccionado;
     DateTime? fechaInicio;
     DateTime? fechaFin;
-
-    // Fases
-    final List<String> fasesBase = [
-      'Preliminares',
-      'Cimentación',
-      'Estructura',
-      'Albañilería',
-      'Instalaciones',
-      'Acabados y pruebas',
-    ];
-    final Set<String> fasesSeleccionadas = {};
-    final List<String> fasesPersonalizadas = [];
+    bool guardando = false;
 
     showDialog(
       context: context,
@@ -144,7 +153,6 @@ class _AdminObrasScreenState extends State<AdminObrasScreen> {
       builder: (context) {
         return StatefulBuilder(
           builder: (context, setModalState) {
-            
             Future<void> seleccionarFecha(bool esInicio) async {
               final fecha = await showDatePicker(
                 context: context,
@@ -152,54 +160,18 @@ class _AdminObrasScreenState extends State<AdminObrasScreen> {
                 firstDate: DateTime(2020),
                 lastDate: DateTime(2100),
                 helpText: esInicio ? 'Fecha de inicio' : 'Fecha de término',
-                cancelText: 'Cancelar',
-                confirmText: 'Aceptar',
               );
               if (fecha != null) {
                 setModalState(() {
                   if (esInicio) {
                     fechaInicio = fecha;
-                    fechaInicioCtrl.text = '${fecha.day.toString().padLeft(2, '0')}/${fecha.month.toString().padLeft(2, '0')}/${fecha.year}';
+                    fechaInicioCtrl.text = '${fecha.year}-${fecha.month.toString().padLeft(2, '0')}-${fecha.day.toString().padLeft(2, '0')}';
                   } else {
                     fechaFin = fecha;
-                    fechaFinCtrl.text = '${fecha.day.toString().padLeft(2, '0')}/${fecha.month.toString().padLeft(2, '0')}/${fecha.year}';
+                    fechaFinCtrl.text = '${fecha.year}-${fecha.month.toString().padLeft(2, '0')}-${fecha.day.toString().padLeft(2, '0')}';
                   }
                 });
               }
-            }
-
-            void agregarOtraFase() {
-              final texto = otraFaseCtrl.text.trim();
-              if (texto.isEmpty) return;
-              if (fasesBase.contains(texto) || fasesPersonalizadas.contains(texto)) {
-                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Esa fase ya está en la lista')));
-                return;
-              }
-              setModalState(() {
-                fasesPersonalizadas.add(texto);
-                fasesSeleccionadas.add(texto);
-                otraFaseCtrl.clear();
-              });
-            }
-
-            Widget buildChip(String fase) {
-              final sel = fasesSeleccionadas.contains(fase);
-              return FilterChip(
-                label: Text(fase, style: const TextStyle(fontSize: 11)),
-                selected: sel,
-                selectedColor: AppColors.naranja.withValues(alpha: 0.2),
-                checkmarkColor: AppColors.naranja,
-                side: BorderSide(color: sel ? AppColors.naranja : AppColors.gris),
-                onSelected: (v) {
-                  setModalState(() {
-                    if (v) {
-                      fasesSeleccionadas.add(fase);
-                    } else {
-                      fasesSeleccionadas.remove(fase);
-                    }
-                  });
-                },
-              );
             }
 
             return AlertDialog(
@@ -219,14 +191,16 @@ class _AdminObrasScreenState extends State<AdminObrasScreen> {
                           validator: (v) => v!.isEmpty ? 'Requerido' : null,
                         ),
                         const SizedBox(height: 12),
-                        TextFormField(
-                          controller: clienteCtrl,
+                        
+                        // 👇 SELECTOR DE CLIENTE
+                        DropdownButtonFormField<int>(
                           decoration: const InputDecoration(labelText: 'Cliente *', border: OutlineInputBorder()),
-                          validator: (v) => v!.isEmpty ? 'Requerido' : null,
+                          items: clientes.map((c) => DropdownMenuItem(value: c['id_cliente'] as int, child: Text(c['nombre']))).toList(),
+                          onChanged: (v) => setModalState(() => clienteSeleccionado = v),
+                          validator: (v) => v == null ? 'Selecciona un cliente' : null,
                         ),
                         const SizedBox(height: 12),
-                        
-                        // Ubicación
+
                         TextFormField(
                           controller: ubicacionCtrl,
                           decoration: const InputDecoration(labelText: 'Ubicación de la obra *', border: OutlineInputBorder(), prefixIcon: Icon(Icons.location_on_outlined)),
@@ -234,15 +208,13 @@ class _AdminObrasScreenState extends State<AdminObrasScreen> {
                         ),
                         const SizedBox(height: 12),
 
-                        // Descripción
                         TextFormField(
                           controller: descripcionCtrl,
-                          maxLines: 3,
-                          decoration: const InputDecoration(labelText: 'Descripción de la obra', border: OutlineInputBorder(), prefixIcon: Icon(Icons.description_outlined)),
+                          maxLines: 2,
+                          decoration: const InputDecoration(labelText: 'Descripción de la obra', border: OutlineInputBorder()),
                         ),
                         const SizedBox(height: 12),
 
-                        // Fechas
                         Row(
                           children: [
                             Expanded(
@@ -266,50 +238,6 @@ class _AdminObrasScreenState extends State<AdminObrasScreen> {
                             ),
                           ],
                         ),
-                        const SizedBox(height: 16),
-
-                        // Fases
-                        const Text('Fases que abarcará el trabajo *', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
-                        const SizedBox(height: 8),
-                        Container(
-                          width: double.infinity,
-                          padding: const EdgeInsets.all(12),
-                          decoration: BoxDecoration(
-                            color: AppColors.blanco,
-                            borderRadius: BorderRadius.circular(12),
-                            border: Border.all(color: AppColors.bordeSuave),
-                          ),
-                          child: Wrap(
-                            spacing: 8,
-                            runSpacing: 8,
-                            children: [
-                              ...fasesBase.map(buildChip),
-                              ...fasesPersonalizadas.map(buildChip),
-                            ],
-                          ),
-                        ),
-                        const SizedBox(height: 12),
-
-                        // Agregar otra fase
-                        Row(
-                          children: [
-                            Expanded(
-                              child: TextFormField(
-                                controller: otraFaseCtrl,
-                                decoration: const InputDecoration(labelText: 'Otra fase (opcional)', border: OutlineInputBorder(), prefixIcon: Icon(Icons.add_circle_outline)),
-                              ),
-                            ),
-                            const SizedBox(width: 8),
-                            SizedBox(
-                              height: 50,
-                              child: ElevatedButton(
-                                onPressed: agregarOtraFase,
-                                style: ElevatedButton.styleFrom(backgroundColor: AppColors.naranja),
-                                child: const Text('Añadir'),
-                              ),
-                            ),
-                          ],
-                        ),
                       ],
                     ),
                   ),
@@ -317,41 +245,40 @@ class _AdminObrasScreenState extends State<AdminObrasScreen> {
               ),
               actions: [
                 TextButton(
-                  onPressed: () => Navigator.pop(context), 
+                  onPressed: guardando ? null : () => Navigator.pop(context),
                   child: const Text('Cancelar', style: TextStyle(color: AppColors.textoGris)),
                 ),
                 ElevatedButton(
-                  onPressed: () {
-                    if (formKey.currentState!.validate()) {
-                      if (fechaFin != null && fechaInicio != null && fechaFin!.isBefore(fechaInicio!)) {
-                        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('La fecha de término no puede ser anterior a la de inicio')));
-                        return;
-                      }
-                      if (fasesSeleccionadas.isEmpty) {
-                        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Selecciona al menos una fase')));
-                        return;
-                      }
+                  onPressed: guardando ? null : () async {
+                    if (!formKey.currentState!.validate()) return;
+                    
+                    setModalState(() => guardando = true);
 
-                      setState(() {
-                        _obras.add({
-                          'codigo': 'OBRA-00${_obras.length + 1}',
-                          'titulo': tituloCtrl.text,
-                          'cliente': clienteCtrl.text,
-                          'ubicacion': ubicacionCtrl.text,
-                          'descripcion': descripcionCtrl.text,
-                          'fechaInicio': fechaInicioCtrl.text,
-                          'fechaTermino': fechaFinCtrl.text,
-                          'fases': fasesSeleccionadas.toList(),
-                          'residente': 'Sin asignar',
-                          'estado': 'Pendiente',
-                        });
-                      });
+                    final body = {
+                      'codigo': 'OBR-${DateTime.now().millisecondsSinceEpoch.toString().substring(8)}',
+                      'nombre': tituloCtrl.text.trim(),
+                      'id_cliente': clienteSeleccionado,
+                      'ubicacion': ubicacionCtrl.text.trim(),
+                      'descripcion': descripcionCtrl.text.trim(),
+                      'fecha_inicio': fechaInicioCtrl.text,
+                      'fecha_fin': fechaFinCtrl.text,
+                    };
+
+                    final res = await ApiService.post('obras.php', body);
+                    
+                    if (!context.mounted) return;
+
+                    if (res['estado'] == true) {
                       Navigator.pop(context);
-                      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Obra registrada correctamente')));
+                      _cargarObras(); // Recargar la lista
+                      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Obra registrada')));
+                    } else {
+                      setModalState(() => guardando = false);
+                      _showError(res['mensaje'] ?? 'Error');
                     }
                   },
                   style: ElevatedButton.styleFrom(backgroundColor: AppColors.naranja),
-                  child: const Text('Guardar'),
+                  child: guardando ? const CircularProgressIndicator(color: Colors.white) : const Text('Guardar'),
                 ),
               ],
             );
@@ -371,6 +298,10 @@ class _AdminObrasScreenState extends State<AdminObrasScreen> {
         elevation: 0,
         actions: [
           IconButton(
+            icon: const Icon(Icons.refresh, color: AppColors.textoGris),
+            onPressed: _cargarObras,
+          ),
+          IconButton(
             icon: const Icon(Icons.add_circle, color: AppColors.naranja, size: 28),
             tooltip: 'Nueva Obra',
             onPressed: _abrirModalNuevaObra,
@@ -381,183 +312,120 @@ class _AdminObrasScreenState extends State<AdminObrasScreen> {
       body: Center(
         child: ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 1400),
-          child: LayoutBuilder(
-            builder: (context, constraints) {
-              return GridView.builder(
-                padding: const EdgeInsets.all(20),
-                gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
-                  maxCrossAxisExtent: 380, 
-                  crossAxisSpacing: 16,
-                  mainAxisSpacing: 16,
-                  mainAxisExtent: 290, // <-- Altura aumentada para albergar los nuevos datos
-                ),
-                itemCount: _obras.length,
-                itemBuilder: (context, index) {
-                  final obra = _obras[index];
-                  final sinAsignar = obra['residente'] == 'Sin asignar';
-                  
-                  return Container(
-                    decoration: BoxDecoration(
-                      color: AppColors.blanco,
-                      borderRadius: BorderRadius.circular(16),
-                      border: Border.all(color: AppColors.bordeSuave, width: 1),
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        // ─── Cabecera Tarjeta ───
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-                          decoration: BoxDecoration(
-                            color: AppColors.blanco,
-                            borderRadius: const BorderRadius.vertical(top: Radius.circular(15)),
-                            border: const Border(bottom: BorderSide(color: AppColors.bordeSuave, width: 1.2)),
-                          ),
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              Text(obra['codigo'], style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: AppColors.naranja)),
-                              Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                                decoration: BoxDecoration(
-                                  color: obra['estado'] == 'Pendiente' ? AppColors.estadoAmarillo.withValues(alpha: 0.15) : AppColors.estadoVerde.withValues(alpha: 0.15),
-                                  borderRadius: BorderRadius.circular(20),
-                                  border: Border.all(
-                                    color: obra['estado'] == 'Pendiente' ? AppColors.estadoAmarillo : AppColors.estadoVerde,
-                                    width: 0.5,
-                                  )
-                                ),
-                                child: Text(
-                                  obra['estado'], 
-                                  style: TextStyle(
-                                    fontSize: 10, 
-                                    color: obra['estado'] == 'Pendiente' ? Colors.orange[800] : Colors.green[800], 
-                                    fontWeight: FontWeight.bold
-                                  )
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                        
-                        // ─── Cuerpo Tarjeta (NUEVOS DATOS) ───
-                        Expanded(
-                          child: Padding(
-                            padding: const EdgeInsets.all(14),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                // Título
-                                Text(
-                                  obra['titulo'], 
-                                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: AppColors.textoNegro), 
-                                  maxLines: 1, 
-                                  overflow: TextOverflow.ellipsis
-                                ),
-                                const SizedBox(height: 4),
-                                
-                                // Cliente
-                                Text(
-                                  obra['cliente'] ?? 'Cliente no definido', 
-                                  style: const TextStyle(fontWeight: FontWeight.w500, fontSize: 12, color: AppColors.textoGris), 
-                                  maxLines: 1, 
-                                  overflow: TextOverflow.ellipsis
-                                ),
-                                const SizedBox(height: 10),
+          child: _cargando 
+            ? const Center(child: CircularProgressIndicator())
+            : _obras.isEmpty 
+              ? const Center(child: Text('No hay obras registradas aún'))
+              : GridView.builder(
+                  padding: const EdgeInsets.all(20),
+                  gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
+                    maxCrossAxisExtent: 380,
+                    crossAxisSpacing: 16,
+                    mainAxisSpacing: 16,
+                    mainAxisExtent: 290,
+                  ),
+                  itemCount: _obras.length,
+                  itemBuilder: (context, index) {
+                    final obra = _obras[index];
+                    final isPending = obra['estado'] == 'Pendiente';
 
-                                // Ubicación
-                                _buildIconRow(Icons.location_on_outlined, obra['ubicacion'] ?? 'Sin ubicación'),
-                                const SizedBox(height: 6),
-                                
-                                // Descripción
-                                _buildIconRow(Icons.description_outlined, obra['descripcion'] ?? 'Sin descripción', maxLines: 2),
-                                const SizedBox(height: 6),
-                                
-                                // Fechas
-                                _buildIconRow(Icons.calendar_today_outlined, 
-                                  (obra['fechaInicio'] != null && obra['fechaTermino'] != null) 
-                                    ? '${obra['fechaInicio']} al ${obra['fechaTermino']}'
-                                    : 'Fechas sin definir'
-                                ),
-                                
-                                const Spacer(),
-                                
-                                // Residente
-                                Row(
-                                  children: [
-                                    const Icon(Icons.person_outline, size: 16, color: AppColors.textoGris),
-                                    const SizedBox(width: 6),
-                                    Expanded(
-                                      child: Text(
-                                        sinAsignar ? 'Sin residente asignado' : obra['residente'],
-                                        style: TextStyle(
-                                          fontSize: 12, 
-                                          fontWeight: FontWeight.w600, 
-                                          color: sinAsignar ? AppColors.estadoRojo : AppColors.textoNegro
-                                        ),
-                                        overflow: TextOverflow.ellipsis,
-                                      ),
-                                    ),
-                                  ],
+                    return Container(
+                      decoration: BoxDecoration(
+                        color: AppColors.blanco,
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(color: AppColors.bordeSuave, width: 1),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                            decoration: const BoxDecoration(
+                              border: Border(bottom: BorderSide(color: AppColors.bordeSuave, width: 1.2)),
+                            ),
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Text(obra['codigo'], style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: AppColors.naranja)),
+                                Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                                  decoration: BoxDecoration(
+                                    color: isPending ? AppColors.estadoAmarillo.withValues(alpha: 0.15) : AppColors.estadoVerde.withValues(alpha: 0.15),
+                                    borderRadius: BorderRadius.circular(20),
+                                    border: Border.all(color: isPending ? AppColors.estadoAmarillo : AppColors.estadoVerde, width: 0.5),
+                                  ),
+                                  child: Text(
+                                    obra['estado'], 
+                                    style: TextStyle(fontSize: 10, color: isPending ? Colors.orange[800] : Colors.green[800], fontWeight: FontWeight.bold)
+                                  ),
                                 ),
                               ],
                             ),
                           ),
-                        ),
-                        
-                        // ─── Botones de Acción (Estilo unificado) ───
-                        const Divider(height: 1, color: AppColors.gris),
-                        SizedBox(
-                          height: 48,
-                          child: Row(
-                            children: [
-                              Expanded(
-                                child: InkWell(
-                                  onTap: () => _asignarResidente(index),
-                                  borderRadius: const BorderRadius.only(bottomLeft: Radius.circular(15)),
-                                  child: const Row(
-                                    mainAxisAlignment: MainAxisAlignment.center,
-                                    children: [
-                                      Icon(Icons.person_add, size: 16, color: AppColors.naranja),
-                                      SizedBox(width: 6),
-                                      Text('Asignar', style: TextStyle(color: AppColors.naranja, fontWeight: FontWeight.bold, fontSize: 12)),
-                                    ],
-                                  ),
-                                ),
+                          Expanded(
+                            child: Padding(
+                              padding: const EdgeInsets.all(14),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(obra['titulo'], style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16), maxLines: 1, overflow: TextOverflow.ellipsis),
+                                  const SizedBox(height: 4),
+                                  Text(obra['cliente'] ?? 'Cliente no definido', style: const TextStyle(fontWeight: FontWeight.w500, fontSize: 12, color: AppColors.textoGris), maxLines: 1, overflow: TextOverflow.ellipsis),
+                                  const SizedBox(height: 10),
+                                  _buildIconRow(Icons.location_on_outlined, obra['ubicacion']),
+                                  const SizedBox(height: 6),
+                                  _buildIconRow(Icons.description_outlined, obra['descripcion'], maxLines: 2),
+                                  const SizedBox(height: 6),
+                                  _buildIconRow(Icons.calendar_today_outlined, '${obra['fechaInicio']} al ${obra['fechaTermino']}'),
+                                ],
                               ),
-                              Container(width: 1, height: 24, color: AppColors.gris),
-                              Expanded(
-                                child: InkWell(
-                                  onTap: () {
-                                    Navigator.push(context, MaterialPageRoute(builder: (_) => ObraDetailScreen(obra: obra)));
-                                  },
-                                  borderRadius: const BorderRadius.only(bottomRight: Radius.circular(15)),
-                                  child: const Row(
-                                    mainAxisAlignment: MainAxisAlignment.center,
-                                    children: [
-                                      Icon(Icons.visibility, size: 16, color: AppColors.textoGris),
-                                      SizedBox(width: 6),
-                                      Text('Ver Detalle', style: TextStyle(color: AppColors.textoGris, fontWeight: FontWeight.bold, fontSize: 12)),
-                                    ],
-                                  ),
-                                ),
-                              ),
-                            ],
+                            ),
                           ),
-                        )
-                      ],
-                    ),
-                  );
-                },
-              );
-            },
-          ),
+                          const Divider(height: 1, color: AppColors.gris),
+                          SizedBox(
+                            height: 48,
+                            child: Row(
+                              children: [
+                                Expanded(
+                                  child: InkWell(
+                                    onTap: () => _asignarResidente(index),
+                                    child: const Row(
+                                      mainAxisAlignment: MainAxisAlignment.center,
+                                      children: [
+                                        Icon(Icons.person_add, size: 16, color: AppColors.naranja),
+                                        SizedBox(width: 6),
+                                        Text('Asignar', style: TextStyle(color: AppColors.naranja, fontWeight: FontWeight.bold, fontSize: 12)),
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                                Container(width: 1, height: 24, color: AppColors.gris),
+                                Expanded(
+                                  child: InkWell(
+                                    onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => ObraDetailScreen(obra: obra))),
+                                    child: const Row(
+                                      mainAxisAlignment: MainAxisAlignment.center,
+                                      children: [
+                                        Icon(Icons.visibility, size: 16, color: AppColors.textoGris),
+                                        SizedBox(width: 6),
+                                        Text('Ver Detalle', style: TextStyle(color: AppColors.textoGris, fontWeight: FontWeight.bold, fontSize: 12)),
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          )
+                        ],
+                      ),
+                    );
+                  },
+                ),
         ),
       ),
     );
   }
 
-  // ─── Helper para crear las filas con ícono ───
   Widget _buildIconRow(IconData icon, String text, {int maxLines = 1}) {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
