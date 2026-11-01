@@ -2,7 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:gestobra/config/theme/app_colors.dart';
 
 import 'dashboard_screen.dart';
-import '../obras/obras_list_screen.dart';
+// 👇 El 'hide' le dice a Flutter que ignore el DashboardScreen duplicado 👇
+import '../obras/obras_list_screen.dart' hide DashboardScreen; 
 import '../perfil/perfil_screen.dart';
 
 class MainScaffold extends StatefulWidget {
@@ -32,9 +33,7 @@ class _MainScaffoldState extends State<MainScaffold> {
       return Scaffold(
         body: Row(
           children: [
-            // Menú Lateral (Sidebar)
             _buildSidebar(),
-            // Contenido Principal
             Expanded(
               child: _screens[_currentIndex],
             ),
@@ -43,7 +42,7 @@ class _MainScaffoldState extends State<MainScaffold> {
       );
     }
 
-    // ============ VISTA MÓVIL (Tu diseño original intacto) ============
+    // ============ VISTA MÓVIL ============
     return Scaffold(
       body: _screens[_currentIndex],
       bottomNavigationBar: BottomNavigationBar(
@@ -77,7 +76,6 @@ class _MainScaffoldState extends State<MainScaffold> {
             padding: const EdgeInsets.symmetric(vertical: 32, horizontal: 24),
             child: Row(
               children: [
-                // 🔴 AQUÍ ESTÁ EL LOGO PARA FONDO OSCURO (SOLO PC)
                 Image.asset(
                   'assets/images/GestObra_blanco.png', 
                   height: 32,

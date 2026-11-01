@@ -30,7 +30,6 @@ class ApiService {
     return jsonDecode(response.body);
   }
 
-  // 👇 MÉTODO QUE FALTABA 👇
   static Future<Map<String, dynamic>> delete(String endpoint) async {
     final token = await AuthService.obtenerToken();
     final response = await http.delete(
