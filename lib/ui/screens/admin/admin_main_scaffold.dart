@@ -11,6 +11,7 @@ import 'admin_asignaciones_screen.dart';
 import 'admin_proveedores_screen.dart';
 import 'admin_usuarios_screen.dart';
 import 'admin_clientes_screen.dart';
+import 'admin_auditoria_screen.dart'; // <-- IMPORTACIÓN NUEVA
 
 class AdminMainScaffold extends StatefulWidget {
   const AdminMainScaffold({super.key});
@@ -21,24 +22,26 @@ class AdminMainScaffold extends StatefulWidget {
 
 class _AdminMainScaffoldState extends State<AdminMainScaffold> {
   int _currentIndex = 0;
-final List<Widget> _screens = [
-  const AdminDashboardScreen(),      // 0 - Inicio
-  const AdminObrasScreen(),          // 1 - Obras
-  const AdminAsignacionesScreen(),   // 2 - Asignaciones
-  const AdminClientesScreen(),       // 3 - Clientes
-  const AdminProveedoresScreen(),    // 4 - Proveedores
-  const AdminMaquinariaScreen(),     // 5 - Maquinaria
-  const AdminPersonalScreen(),       // 6 - Personal
-  const AdminTrabajadoresScreen(),   // 7 - Trabajadores
-  const AdminUsuariosScreen(),       // 8 - Usuarios
-  const AdminCatalogosScreen(),      // 9 - Catálogos (NUEVO)
-  const AdminPerfilScreen(),         // 10 - Perfil (Corrido un índice)
-];
 
-   int get _currentMobileNavIndex {
+  final List<Widget> _screens = [
+    const AdminDashboardScreen(),      // 0 - Inicio
+    const AdminObrasScreen(),          // 1 - Obras
+    const AdminAsignacionesScreen(),   // 2 - Asignaciones
+    const AdminClientesScreen(),       // 3 - Clientes
+    const AdminProveedoresScreen(),    // 4 - Proveedores
+    const AdminMaquinariaScreen(),     // 5 - Maquinaria
+    const AdminPersonalScreen(),       // 6 - Personal
+    const AdminTrabajadoresScreen(),   // 7 - Trabajadores
+    const AdminUsuariosScreen(),       // 8 - Usuarios
+    const AdminCatalogosScreen(),      // 9 - Catálogos
+    const AdminAuditoriaScreen(),      // 10 - Auditoría (NUEVO)
+    const AdminPerfilScreen(),         // 11 - Perfil (Corrido a 11)
+  ];
+
+  int get _currentMobileNavIndex {
     if (_currentIndex == 0) return 0;
     if (_currentIndex == 1) return 1;
-    if (_currentIndex == 10) return 3; // Perfil ahora es el índice 10
+    if (_currentIndex == 11) return 3; // Perfil ahora es el índice 11
     return 2; // Todo lo demás cae en "Gestión"
   }
 
@@ -70,7 +73,7 @@ final List<Widget> _screens = [
             setState(() {
               if (index == 0) _currentIndex = 0; // Inicio
               if (index == 1) _currentIndex = 1; // Obras
-              if (index == 3) _currentIndex = 9; // Perfil
+              if (index == 3) _currentIndex = 11; // Perfil (Actualizado a 11)
             });
           }
         },
@@ -120,6 +123,7 @@ final List<Widget> _screens = [
                     _buildMenuOption(ctx, 'Personal', Icons.groups, 6),
                     _buildMenuOption(ctx, 'Trabajadores', Icons.engineering, 7),
                     _buildMenuOption(ctx, 'Catálogos', Icons.list_alt, 9),
+                    _buildMenuOption(ctx, 'Auditoría', Icons.security_update_good, 10), // <-- NUEVO
                     _buildMenuOption(ctx, 'Usuarios', Icons.manage_accounts, 8),
                   ],
                 ),
@@ -185,7 +189,7 @@ final List<Widget> _screens = [
                 ],
               ),
             ),
-            // 👇 ÍNDICES CORREGIDOS 0 a 9
+            // 👇 ÍNDICES CORREGIDOS 0 a 11
             _buildDesktopItem(0, Icons.home_outlined, Icons.home, 'Inicio'),
             _buildDesktopItem(1, Icons.business_center_outlined, Icons.business_center, 'Obras'),
             _buildDesktopItem(2, Icons.link_outlined, Icons.link, 'Asignaciones'),
@@ -194,9 +198,10 @@ final List<Widget> _screens = [
             _buildDesktopItem(5, Icons.precision_manufacturing_outlined, Icons.precision_manufacturing, 'Maquinaria'),
             _buildDesktopItem(6, Icons.groups_outlined, Icons.groups, 'Personal'),
             _buildDesktopItem(7, Icons.engineering_outlined, Icons.engineering, 'Trabajadores'),
-          _buildDesktopItem(8, Icons.manage_accounts_outlined, Icons.manage_accounts, 'Usuarios'),
-_buildDesktopItem(9, Icons.list_alt_outlined, Icons.list_alt, 'Catálogos'), // <-- NUEVO
-_buildDesktopItem(10, Icons.person_outline, Icons.person, 'Perfil'), // <-- Índice 10
+            _buildDesktopItem(8, Icons.manage_accounts_outlined, Icons.manage_accounts, 'Usuarios'),
+            _buildDesktopItem(9, Icons.list_alt_outlined, Icons.list_alt, 'Catálogos'),
+            _buildDesktopItem(10, Icons.security_update_good_outlined, Icons.security_update_good, 'Auditoría'), // <-- NUEVO
+            _buildDesktopItem(11, Icons.person_outline, Icons.person, 'Perfil'), // <-- Perfil en 11
             const SizedBox(height: 20),
           ],
         ),

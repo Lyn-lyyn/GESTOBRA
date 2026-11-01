@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:gestobra/config/theme/app_colors.dart';
 import 'package:fl_chart/fl_chart.dart';
+import 'widgets/notification_bell.dart';
 
 class AdminDashboardScreen extends StatelessWidget {
   const AdminDashboardScreen({super.key});
@@ -123,13 +124,11 @@ class AdminDashboardScreen extends StatelessWidget {
           ),
         ],
       ),
-      actions: [
-        IconButton(
-          icon: const Icon(Icons.notifications_outlined, color: AppColors.naranja),
-          onPressed: () {},
-        ),
-        const SizedBox(width: 8),
-      ],
+     // En _buildAppBar()
+actions: [
+  const NotificationBell(), // <-- Importa el widget
+  const SizedBox(width: 8),
+],
     );
   }
 
