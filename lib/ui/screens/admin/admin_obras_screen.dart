@@ -20,24 +20,52 @@ class _AdminObrasScreenState extends State<AdminObrasScreen> {
     _cargarObras();
   }
 
-  // 👇 LA FUNCIÓN QUE FALTABA
   Future<void> _cargarObras() async {
     setState(() => _cargando = true);
     try {
-      final res = await ApiService.get('obras.php');
-      if (res['estado'] == true) {
+      // 1. Pedimos las obras y las asignaciones al mismo tiempo
+      final resObras = await ApiService.get('obras.php');
+      final resAsignaciones = await ApiService.get('asignaciones.php');
+
+      if (resObras['estado'] == true) {
+        
+        // 2. Creamos un mapa para agrupar las asignaciones por código de obra
+        Map<String, List<String>> asignacionesPorObra = {};
+        
+        if (resAsignaciones['estado'] == true) {
+          for (var asig in resAsignaciones['data']) {
+            String codigoObra = asig['codigo_obra'];
+            String nombreUsuario = '${asig['nombre_usuario']} ${asig['apellido_usuario']}';
+            String rol = asig['tipo_asignacion'];
+            
+            // Guardamos algo como "Carlos (SUPERVISOR)"
+            String textoAsignacion = '$nombreUsuario ($rol)';
+            
+            asignacionesPorObra.putIfAbsent(codigoObra, () => []).add(textoAsignacion);
+          }
+        }
+
+        // 3. Mapeamos las obras y les inyectamos el residente real
         setState(() {
-          _obras = List<Map<String, dynamic>>.from(res['obras']).map((o) {
+          _obras = List<Map<String, dynamic>>.from(resObras['obras']).map((o) {
+            String codigo = o['codigo'];
+            
+            // Buscamos si esta obra tiene gente asignada
+            List<String> asignados = asignacionesPorObra[codigo] ?? [];
+            String residenteTexto = asignados.isNotEmpty ? asignados.join(', ') : 'Sin asignar';
+            bool sinAsignar = asignados.isEmpty;
+
             return {
               'id_obra': o['id_obra'],
-              'codigo': o['codigo'],
+              'codigo': codigo,
               'titulo': o['nombre'],
               'cliente': o['nombre_cliente'] ?? 'Sin cliente',
               'ubicacion': o['ubicacion'],
               'descripcion': o['descripcion'] ?? '',
               'fechaInicio': o['fecha_inicio'] ?? '--',
               'fechaTermino': o['fecha_fin_estimada'] ?? '--',
-              'residente': 'Ver asignaciones', // Lo manejaremos en otra pantalla
+              'residente': residenteTexto,
+              'sinAsignar': sinAsignar, // Bandera para el color de la UI
               'estado': o['estado_nombre'] == 'EN_EJECUCION' ? 'En Proceso' : 'Pendiente',
             };
           }).toList();
@@ -45,7 +73,7 @@ class _AdminObrasScreenState extends State<AdminObrasScreen> {
         });
       } else {
         setState(() => _cargando = false);
-        _showError(res['mensaje'] ?? 'Error al cargar');
+        _showError(resObras['mensaje'] ?? 'Error al cargar');
       }
     } catch (e) {
       setState(() => _cargando = false);
@@ -58,7 +86,8 @@ class _AdminObrasScreenState extends State<AdminObrasScreen> {
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg), backgroundColor: AppColors.estadoRojo));
   }
 
-  // 👇 BOTÓN ASIGNAR (YA FUNCIONAL)
+  // ... (El método _asignarResidente y _abrirModalNuevaObra se quedan EXACTAMENTE IGUAL) ...
+  
   void _asignarResidente(int index) async {
     final resUsers = await ApiService.get('listar_usuarios.php');
     if (resUsers['estado'] != true) return;
@@ -108,8 +137,8 @@ class _AdminObrasScreenState extends State<AdminObrasScreen> {
 
                     if (res['estado'] == true) {
                       Navigator.pop(context);
+                      _cargarObras(); // 👈 RECARGAMOS PARA QUE SE VEA EL NOMBRE EN LA TARJETA
                       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Asignado con éxito')));
-                      // No es necesario recargar las obras, pero podrías hacerlo si quieres actualizar algo visual.
                     } else {
                       _showError(res['mensaje'] ?? 'Error al asignar');
                     }
@@ -126,7 +155,6 @@ class _AdminObrasScreenState extends State<AdminObrasScreen> {
   }
 
   void _abrirModalNuevaObra() async {
-    // 1. Cargamos los clientes reales
     final resClientes = await ApiService.get('clientes.php');
     if (resClientes['estado'] != true) {
       _showError('No se pudieron cargar los clientes');
@@ -135,7 +163,6 @@ class _AdminObrasScreenState extends State<AdminObrasScreen> {
     List<Map<String, dynamic>> clientes = List<Map<String, dynamic>>.from(resClientes['data']);
 
     final formKey = GlobalKey<FormState>();
-
     final tituloCtrl = TextEditingController();
     final ubicacionCtrl = TextEditingController();
     final descripcionCtrl = TextEditingController();
@@ -192,7 +219,6 @@ class _AdminObrasScreenState extends State<AdminObrasScreen> {
                         ),
                         const SizedBox(height: 12),
                         
-                        // 👇 SELECTOR DE CLIENTE
                         DropdownButtonFormField<int>(
                           decoration: const InputDecoration(labelText: 'Cliente *', border: OutlineInputBorder()),
                           items: clientes.map((c) => DropdownMenuItem(value: c['id_cliente'] as int, child: Text(c['nombre']))).toList(),
@@ -251,7 +277,6 @@ class _AdminObrasScreenState extends State<AdminObrasScreen> {
                 ElevatedButton(
                   onPressed: guardando ? null : () async {
                     if (!formKey.currentState!.validate()) return;
-                    
                     setModalState(() => guardando = true);
 
                     final body = {
@@ -270,7 +295,7 @@ class _AdminObrasScreenState extends State<AdminObrasScreen> {
 
                     if (res['estado'] == true) {
                       Navigator.pop(context);
-                      _cargarObras(); // Recargar la lista
+                      _cargarObras();
                       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Obra registrada')));
                     } else {
                       setModalState(() => guardando = false);
@@ -328,6 +353,7 @@ class _AdminObrasScreenState extends State<AdminObrasScreen> {
                   itemBuilder: (context, index) {
                     final obra = _obras[index];
                     final isPending = obra['estado'] == 'Pendiente';
+                    final sinAsignar = obra['sinAsignar'] == true;
 
                     return Container(
                       decoration: BoxDecoration(
@@ -377,6 +403,27 @@ class _AdminObrasScreenState extends State<AdminObrasScreen> {
                                   _buildIconRow(Icons.description_outlined, obra['descripcion'], maxLines: 2),
                                   const SizedBox(height: 6),
                                   _buildIconRow(Icons.calendar_today_outlined, '${obra['fechaInicio']} al ${obra['fechaTermino']}'),
+                                  const Spacer(),
+                                  
+                                  // 👇 AQUÍ MOSTRAMOS AL RESIDENTE / ASIGNADOS 👇
+                                  Row(
+                                    children: [
+                                      Icon(Icons.person_outline, size: 14, color: sinAsignar ? AppColors.estadoRojo : Colors.green[700]),
+                                      const SizedBox(width: 6),
+                                      Expanded(
+                                        child: Text(
+                                          obra['residente'],
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
+                                          style: TextStyle(
+                                            fontSize: 11, 
+                                            fontWeight: sinAsignar ? FontWeight.normal : FontWeight.bold,
+                                            color: sinAsignar ? AppColors.estadoRojo : Colors.green[800]
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
                                 ],
                               ),
                             ),

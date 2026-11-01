@@ -2,63 +2,66 @@ import 'package:flutter/material.dart';
 import '../../../../config/theme/app_colors.dart';
 import '../../../widgets/custom_textfield.dart';
 import '../../../widgets/custom_dropdown_field.dart';
+import 'package:gestobra/servicios/api_service.dart';
 
 class BitacoraSection extends StatefulWidget {
   final Map<String, dynamic> obra;
 
-  const BitacoraSection({
-    super.key,
-    required this.obra,
-  });
+  const BitacoraSection({super.key, required this.obra});
 
   @override
   State<BitacoraSection> createState() => _BitacoraSectionState();
 }
 
 class _BitacoraSectionState extends State<BitacoraSection> {
-  final List<Map<String, dynamic>> _bitacoras = [
-    {
-      'fecha': '22/09/2026',
-      'clima': 'Soleado',
-      'temperatura': '28 °C',
-      'personal': '8',
-      'materiales': [
-        {'material': 'Cemento', 'cantidad': '24 sacos'},
-        {'material': 'Varilla', 'cantidad': '180 kg'},
-        {'material': 'Grava', 'cantidad': '1.5 m³'},
-      ],
-      'actividades': ['Colado de zapatas y contratrabes'],
-      'fotografias': [
-        'assets/images/evidencia_armado_cimentacion.png',
-        'assets/images/evidencia_colado_zapatas.png',
-      ],
-      'descripcion':
-          'Se realizó el colado de zapatas y contratrabes de acuerdo con las especificaciones estructurales. Se tomaron cilindros de prueba para ensayo a compresión a los 7 y 28 días.',
-      'observaciones': 'Cimbra revisada y acero liberado antes del colado.',
-      'hubo_retraso': false,
-      'horas_retraso': '',
-      'causa_retraso': '',
-      'incidencias': '',
-      'evidencia_agregada': true,
-      'firma_agregada': true,
-    },
-  ];
+  bool _cargando = true;
+  List<Map<String, dynamic>> _bitacoras = [];
+
+  @override
+  void initState() {
+    super.initState();
+    _cargarBitacoras();
+  }
+
+  Future<void> _cargarBitacoras() async {
+    final idObra = widget.obra['id_obra'];
+    if (idObra == null) return;
+
+    setState(() => _cargando = true);
+    final res = await ApiService.get('bitacoras.php?id_obra=$idObra');
+
+    if (res['estado'] == true) {
+      setState(() {
+        _bitacoras = List<Map<String, dynamic>>.from(res['data']).map((b) {
+          return {
+            'fecha': b['fecha'],
+            'clima': b['clima'] ?? 'No registrado',
+            'personal': b['personal_presente'].toString(),
+            'descripcion': b['descripcion_jornada'] ?? 'Sin descripción',
+            'observaciones': b['observaciones'] ?? '',
+            'incidencias': b['incidencias'] ?? '',
+            'materiales': [],
+            'actividades': [], 
+            'fotografias': [],
+            'hubo_retraso': false,
+          };
+        }).toList();
+        _cargando = false;
+      });
+    } else {
+      setState(() => _cargando = false);
+    }
+  }
 
   void _abrirNuevaBitacora() {
     showDialog(
       context: context,
       builder: (context) {
         return _NuevaBitacoraDialog(
+          idObra: widget.obra['id_obra'],
           onGuardar: (bitacora) {
-            setState(() {
-              _bitacoras.insert(0, bitacora);
-            });
-
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                content: Text('Bitácora guardada correctamente'),
-              ),
-            );
+            _cargarBitacoras();
+            ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Bitácora guardada correctamente')));
           },
         );
       },
@@ -70,123 +73,45 @@ class _BitacoraSectionState extends State<BitacoraSection> {
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: AppColors.blanco,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppColors.bordeSuave),
-      ),
+      decoration: BoxDecoration(color: AppColors.blanco, borderRadius: BorderRadius.circular(12), border: Border.all(color: AppColors.bordeSuave)),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
-              const Expanded(
-                child: Text(
-                  'Bitácora de obra',
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ),
+              const Expanded(child: Text('Bitácora de obra', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold))),
               ElevatedButton.icon(
                 onPressed: _abrirNuevaBitacora,
                 icon: const Icon(Icons.add, size: 16),
                 label: const Text('Nueva bitácora'),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.naranja,
-                  foregroundColor: AppColors.blanco,
-                ),
+                style: ElevatedButton.styleFrom(backgroundColor: AppColors.naranja, foregroundColor: AppColors.blanco),
               ),
             ],
           ),
           const SizedBox(height: 16),
-          if (_bitacoras.isEmpty)
+          if (_cargando)
+            const Center(child: CircularProgressIndicator())
+          else if (_bitacoras.isEmpty)
             Container(
               width: double.infinity,
               padding: const EdgeInsets.all(24),
-              decoration: BoxDecoration(
-                color: AppColors.blanco,
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: AppColors.bordeSuave),
-              ),
+              decoration: BoxDecoration(color: AppColors.blanco, borderRadius: BorderRadius.circular(12), border: Border.all(color: AppColors.bordeSuave)),
               child: const Column(
                 children: [
-                  Icon(
-                    Icons.book_outlined,
-                    size: 48,
-                    color: AppColors.gris,
-                  ),
+                  Icon(Icons.book_outlined, size: 48, color: AppColors.gris),
                   SizedBox(height: 12),
-                  Text(
-                    'No hay bitácoras registradas',
-                    style: TextStyle(
-                      fontWeight: FontWeight.bold,
-                      color: AppColors.textoNegro,
-                    ),
-                  ),
+                  Text('No hay bitácoras registradas', style: TextStyle(fontWeight: FontWeight.bold, color: AppColors.textoNegro)),
                   SizedBox(height: 4),
-                  Text(
-                    'Registra la primera jornada de esta obra.',
-                    textAlign: TextAlign.center,
-                    style: TextStyle(
-                      color: AppColors.textoGris,
-                    ),
-                  ),
+                  Text('Registra la primera jornada de esta obra.', textAlign: TextAlign.center, style: TextStyle(color: AppColors.textoGris)),
                 ],
               ),
             )
           else
             Column(
-              children: _bitacoras
-                  .map((bitacora) => _buildBitacoraCard(bitacora))
-                  .toList(),
+              children: _bitacoras.map((bitacora) => _buildBitacoraCard(bitacora)).toList(),
             ),
         ],
       ),
-    );
-  }
-
-  Widget _buildGaleriaBitacora(List fotos, {required bool mobileLayout}) {
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final spacing = 8.0;
-        final imageWidth = mobileLayout
-            ? (constraints.maxWidth - spacing) / 2
-            : constraints.maxWidth;
-        return Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text(
-              'Evidencias fotográficas',
-              style: TextStyle(fontWeight: FontWeight.bold, color: AppColors.textoNegro),
-            ),
-            const SizedBox(height: 8),
-            Wrap(
-              spacing: spacing,
-              runSpacing: spacing,
-              children: fotos.map((foto) => SizedBox(
-                    width: imageWidth,
-                    child: AspectRatio(
-                      aspectRatio: 1.65,
-                      child: ClipRRect(
-                        borderRadius: BorderRadius.circular(8),
-                        child: Image.asset(
-                          foto.toString(),
-                          fit: BoxFit.cover,
-                          errorBuilder: (context, error, stackTrace) => Container(
-                            color: AppColors.blanco,
-                            alignment: Alignment.center,
-                            child: const Icon(Icons.broken_image_outlined, color: AppColors.gris),
-                          ),
-                        ),
-                      ),
-                    ),
-                  )).toList(),
-            ),
-          ],
-        );
-      },
     );
   }
 
@@ -195,164 +120,38 @@ class _BitacoraSectionState extends State<BitacoraSection> {
       width: double.infinity,
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: AppColors.blanco,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppColors.bordeSuave),
-      ),
-      child: LayoutBuilder(
-        builder: (context, constraints) {
-          final fotos = (bitacora['fotografias'] as List?) ?? const [];
-          final mostrarFotosALado = constraints.maxWidth >= 760 && fotos.isNotEmpty;
-          final contenido = Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
+      decoration: BoxDecoration(color: AppColors.blanco, borderRadius: BorderRadius.circular(12), border: Border.all(color: AppColors.bordeSuave)),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
           Row(
             children: [
-              const Icon(
-                Icons.calendar_today_outlined,
-                size: 18,
-                color: AppColors.naranja,
-              ),
+              const Icon(Icons.calendar_today_outlined, size: 18, color: AppColors.naranja),
               const SizedBox(width: 8),
-              Expanded(
-                child: Text(
-                  bitacora['fecha'],
-                  style: const TextStyle(
-                    fontWeight: FontWeight.bold,
-                    color: AppColors.textoNegro,
-                  ),
-                ),
-              ),
-              Text(
-                '${bitacora['personal']} personas',
-                style: const TextStyle(
-                  color: AppColors.textoGris,
-                  fontSize: 12,
-                ),
-              ),
+              Expanded(child: Text(bitacora['fecha'], style: const TextStyle(fontWeight: FontWeight.bold, color: AppColors.textoNegro))),
+              Text('${bitacora['personal']} personas', style: const TextStyle(color: AppColors.textoGris, fontSize: 12)),
             ],
           ),
           const Divider(height: 24),
-          Text(
-            bitacora['descripcion'],
-            style: const TextStyle(
-              color: AppColors.textoNegro,
-              height: 1.4,
-            ),
-          ),
-          if ((bitacora['actividades'] as List).isNotEmpty) ...[
-            const SizedBox(height: 12),
-            const Text(
-              'Actividades ejecutadas:',
-              style: TextStyle(
-                fontWeight: FontWeight.bold,
-                color: AppColors.textoNegro,
-              ),
-            ),
-            const SizedBox(height: 6),
-            Wrap(
-              spacing: 6,
-              runSpacing: 6,
-              children: (bitacora['actividades'] as List).map<Widget>((actividad) {
-                return Chip(
-                  label: Text(
-                    actividad.toString(),
-                    style: const TextStyle(fontSize: 11),
-                  ),
-                  backgroundColor: AppColors.grisfondo,
-                  side: const BorderSide(color: AppColors.bordeSuave),
-                );
-              }).toList(),
-            ),
-          ],
-          if ((bitacora['materiales'] as List).isNotEmpty) ...[
-            const SizedBox(height: 12),
-            const Text(
-              'Materiales utilizados:',
-              style: TextStyle(
-                fontWeight: FontWeight.bold,
-                color: AppColors.textoNegro,
-              ),
-            ),
-            const SizedBox(height: 6),
-            ...(bitacora['materiales'] as List).map<Widget>((material) {
-              return _buildInfoRow(
-                Icons.inventory_2_outlined,
-                material['material'].toString(),
-                '${material['cantidad']} unidades',
-              );
-            }),
-          ],
+          Text(bitacora['descripcion'], style: const TextStyle(color: AppColors.textoNegro, height: 1.4)),
           if (bitacora['clima'].toString().isNotEmpty) ...[
             const SizedBox(height: 12),
-            _buildInfoRow(
-              Icons.wb_sunny_outlined,
-              'Clima',
-              bitacora['clima'],
-            ),
+            _buildInfoRow(Icons.wb_sunny_outlined, 'Clima', bitacora['clima']),
           ],
           if (bitacora['observaciones'].toString().isNotEmpty) ...[
             const SizedBox(height: 8),
-            _buildInfoRow(
-              Icons.notes_outlined,
-              'Observaciones',
-              bitacora['observaciones'],
-            ),
-          ],
-          if (bitacora['hubo_retraso'] == true) ...[
-            const SizedBox(height: 12),
-            _buildInfoRow(
-              Icons.warning_amber_outlined,
-              'Retraso',
-              '${bitacora['horas_retraso']} horas - ${bitacora['causa_retraso']}',
-            ),
+            _buildInfoRow(Icons.notes_outlined, 'Observaciones', bitacora['observaciones']),
           ],
           if (bitacora['incidencias'].toString().isNotEmpty) ...[
             const SizedBox(height: 8),
-            _buildInfoRow(
-              Icons.warning_amber_outlined,
-              'Incidencias',
-              bitacora['incidencias'],
-            ),
+            _buildInfoRow(Icons.warning_amber_outlined, 'Incidencias', bitacora['incidencias']),
           ],
-            ],
-          );
-          if (!mostrarFotosALado) {
-            if (fotos.isEmpty) return contenido;
-            return Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                contenido,
-                const SizedBox(height: 16),
-                _buildGaleriaBitacora(fotos, mobileLayout: true),
-              ],
-            );
-          }
-          final anchoGaleria = (constraints.maxWidth * 0.35)
-              .clamp(280.0, 380.0)
-              .toDouble();
-          return Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Expanded(child: contenido),
-              const SizedBox(width: 20),
-              SizedBox(
-                width: anchoGaleria,
-                child: _buildGaleriaBitacora(fotos, mobileLayout: false),
-              ),
-            ],
-          );
-        },
+        ],
       ),
     );
   }
 
-  Widget _buildInfoRow(
-    IconData icon,
-    String titulo,
-    String contenido,
-  ) {
+  Widget _buildInfoRow(IconData icon, String titulo, String contenido) {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -361,15 +160,9 @@ class _BitacoraSectionState extends State<BitacoraSection> {
         Expanded(
           child: RichText(
             text: TextSpan(
-              style: const TextStyle(
-                color: AppColors.textoNegro,
-                fontSize: 13,
-              ),
+              style: const TextStyle(color: AppColors.textoNegro, fontSize: 13),
               children: [
-                TextSpan(
-                  text: '$titulo: ',
-                  style: const TextStyle(fontWeight: FontWeight.bold),
-                ),
+                TextSpan(text: '$titulo: ', style: const TextStyle(fontWeight: FontWeight.bold)),
                 TextSpan(text: contenido),
               ],
             ),
@@ -381,11 +174,10 @@ class _BitacoraSectionState extends State<BitacoraSection> {
 }
 
 class _NuevaBitacoraDialog extends StatefulWidget {
+  final int idObra;
   final Function(Map<String, dynamic>) onGuardar;
 
-  const _NuevaBitacoraDialog({
-    required this.onGuardar,
-  });
+  const _NuevaBitacoraDialog({required this.idObra, required this.onGuardar});
 
   @override
   State<_NuevaBitacoraDialog> createState() => _NuevaBitacoraDialogState();
@@ -396,484 +188,63 @@ class _NuevaBitacoraDialogState extends State<_NuevaBitacoraDialog> {
   final _temperaturaController = TextEditingController();
   DateTime? _fechaSeleccionada;
   String? _climaSeleccionado;
-  final List<String> _actividadesDisponibles = [
-  'Limpieza y desmonte del terreno',
-  'Trazo y nivelación topográfica',
-  'Excavación para zapatas y contratrabes',
-  'Plantilla de concreto pobre',
-  'Armado de acero en zapatas y dados',
-  'Colado de zapatas y contratrabes',
-  'Relleno y compactación con tepetate',
-  'Cimbrado y colado de columnas',
-  'Losa de entrepiso',
-  'Muros de block',
-];
-  final List<Map<String, dynamic>> _materialesSeleccionados = [
-    {
-      'material': null,
-      'cantidad': TextEditingController(),
-    },
-  ];
-
-  final List<String> _materialesDisponibles = [
-    'Cemento',
-    'Arena',
-    'Grava',
-    'Varilla',
-    'Block',
-    'Alambre recocido',
-    'Madera',
-    'Pintura',
-  ];
+  bool _guardando = false;
+  
   bool _huboRetraso = false;
   final _horasRetrasoController = TextEditingController();
   final _causaRetrasoController = TextEditingController();
-  final List<String> _actividadesSeleccionadas = [];
   final _personalController = TextEditingController();
   final _descripcionController = TextEditingController();
   final _observacionesController = TextEditingController();
   final _incidenciasController = TextEditingController();
-  bool _evidenciaAgregada = false;
-  bool _firmaAgregada = false;
 
   Future<void> _seleccionarFecha() async {
-  final fecha = await showDatePicker(
-    context: context,
-    initialDate: _fechaSeleccionada ?? DateTime.now(),
-    firstDate: DateTime(2020),
-    lastDate: DateTime(2100),
-    helpText: 'Selecciona la fecha de la bitácora',
-    cancelText: 'Cancelar',
-    confirmText: 'Aceptar',
-    locale: const Locale('es', 'MX'),
-  );
+    final fecha = await showDatePicker(
+      context: context,
+      initialDate: _fechaSeleccionada ?? DateTime.now(),
+      firstDate: DateTime(2020),
+      lastDate: DateTime(2100),
+      helpText: 'Selecciona la fecha',
+    );
+    if (fecha == null) return;
 
-  if (fecha == null) return;
+    setState(() {
+      _fechaSeleccionada = fecha;
+      _fechaController.text = '${fecha.year}-${fecha.month.toString().padLeft(2, '0')}-${fecha.day.toString().padLeft(2, '0')}'; // Formato MySQL
+    });
+  }
 
-  setState(() {
-    _fechaSeleccionada = fecha;
-    _fechaController.text =
-        '${fecha.day.toString().padLeft(2, '0')}/'
-        '${fecha.month.toString().padLeft(2, '0')}/'
-        '${fecha.year}';
-  });
-}
-Widget _buildActividadesField() {
-  return Column(
-    crossAxisAlignment: CrossAxisAlignment.start,
-    children: [
-      const Text(
-        'Actividades ejecutadas en la jornada',
-        style: TextStyle(
-          fontWeight: FontWeight.bold,
-          color: AppColors.textoNegro,
-          fontSize: 14,
-        ),
-      ),
-      const SizedBox(height: 8),
-      Container(
-        width: double.infinity,
-        padding: const EdgeInsets.all(12),
-        decoration: BoxDecoration(
-          color: AppColors.blanco,
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: AppColors.naranja),
-        ),
-        child: Wrap(
-          spacing: 8,
-          runSpacing: 8,
-          children: _actividadesDisponibles.map((actividad) {
-            final seleccionada =
-                _actividadesSeleccionadas.contains(actividad);
-
-            return FilterChip(
-              label: Text(
-                actividad,
-                style: const TextStyle(fontSize: 11),
-              ),
-              selected: seleccionada,
-              selectedColor: AppColors.naranja.withValues(alpha: 0.2),
-              checkmarkColor: AppColors.naranja,
-              side: BorderSide(
-                color: seleccionada
-                    ? AppColors.naranja
-                    : AppColors.gris,
-              ),
-              onSelected: (value) {
-                setState(() {
-                  if (value) {
-                    _actividadesSeleccionadas.add(actividad);
-                  } else {
-                    _actividadesSeleccionadas.remove(actividad);
-                  }
-                });
-              },
-            );
-          }).toList(),
-        ),
-      ),
-    ],
-  );
-}
-  Widget _buildMaterialesField() {
-  return Column(
-    crossAxisAlignment: CrossAxisAlignment.start,
-    children: [
-      const Text(
-        'Materiales utilizados en la jornada',
-        style: TextStyle(
-          fontWeight: FontWeight.bold,
-          color: AppColors.textoNegro,
-          fontSize: 14,
-        ),
-      ),
-      const SizedBox(height: 8),
-      ..._materialesSeleccionados.asMap().entries.map((entry) {
-        final index = entry.key;
-        final material = entry.value;
-        final cantidadController =
-            material['cantidad'] as TextEditingController;
-
-        return Padding(
-          padding: const EdgeInsets.only(bottom: 6),
-          child: LayoutBuilder(
-            builder: (context, constraints) {
-              final compact = constraints.maxWidth < 380;
-              final fields = Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Expanded(
-                    flex: 3,
-                    child: CustomDropdownField(
-                      label: 'Material',
-                      showLabel: index == 0,
-                      hint: 'Selecciona',
-                      icon: Icons.inventory_2_outlined,
-                      value: material['material'] as String?,
-                      items: _materialesDisponibles,
-                      onChanged: (value) => setState(() => material['material'] = value),
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    flex: 1,
-                    child: CustomTextField(
-                      label: 'Cantidad',
-                      showLabel: index == 0,
-                      hint: '0',
-                      icon: Icons.numbers,
-                      controller: cantidadController,
-                      keyboardType: TextInputType.number,
-                    ),
-                  ),
-                ],
-              );
-              return compact && _materialesSeleccionados.length > 1
-                  ? Column(
-                      children: [
-                        fields,
-                        Align(
-                          alignment: Alignment.centerRight,
-                          child: IconButton(
-                            tooltip: 'Eliminar material',
-                            onPressed: () => _eliminarMaterial(index, material),
-                            icon: const Icon(Icons.remove_circle_outline, color: AppColors.estadoRojo),
-                          ),
-                        ),
-                      ],
-                    )
-                  : Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Expanded(child: fields),
-                        if (_materialesSeleccionados.length > 1)
-                          SizedBox(
-                            width: 44,
-                            child: IconButton(
-                              tooltip: 'Eliminar material',
-                              onPressed: () => _eliminarMaterial(index, material),
-                              icon: const Icon(Icons.remove_circle_outline, color: AppColors.estadoRojo),
-                            ),
-                          ),
-                      ],
-                    );
-            },
-          ),
-        );
-      }),
-      Align(
-        alignment: Alignment.centerLeft,
-        child: TextButton.icon(
-          onPressed: () {
-            setState(() {
-              _materialesSeleccionados.add({
-                'material': null,
-                'cantidad': TextEditingController(),
-              });
-            });
-          },
-          icon: const Icon(Icons.add, color: AppColors.naranja),
-          label: const Text(
-            'Agregar material',
-            style: TextStyle(color: AppColors.naranja),
-          ),
-        ),
-      ),
-    ],
-  );
-}
-
-void _eliminarMaterial(int index, Map<String, dynamic> material) {
-  setState(() {
-    (material['cantidad'] as TextEditingController).dispose();
-    _materialesSeleccionados.removeAt(index);
-  });
-}
-Widget _buildRetrasosField() {
-  return Container(
-    width: double.infinity,
-    padding: const EdgeInsets.all(14),
-    decoration: BoxDecoration(
-      color: AppColors.blanco,
-      borderRadius: BorderRadius.circular(12),
-      border: Border.all(color: AppColors.bordeSuave),
-    ),
-    child: Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        CustomTextField(
-          label: 'Observaciones relevantes de la supervisión',
-          hint: 'Escribe las observaciones de la jornada',
-          icon: Icons.notes_outlined,
-          controller: _observacionesController,
-        ),
-        const SizedBox(height: 10),
-        CheckboxListTile(
-          contentPadding: EdgeInsets.zero,
-          title: const Text(
-            'Hubo retrasos o paro de actividades en el turno',
-            style: TextStyle(fontSize: 13),
-          ),
-          value: _huboRetraso,
-          activeColor: AppColors.naranja,
-          onChanged: (value) {
-            setState(() {
-              _huboRetraso = value ?? false;
-            });
-          },
-        ),
-        if (_huboRetraso) ...[
-          const SizedBox(height: 8),
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Expanded(
-                flex: 1,
-                child: CustomTextField(
-                  label: 'Horas de retraso',
-                  hint: '0',
-                  icon: Icons.timer_outlined,
-                  controller: _horasRetrasoController,
-                  keyboardType: TextInputType.number,
-                ),
-              ),
-              const SizedBox(width: 10),
-              Expanded(
-                flex: 2,
-                child: CustomTextField(
-                  label: 'Causa del retraso',
-                  hint: 'Describe la causa',
-                  icon: Icons.warning_amber_outlined,
-                  controller: _causaRetrasoController,
-                ),
-              ),
-            ],
-          ),
-        ],
-      ],
-    ),
-  );
-}
-Widget _buildEvidenciasField() {
-  return Container(
-    width: double.infinity,
-    padding: const EdgeInsets.all(14),
-    decoration: BoxDecoration(
-      color: AppColors.blanco,
-      borderRadius: BorderRadius.circular(12),
-      border: Border.all(color: AppColors.bordeSuave),
-    ),
-    child: Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const Text(
-          'Evidencias fotográficas de la jornada',
-          style: TextStyle(
-            fontWeight: FontWeight.bold,
-            color: AppColors.textoNegro,
-            fontSize: 14,
-          ),
-        ),
-        const SizedBox(height: 10),
-        InkWell(
-          onTap: () {
-            setState(() {
-              _evidenciaAgregada = true;
-            });
-          },
-          borderRadius: BorderRadius.circular(12),
-          child: Container(
-            height: 80,
-            width: double.infinity,
-            decoration: BoxDecoration(
-              color: AppColors.blanco,
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: AppColors.naranja),
-            ),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(
-                  _evidenciaAgregada
-                      ? Icons.check_circle_outline
-                      : Icons.cloud_upload_outlined,
-                  size: 34,
-                  color: AppColors.naranja,
-                ),
-                const SizedBox(height: 6),
-                Text(
-                  _evidenciaAgregada
-                      ? 'Evidencia agregada'
-                      : 'Toca para agregar fotografías',
-                  style: const TextStyle(
-                    color: AppColors.textoGris,
-                    fontSize: 12,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ],
-    ),
-  );
-}
-Widget _buildFirmaField() {
-  return Container(
-    width: double.infinity,
-    padding: const EdgeInsets.all(14),
-    decoration: BoxDecoration(
-      color: AppColors.blanco,
-      borderRadius: BorderRadius.circular(12),
-      border: Border.all(color: AppColors.bordeSuave),
-    ),
-    child: Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          children: [
-            const Expanded(
-              child: Text(
-                'Firma manuscrita',
-                style: TextStyle(
-                  fontWeight: FontWeight.bold,
-                  color: AppColors.textoNegro,
-                  fontSize: 14,
-                ),
-              ),
-            ),
-            IconButton(
-              onPressed: () {
-                setState(() {
-                  _firmaAgregada = false;
-                });
-              },
-              icon: const Icon(
-                Icons.delete_outline,
-                color: AppColors.naranja,
-              ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 8),
-        InkWell(
-          onTap: () {
-            setState(() {
-              _firmaAgregada = true;
-            });
-          },
-          borderRadius: BorderRadius.circular(12),
-          child: Container(
-            height: 110,
-            width: double.infinity,
-            decoration: BoxDecoration(
-              color: AppColors.blanco,
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: AppColors.bordeSuave),
-            ),
-            child: _firmaAgregada
-                ? const Center(
-                    child: Text(
-                      '✓ Firma registrada',
-                      style: TextStyle(
-                        color: Colors.green,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  )
-                : const Center(
-                    child: Text(
-                      'Toca aquí para agregar firma',
-                      style: TextStyle(
-                        color: AppColors.textoGris,
-                      ),
-                    ),
-                  ),
-          ),
-        ),
-      ],
-    ),
-  );
-}
-  void _guardar() {
-    if (_fechaController.text.trim().isEmpty ||
-        _descripcionController.text.trim().isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text(
-            'La fecha y la descripción de la jornada son obligatorias',
-          ),
-        ),
-      );
+  void _guardar() async {
+    if (_fechaController.text.trim().isEmpty || _descripcionController.text.trim().isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('La fecha y la descripción son obligatorias')));
       return;
     }
 
-    widget.onGuardar({
+    setState(() => _guardando = true);
+    showDialog(context: context, barrierDismissible: false, builder: (_) => const Center(child: CircularProgressIndicator()));
+
+    final body = {
+      'id_obra': widget.idObra,
       'fecha': _fechaController.text.trim(),
       'clima': _climaSeleccionado ?? '',
-      'temperatura': _temperaturaController.text.trim(),
-      'personal': _personalController.text.trim().isEmpty
-          ? '0'
-          : _personalController.text.trim(),
-      'materiales': _materialesSeleccionados.map((material) {
-        return {
-          'material': material['material'] ?? '',
-          'cantidad':
-              (material['cantidad'] as TextEditingController).text.trim(),
-        };
-      }).where((material) => material['material'].toString().isNotEmpty).toList(),
-      'actividades': List<String>.from(_actividadesSeleccionadas),
-      'descripcion': _descripcionController.text.trim(),
+      'personal_presente': int.tryParse(_personalController.text) ?? 0,
+      'descripcion_jornada': _descripcionController.text.trim(),
       'observaciones': _observacionesController.text.trim(),
-      'hubo_retraso': _huboRetraso,
-      'horas_retraso': _horasRetrasoController.text.trim(),
-      'causa_retraso': _causaRetrasoController.text.trim(),
       'incidencias': _incidenciasController.text.trim(),
-      'evidencia_agregada': _evidenciaAgregada,
-      'firma_agregada': _firmaAgregada,
-    });
+    };
 
-    Navigator.pop(context);
+    final res = await ApiService.post('bitacoras.php', body);
+
+    if (!mounted) return;
+    Navigator.pop(context); // Quita el loading
+    setState(() => _guardando = false);
+
+    if (res['estado'] == true) {
+      widget.onGuardar({});
+      Navigator.pop(context); // Cierra el dialog
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(res['mensaje'] ?? 'Error'), backgroundColor: Colors.red));
+    }
   }
 
   @override
@@ -884,9 +255,6 @@ Widget _buildFirmaField() {
     _observacionesController.dispose();
     _incidenciasController.dispose();
     _temperaturaController.dispose();
-    for (final material in _materialesSeleccionados) {
-      (material['cantidad'] as TextEditingController).dispose();
-    }
     _horasRetrasoController.dispose();
     _causaRetrasoController.dispose();
     super.dispose();
@@ -916,97 +284,62 @@ Widget _buildFirmaField() {
                 controller: _fechaController,
                 readOnly: true,
                 onTap: _seleccionarFecha,
-                suffixIcon: IconButton(
-                  icon: const Icon(
-                    Icons.calendar_month_outlined,
-                    color: AppColors.naranja,
-                  ),
-                  onPressed: _seleccionarFecha,
+                suffixIcon: IconButton(icon: const Icon(Icons.calendar_month_outlined, color: AppColors.naranja), onPressed: _seleccionarFecha),
+              ),
+              const SizedBox(height: 14),
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Expanded(flex: 5, child: CustomDropdownField(label: 'Clima', hint: 'Selecciona', icon: Icons.wb_sunny_outlined, value: _climaSeleccionado, items: const ['Soleado', 'Nublado', 'Lluvioso', 'Tormenta', 'Viento fuerte'], onChanged: (value) => setState(() => _climaSeleccionado = value))),
+                  const SizedBox(width: 12),
+                  Expanded(flex: 4, child: CustomTextField(label: 'Temperatura', hint: '28', icon: Icons.thermostat_outlined, controller: _temperaturaController, keyboardType: const TextInputType.numberWithOptions(decimal: true))),
+                  const SizedBox(width: 12),
+                  Expanded(flex: 4, child: CustomTextField(label: 'Personal', hint: '8', icon: Icons.groups_outlined, controller: _personalController, keyboardType: TextInputType.number)),
+                ],
+              ),
+              const SizedBox(height: 14),
+              CustomTextField(label: 'Descripción de la jornada *', hint: 'Describe las actividades', icon: Icons.description_outlined, controller: _descripcionController),
+              const SizedBox(height: 14),
+              Container(
+                width: double.infinity, padding: const EdgeInsets.all(14),
+                decoration: BoxDecoration(color: AppColors.blanco, borderRadius: BorderRadius.circular(12), border: Border.all(color: AppColors.bordeSuave)),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    CustomTextField(label: 'Observaciones', hint: 'Escribe las observaciones', icon: Icons.notes_outlined, controller: _observacionesController),
+                    const SizedBox(height: 10),
+                    CheckboxListTile(
+                      contentPadding: EdgeInsets.zero,
+                      title: const Text('Hubo retrasos o paro', style: TextStyle(fontSize: 13)),
+                      value: _huboRetraso,
+                      activeColor: AppColors.naranja,
+                      onChanged: (value) => setState(() => _huboRetraso = value ?? false),
+                    ),
+                    if (_huboRetraso) ...[
+                      const SizedBox(height: 8),
+                      Row(
+                        children: [
+                          Expanded(flex: 1, child: CustomTextField(label: 'Horas', hint: '0', icon: Icons.timer_outlined, controller: _horasRetrasoController, keyboardType: TextInputType.number)),
+                          const SizedBox(width: 10),
+                          Expanded(flex: 2, child: CustomTextField(label: 'Causa', hint: 'Describe', icon: Icons.warning_amber_outlined, controller: _causaRetrasoController)),
+                        ],
+                      ),
+                    ],
+                  ],
                 ),
               ),
               const SizedBox(height: 14),
-              LayoutBuilder(
-                builder: (context, constraints) {
-                  // El dropdown necesita un ancho mínimo para no cortar el texto ni
-                  // desbordar sus iconos dentro del diálogo.
-                  final compact = constraints.maxWidth < 480;
-                  final clima = CustomDropdownField(
-                    label: 'Clima',
-                    hint: 'Selecciona',
-                    icon: Icons.wb_sunny_outlined,
-                    value: _climaSeleccionado,
-                    items: const ['Soleado', 'Nublado', 'Lluvioso', 'Tormenta', 'Viento fuerte'],
-                    onChanged: (value) => setState(() => _climaSeleccionado = value),
-                  );
-                  final temperatura = CustomTextField(
-                    label: 'Temperatura',
-                    hint: '28',
-                    icon: Icons.thermostat_outlined,
-                    controller: _temperaturaController,
-                    keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                    suffixIcon: const Padding(
-                      padding: EdgeInsets.only(right: 12),
-                      child: Center(widthFactor: 1, child: Text('°C', style: TextStyle(color: AppColors.textoGris))),
-                    ),
-                  );
-                  final personal = CustomTextField(
-                    label: 'Personal',
-                    hint: '8',
-                    icon: Icons.groups_outlined,
-                    controller: _personalController,
-                    keyboardType: TextInputType.number,
-                  );
-
-                  if (compact) {
-                    return Column(children: [clima, const SizedBox(height: 14), temperatura, const SizedBox(height: 14), personal]);
-                  }
-                  return Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Expanded(flex: 5, child: clima),
-                      const SizedBox(width: 12),
-                      Expanded(flex: 4, child: temperatura),
-                      const SizedBox(width: 12),
-                      Expanded(flex: 4, child: personal),
-                    ],
-                  );
-                },
-              ),
-              const SizedBox(height: 14),
-              _buildMaterialesField(),
-              const SizedBox(height: 14),
-              _buildActividadesField(),
-              const SizedBox(height: 14),
-              CustomTextField(
-                label: 'Descripción de la jornada *',
-                hint: 'Describe las actividades realizadas',
-                icon: Icons.description_outlined,
-                controller: _descripcionController,
-              ),
-              const SizedBox(height: 14),
-              _buildRetrasosField(),
-              const SizedBox(height: 14),
-              CustomTextField(
-                label: 'Incidencias',
-                hint: 'Describe cualquier incidencia',
-                icon: Icons.warning_amber_outlined,
-                controller: _incidenciasController,
-              ),
-              const SizedBox(height: 14),
-
-              _buildEvidenciasField(),
-              const SizedBox(height: 14),
-              _buildFirmaField(),
+              CustomTextField(label: 'Incidencias', hint: 'Describe cualquier incidencia', icon: Icons.warning_amber_outlined, controller: _incidenciasController),
               const SizedBox(height: 20),
               Row(
                 mainAxisAlignment: MainAxisAlignment.end,
                 children: [
-                  TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancelar', style: TextStyle(color: AppColors.textoGris))),
+                  TextButton(onPressed: _guardando ? null : () => Navigator.pop(context), child: const Text('Cancelar', style: TextStyle(color: AppColors.textoGris))),
                   const SizedBox(width: 8),
                   ElevatedButton(
-                    onPressed: _guardar,
+                    onPressed: _guardando ? null : _guardar,
                     style: ElevatedButton.styleFrom(backgroundColor: AppColors.naranja, foregroundColor: AppColors.blanco),
-                    child: const Text('Guardar'),
+                    child: _guardando ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2)) : const Text('Guardar'),
                   ),
                 ],
               ),
