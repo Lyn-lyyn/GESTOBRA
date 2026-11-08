@@ -23,22 +23,31 @@ class _AdminMaquinariaScreenState extends State<AdminMaquinariaScreen> {
   }
 
   Future<void> _cargarTodo() async {
+    if (!mounted) return;
     setState(() => _cargando = true);
     
-    final resMaq = await ApiService.get('maquinaria.php');
-    final resAsig = await ApiService.get('asignar_maquinaria.php');
-    final resMant = await ApiService.get('mantenimiento_maquinaria.php');
-    final resObras = await ApiService.get('obras.php');
+    try {
+      final resMaq = await ApiService.get('maquinaria.php');
+      final resAsig = await ApiService.get('asignar_maquinaria.php');
+      final resMant = await ApiService.get('mantenimiento_maquinaria.php');
+      final resObras = await ApiService.get('obras.php');
 
-    if (resMaq['estado'] == true) _maquinaria = List<Map<String, dynamic>>.from(resMaq['data']);
-    if (resAsig['estado'] == true) _asignaciones = List<Map<String, dynamic>>.from(resAsig['data']);
-    if (resMant['estado'] == true) _mantenimientos = List<Map<String, dynamic>>.from(resMant['data']);
-    if (resObras['estado'] == true) _obras = List<Map<String, dynamic>>.from(resObras['obras']);
-
-    setState(() => _cargando = false);
+      if (resMaq['estado'] == true) _maquinaria = List<Map<String, dynamic>>.from(resMaq['data']);
+      if (resAsig['estado'] == true) _asignaciones = List<Map<String, dynamic>>.from(resAsig['data']);
+      if (resMant['estado'] == true) _mantenimientos = List<Map<String, dynamic>>.from(resMant['data']);
+      if (resObras['estado'] == true) _obras = List<Map<String, dynamic>>.from(resObras['obras']);
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error de red: $e'), backgroundColor: AppColors.estadoRojo));
+      }
+    } finally {
+      if (mounted) setState(() => _cargando = false);
+    }
   }
 
-  // --- MODALES ---
+  // ────────────────────────────────────────────────────────
+  // MODAL: CREAR / EDITAR MAQUINARIA
+  // ────────────────────────────────────────────────────────
   Future<void> _abrirModalMaquinaria({Map<String, dynamic>? maquina}) async {
     final esEdicion = maquina != null;
     final codigoCtrl = TextEditingController(text: maquina?['codigo']);
@@ -133,15 +142,20 @@ class _AdminMaquinariaScreenState extends State<AdminMaquinariaScreen> {
                   'costo_combustible_unitario': cCombCtrl.text,
                 };
 
-                final res = await ApiService.post('maquinaria.php', body);
-                if (!mounted) return;
+                try {
+                  final res = await ApiService.post('maquinaria.php', body);
+                  if (!mounted) return;
 
-                if (res['estado'] == true) {
-                  Navigator.pop(ctx);
-                  _cargarTodo();
-                } else {
+                  if (res != null && res['estado'] == true) {
+                    Navigator.pop(ctx);
+                    _cargarTodo();
+                  } else {
+                    setModal(() => guardando = false);
+                    ScaffoldMessenger.of(ctx).showSnackBar(SnackBar(content: Text(res?['mensaje'] ?? 'Error'), backgroundColor: AppColors.estadoRojo));
+                  }
+                } catch (e) {
                   setModal(() => guardando = false);
-                  ScaffoldMessenger.of(ctx).showSnackBar(SnackBar(content: Text(res['mensaje'] ?? 'Error'), backgroundColor: AppColors.estadoRojo));
+                  if (mounted) ScaffoldMessenger.of(ctx).showSnackBar(SnackBar(content: Text('Error: $e'), backgroundColor: AppColors.estadoRojo));
                 }
               },
               child: guardando ? const CircularProgressIndicator(color: Colors.white) : const Text('Guardar'),
@@ -152,10 +166,16 @@ class _AdminMaquinariaScreenState extends State<AdminMaquinariaScreen> {
     );
   }
 
+  // ────────────────────────────────────────────────────────
+  // MODAL: ASIGNAR MAQUINARIA
+  // ────────────────────────────────────────────────────────
   Future<void> _abrirModalAsignar() async {
     int? idObraSel;
     int? idMaqSel;
     bool guardando = false;
+
+    // Filtramos para que solo muestre máquinas operativas disponibles
+    final maquinasDisponibles = _maquinaria.where((m) => m['estado_equipo'] == 'OPERATIVA').toList();
 
     await showDialog(
       context: context,
@@ -176,7 +196,7 @@ class _AdminMaquinariaScreenState extends State<AdminMaquinariaScreen> {
                 const SizedBox(height: 12),
                 DropdownButtonFormField<int>(
                   decoration: const InputDecoration(labelText: 'Selecciona la Máquina *', border: OutlineInputBorder()),
-                  items: _maquinaria.map((m) => DropdownMenuItem(value: m['id_maquinaria'] as int, child: Text('${m['codigo']} - ${m['nombre']}'))).toList(),
+                  items: maquinasDisponibles.map((m) => DropdownMenuItem(value: m['id_maquinaria'] as int, child: Text('${m['codigo']} - ${m['nombre']}'))).toList(),
                   onChanged: (v) => setModal(() => idMaqSel = v),
                 ),
               ],
@@ -190,18 +210,22 @@ class _AdminMaquinariaScreenState extends State<AdminMaquinariaScreen> {
                 if (idObraSel == null || idMaqSel == null) return;
                 setModal(() => guardando = true);
 
-                final res = await ApiService.post('asignar_maquinaria.php', {
-                  'id_obra': idObraSel,
-                  'id_maquinaria': idMaqSel,
-                });
+                try {
+                  final res = await ApiService.post('asignar_maquinaria.php', {
+                    'id_obra': idObraSel,
+                    'id_maquinaria': idMaqSel,
+                  });
 
-                if (!mounted) return;
-                Navigator.pop(ctx);
-                if (res['estado'] == true) {
-                  _cargarTodo();
-                  ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Asignada correctamente')));
-                } else {
-                  ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(res['mensaje']), backgroundColor: AppColors.estadoRojo));
+                  if (!mounted) return;
+                  Navigator.pop(ctx);
+                  if (res != null && res['estado'] == true) {
+                    _cargarTodo();
+                    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Asignada correctamente')));
+                  } else {
+                    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(res?['mensaje'] ?? 'Error'), backgroundColor: AppColors.estadoRojo));
+                  }
+                } catch (e) {
+                  if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e'), backgroundColor: AppColors.estadoRojo));
                 }
               },
               child: guardando ? const CircularProgressIndicator(color: Colors.white) : const Text('Asignar'),
@@ -212,8 +236,11 @@ class _AdminMaquinariaScreenState extends State<AdminMaquinariaScreen> {
     );
   }
 
-  Future<void> _abrirModalMantenimiento() async {
-    int? idMaqSel;
+  // ────────────────────────────────────────────────────────
+  // MODAL: REGISTRAR MANTENIMIENTO (Y CAMBIO AUTOMÁTICO)
+  // ────────────────────────────────────────────────────────
+  Future<void> _abrirModalMantenimiento({Map<String, dynamic>? maquina}) async {
+    int? idMaqSel = maquina != null ? maquina['id_maquinaria'] : null;
     String tipoSel = 'PREVENTIVO';
     final descCtrl = TextEditingController();
     final costoCtrl = TextEditingController();
@@ -231,6 +258,7 @@ class _AdminMaquinariaScreenState extends State<AdminMaquinariaScreen> {
               mainAxisSize: MainAxisSize.min,
               children: [
                 DropdownButtonFormField<int>(
+                  value: idMaqSel,
                   decoration: const InputDecoration(labelText: 'Máquina *', border: OutlineInputBorder()),
                   items: _maquinaria.map((m) => DropdownMenuItem(value: m['id_maquinaria'] as int, child: Text('${m['codigo']} - ${m['nombre']}'))).toList(),
                   onChanged: (v) => setModal(() => idMaqSel = v),
@@ -257,20 +285,46 @@ class _AdminMaquinariaScreenState extends State<AdminMaquinariaScreen> {
                 if (idMaqSel == null || descCtrl.text.isEmpty) return;
                 setModal(() => guardando = true);
 
-                final res = await ApiService.post('mantenimiento_maquinaria.php', {
-                  'id_maquinaria': idMaqSel,
-                  'tipo_mantenimiento': tipoSel,
-                  'descripcion': descCtrl.text.trim(),
-                  'costo': costoCtrl.text,
-                });
+                try {
+                  // 1. Guardar el mantenimiento
+                  final res = await ApiService.post('mantenimiento_maquinaria.php', {
+                    'id_maquinaria': idMaqSel,
+                    'tipo_mantenimiento': tipoSel,
+                    'descripcion': descCtrl.text.trim(),
+                    'costo': costoCtrl.text,
+                  });
 
-                if (!mounted) return;
-                Navigator.pop(ctx);
-                if (res['estado'] == true) {
-                  _cargarTodo();
-                  ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Mantenimiento registrado')));
-                } else {
-                  ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(res['mensaje']), backgroundColor: AppColors.estadoRojo));
+                  if (!mounted) return;
+
+                  if (res != null && res['estado'] == true) {
+                    // 2. 👇 ACTUALIZAR EL ESTADO DE LA MÁQUINA A MANTENIMIENTO 👇
+                    final maquinaInfo = _maquinaria.firstWhere((m) => m['id_maquinaria'] == idMaqSel);
+                    
+                    await ApiService.post('maquinaria.php', {
+                      'id_maquinaria': idMaqSel,
+                      'codigo': maquinaInfo['codigo'],
+                      'nombre': maquinaInfo['nombre'],
+                      'tipo_equipo': maquinaInfo['tipo_equipo'],
+                      'marca': maquinaInfo['marca'] ?? '',
+                      'modelo': maquinaInfo['modelo'] ?? '',
+                      'propiedad': maquinaInfo['propiedad'],
+                      'estado_equipo': 'MANTENIMIENTO', // 👈 Forzamos el estado
+                      'tarifa_renta_dia': maquinaInfo['tarifa_renta_dia'] ?? '0',
+                      'costo_combustible_unitario': maquinaInfo['costo_combustible_unitario'] ?? '0',
+                    });
+
+                    Navigator.pop(ctx);
+                    _cargarTodo();
+                    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Mantenimiento registrado. Equipo en taller.')));
+                  } else {
+                    setModal(() => guardando = false);
+                    ScaffoldMessenger.of(ctx).showSnackBar(SnackBar(content: Text(res?['mensaje'] ?? 'Error'), backgroundColor: AppColors.estadoRojo));
+                  }
+                } catch (e) {
+                  if (mounted) {
+                    setModal(() => guardando = false);
+                    ScaffoldMessenger.of(ctx).showSnackBar(SnackBar(content: Text('Error: $e'), backgroundColor: AppColors.estadoRojo));
+                  }
                 }
               },
               child: guardando ? const CircularProgressIndicator(color: Colors.white) : const Text('Guardar'),
@@ -279,6 +333,39 @@ class _AdminMaquinariaScreenState extends State<AdminMaquinariaScreen> {
         ),
       ),
     );
+  }
+
+  // ────────────────────────────────────────────────────────
+  // MODAL: ELIMINAR MAQUINARIA
+  // ────────────────────────────────────────────────────────
+  Future<void> _confirmarEliminarMaquinaria(Map<String, dynamic> maquina) async {
+    final confirmar = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('¿Eliminar Equipo?'),
+        content: Text('¿Estás seguro de dar de baja "${maquina['nombre']}" del catálogo?'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancelar')),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: AppColors.estadoRojo),
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('Eliminar'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmar == true) {
+      try {
+        final res = await ApiService.delete('maquinaria.php?id=${maquina['id_maquinaria']}');
+        if (res != null && res['estado'] == true) {
+          _cargarTodo();
+          if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Equipo eliminado')));
+        }
+      } catch (e) {
+        if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error al eliminar: $e'), backgroundColor: AppColors.estadoRojo));
+      }
+    }
   }
 
   @override
@@ -319,29 +406,65 @@ class _AdminMaquinariaScreenState extends State<AdminMaquinariaScreen> {
     );
   }
 
+  // ────────────────────────────────────────────────────────
+  // VISTA 1: CATÁLOGO (CON MENÚ DE OPCIONES)
+  // ────────────────────────────────────────────────────────
   Widget _buildCatalogo() {
     if (_maquinaria.isEmpty) return const Center(child: Text('No hay maquinaria registrada'));
+    
     return GridView.builder(
       padding: const EdgeInsets.all(20),
-      gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(maxCrossAxisExtent: 350, crossAxisSpacing: 16, mainAxisSpacing: 16, mainAxisExtent: 220),
+      gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
+        maxCrossAxisExtent: 350, 
+        crossAxisSpacing: 16, 
+        mainAxisSpacing: 16, 
+        mainAxisExtent: 220
+      ),
       itemCount: _maquinaria.length,
       itemBuilder: (context, i) {
         final m = _maquinaria[i];
         final operativa = m['estado_equipo'] == 'OPERATIVA';
+        final enMantenimiento = m['estado_equipo'] == 'MANTENIMIENTO';
+
         return Container(
           padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(color: AppColors.blanco, borderRadius: BorderRadius.circular(16), border: Border.all(color: AppColors.bordeSuave)),
+          decoration: BoxDecoration(
+            color: AppColors.blanco, 
+            borderRadius: BorderRadius.circular(16), 
+            border: Border.all(color: AppColors.bordeSuave),
+            boxShadow: [
+              BoxShadow(color: Colors.black.withValues(alpha: 0.02), blurRadius: 10, offset: const Offset(0, 4))
+            ]
+          ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Container(padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4), decoration: BoxDecoration(color: AppColors.naranja.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(6)), child: Text(m['codigo'], style: const TextStyle(fontWeight: FontWeight.bold, color: AppColors.naranja, fontSize: 12))),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4), 
+                    decoration: BoxDecoration(color: AppColors.naranja.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(6)), 
+                    child: Text(m['codigo'], style: const TextStyle(fontWeight: FontWeight.bold, color: AppColors.naranja, fontSize: 12))
+                  ),
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                    decoration: BoxDecoration(color: operativa ? Colors.green.withValues(alpha: 0.1) : Colors.red.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(6)),
-                    child: Text(m['estado_equipo'], style: TextStyle(color: operativa ? Colors.green : Colors.red, fontSize: 10, fontWeight: FontWeight.bold)),
+                    decoration: BoxDecoration(
+                      color: operativa 
+                          ? Colors.green.withValues(alpha: 0.1) 
+                          : (enMantenimiento ? Colors.orange.withValues(alpha: 0.1) : Colors.red.withValues(alpha: 0.1)), 
+                      borderRadius: BorderRadius.circular(6)
+                    ),
+                    child: Text(
+                      m['estado_equipo'], 
+                      style: TextStyle(
+                        color: operativa 
+                            ? Colors.green 
+                            : (enMantenimiento ? Colors.orange[800] : Colors.red), 
+                        fontSize: 10, 
+                        fontWeight: FontWeight.bold
+                      )
+                    ),
                   ),
                 ],
               ),
@@ -354,7 +477,34 @@ class _AdminMaquinariaScreenState extends State<AdminMaquinariaScreen> {
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Text('Tarifa/Día: \$${m['tarifa_renta_dia'] ?? 0}', style: const TextStyle(fontSize: 11)),
-                  IconButton(icon: const Icon(Icons.edit, color: Colors.blue, size: 20), onPressed: () => _abrirModalMaquinaria(maquina: m)),
+                  
+                  // 👇 MENÚ DE ACCIONES 👇
+                  PopupMenuButton<String>(
+                    icon: const Icon(Icons.more_vert, color: AppColors.textoGris),
+                    onSelected: (value) {
+                      if (value == 'editar') {
+                        _abrirModalMaquinaria(maquina: m);
+                      } else if (value == 'mantenimiento') {
+                        _abrirModalMantenimiento(maquina: m);
+                      } else if (value == 'eliminar') {
+                        _confirmarEliminarMaquinaria(m);
+                      }
+                    },
+                    itemBuilder: (context) => [
+                      const PopupMenuItem(
+                        value: 'editar',
+                        child: Row(children: [Icon(Icons.edit, size: 18, color: Colors.blue), SizedBox(width: 8), Text('Editar Datos')]),
+                      ),
+                      const PopupMenuItem(
+                        value: 'mantenimiento',
+                        child: Row(children: [Icon(Icons.build, size: 18, color: Colors.orange), SizedBox(width: 8), Text('A Mantenimiento')]),
+                      ),
+                      const PopupMenuItem(
+                        value: 'eliminar',
+                        child: Row(children: [Icon(Icons.delete, size: 18, color: AppColors.estadoRojo), SizedBox(width: 8), Text('Eliminar Equipo')]),
+                      ),
+                    ],
+                  ),
                 ],
               ),
             ],
@@ -364,38 +514,112 @@ class _AdminMaquinariaScreenState extends State<AdminMaquinariaScreen> {
     );
   }
 
+  // ────────────────────────────────────────────────────────
+  // VISTA 2: ASIGNADAS (DISEÑO MÓVIL MEJORADO)
+  // ────────────────────────────────────────────────────────
   Widget _buildAsignaciones() {
-    // El botón está afuera de la validación, para que SIEMPRE se vea
     return Column(
       children: [
         Padding(
           padding: const EdgeInsets.all(16),
-          child: ElevatedButton.icon(
-            onPressed: _abrirModalAsignar,
-            icon: const Icon(Icons.add_link),
-            label: const Text('Nueva Asignación'),
-            style: ElevatedButton.styleFrom(backgroundColor: AppColors.naranja),
+          child: SizedBox(
+            width: double.infinity,
+            child: ElevatedButton.icon(
+              onPressed: _abrirModalAsignar,
+              icon: const Icon(Icons.add_link),
+              label: const Text('Nueva Asignación'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.naranja,
+                padding: const EdgeInsets.symmetric(vertical: 14),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              ),
+            ),
           ),
         ),
         Expanded(
           child: _asignaciones.isEmpty
               ? const Center(child: Text('No hay máquinas asignadas actualmente'))
               : ListView.builder(
-                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 0),
                   itemCount: _asignaciones.length,
                   itemBuilder: (context, i) {
                     final a = _asignaciones[i];
                     return Card(
-                      child: ListTile(
-                        leading: const CircleAvatar(backgroundColor: Colors.blue, child: Icon(Icons.precision_manufacturing, color: Colors.white)),
-                        title: Text('${a['codigo_maquinaria']} - ${a['nombre_maquinaria']}'),
-                        subtitle: Text('Asignada a: ${a['nombre_obra']} (${a['codigo_obra']})\nFecha: ${a['fecha_asignacion']}'),
-                        trailing: IconButton(
-                          icon: const Icon(Icons.remove_circle, color: AppColors.estadoRojo),
-                          onPressed: () async {
-                            final res = await ApiService.delete('asignar_maquinaria.php?id=${a['id_obra_maquinaria']}');
-                            if (res['estado'] == true) _cargarTodo();
-                          },
+                      color: AppColors.blanco, // Fondo blanco
+                      elevation: 0,
+                      margin: const EdgeInsets.only(bottom: 12),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(16),
+                        side: const BorderSide(color: AppColors.bordeSuave),
+                      ),
+                      child: Padding(
+                        padding: const EdgeInsets.all(16),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              children: [
+                                Container(
+                                  padding: const EdgeInsets.all(10),
+                                  decoration: BoxDecoration(color: Colors.blue.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(12)),
+                                  child: const Icon(Icons.precision_manufacturing, color: Colors.blue, size: 24),
+                                ),
+                                const SizedBox(width: 12),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Text('${a['codigo_maquinaria']}', style: const TextStyle(fontWeight: FontWeight.bold, color: AppColors.naranja, fontSize: 12)),
+                                      Text(a['nombre_maquinaria'], style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16), maxLines: 1, overflow: TextOverflow.ellipsis),
+                                    ],
+                                  ),
+                                ),
+                                IconButton(
+                                  icon: const Icon(Icons.remove_circle_outline, color: AppColors.estadoRojo),
+                                  tooltip: 'Retirar asignación',
+                                  onPressed: () async {
+                                    final confirm = await showDialog<bool>(
+                                      context: context,
+                                      builder: (ctx) => AlertDialog(
+                                        title: const Text('¿Retirar máquina?'),
+                                        content: Text('¿Estás seguro de retirar "${a['nombre_maquinaria']}" de la obra "${a['nombre_obra']}"?'),
+                                        actions: [
+                                          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancelar')),
+                                          ElevatedButton(
+                                            style: ElevatedButton.styleFrom(backgroundColor: AppColors.estadoRojo),
+                                            onPressed: () => Navigator.pop(ctx, true),
+                                            child: const Text('Retirar'),
+                                          ),
+                                        ],
+                                      ),
+                                    );
+                                    if (confirm == true) {
+                                      final res = await ApiService.delete('asignar_maquinaria.php?id=${a['id_obra_maquinaria']}');
+                                      if (res != null && res['estado'] == true) _cargarTodo();
+                                    }
+                                  },
+                                ),
+                              ],
+                            ),
+                            const Divider(height: 24),
+                            Row(
+                              children: [
+                                const Icon(Icons.business_center, size: 16, color: AppColors.textoGris),
+                                const SizedBox(width: 6),
+                                Expanded(
+                                  child: Text('${a['nombre_obra']} (${a['codigo_obra']})', style: const TextStyle(fontSize: 13, color: AppColors.textoGris), overflow: TextOverflow.ellipsis),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 8),
+                            Row(
+                              children: [
+                                const Icon(Icons.calendar_today_outlined, size: 16, color: AppColors.textoGris),
+                                const SizedBox(width: 6),
+                                Text('Asignada: ${a['fecha_asignacion']}', style: const TextStyle(fontSize: 13, color: AppColors.textoGris)),
+                              ],
+                            ),
+                          ],
                         ),
                       ),
                     );
@@ -406,32 +630,111 @@ class _AdminMaquinariaScreenState extends State<AdminMaquinariaScreen> {
     );
   }
 
+  // ────────────────────────────────────────────────────────
+  // VISTA 3: MANTENIMIENTOS (DISEÑO MÓVIL MEJORADO)
+  // ────────────────────────────────────────────────────────
   Widget _buildMantenimientos() {
-    // El botón está afuera de la validación, para que SIEMPRE se vea
     return Column(
       children: [
         Padding(
           padding: const EdgeInsets.all(16),
-          child: ElevatedButton.icon(
-            onPressed: _abrirModalMantenimiento,
-            icon: const Icon(Icons.build),
-            label: const Text('Registrar Mantenimiento'),
-            style: ElevatedButton.styleFrom(backgroundColor: AppColors.naranja),
+          child: SizedBox(
+            width: double.infinity,
+            child: ElevatedButton.icon(
+              onPressed: () => _abrirModalMantenimiento(),
+              icon: const Icon(Icons.build),
+              label: const Text('Registrar Mantenimiento'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.naranja,
+                padding: const EdgeInsets.symmetric(vertical: 14),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              ),
+            ),
           ),
         ),
         Expanded(
           child: _mantenimientos.isEmpty
               ? const Center(child: Text('No hay mantenimientos registrados'))
               : ListView.builder(
-                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 0),
                   itemCount: _mantenimientos.length,
                   itemBuilder: (context, i) {
                     final m = _mantenimientos[i];
                     return Card(
-                      child: ListTile(
-                        leading: const CircleAvatar(backgroundColor: AppColors.estadoAmarillo, child: Icon(Icons.build, color: Colors.white)),
-                        title: Text('${m['codigo_maquinaria']} - ${m['tipo_mantenimiento']}'),
-                        subtitle: Text('${m['descripcion']}\nCosto: \$${m['costo'] ?? 0} | Fecha: ${m['fecha_inicio']}'),
+                      color: AppColors.blanco, // Fondo blanco
+                      elevation: 0,
+                      margin: const EdgeInsets.only(bottom: 12),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(16),
+                        side: const BorderSide(color: AppColors.bordeSuave),
+                      ),
+                      child: Padding(
+                        padding: const EdgeInsets.all(16),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              children: [
+                                Container(
+                                  padding: const EdgeInsets.all(10),
+                                  decoration: BoxDecoration(color: Colors.orange.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(12)),
+                                  child: Icon(
+                                    m['tipo_mantenimiento'] == 'PREVENTIVO' ? Icons.handyman : Icons.build_circle, 
+                                    color: Colors.orange[800], 
+                                    size: 24
+                                  ),
+                                ),
+                                const SizedBox(width: 12),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Text('${m['codigo_maquinaria']}', style: const TextStyle(fontWeight: FontWeight.bold, color: AppColors.naranja, fontSize: 12)),
+                                      Text(m['tipo_mantenimiento'], style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                                    ],
+                                  ),
+                                ),
+                                Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                  decoration: BoxDecoration(
+                                    color: m['estado'] == 'COMPLETADO' ? Colors.green.withValues(alpha: 0.1) : Colors.orange.withValues(alpha: 0.1),
+                                    borderRadius: BorderRadius.circular(6),
+                                  ),
+                                  child: Text(
+                                    m['estado'] ?? 'EN_PROCESO',
+                                    style: TextStyle(
+                                      color: m['estado'] == 'COMPLETADO' ? Colors.green : Colors.orange[800],
+                                      fontSize: 10,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const Divider(height: 24),
+                            Text(m['descripcion'], style: const TextStyle(fontSize: 13, color: AppColors.textoNegro), maxLines: 3, overflow: TextOverflow.ellipsis),
+                            const SizedBox(height: 12),
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Row(
+                                  children: [
+                                    const Icon(Icons.attach_money, size: 16, color: AppColors.textoGris),
+                                    const SizedBox(width: 4),
+                                    Text('Costo: \$${m['costo'] ?? 0}', style: const TextStyle(fontSize: 12, color: AppColors.textoGris)),
+                                  ],
+                                ),
+                                Row(
+                                  children: [
+                                    const Icon(Icons.calendar_today_outlined, size: 16, color: AppColors.textoGris),
+                                    const SizedBox(width: 4),
+                                    Text(m['fecha_inicio'] ?? '--', style: const TextStyle(fontSize: 12, color: AppColors.textoGris)),
+                                  ],
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
                       ),
                     );
                   },

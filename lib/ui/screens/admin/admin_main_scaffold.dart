@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:gestobra/config/theme/app_colors.dart';
+
+// Importaciones de todas las pantallas
 import 'admin_dashboard_screen.dart';
 import 'admin_obras_screen.dart';
 import 'admin_personal_screen.dart';
@@ -11,7 +13,13 @@ import 'admin_asignaciones_screen.dart';
 import 'admin_proveedores_screen.dart';
 import 'admin_usuarios_screen.dart';
 import 'admin_clientes_screen.dart';
-import 'admin_auditoria_screen.dart'; // <-- IMPORTACIÓN NUEVA
+import 'admin_auditoria_screen.dart';
+
+// 👇 NUEVAS PANTALLAS 👇
+import 'admin_incidencias_screen.dart';
+import 'admin_bitacoras_screen.dart';
+import 'admin_materiales_screen.dart';
+import 'admin_evidencias_screen.dart';
 
 class AdminMainScaffold extends StatefulWidget {
   const AdminMainScaffold({super.key});
@@ -23,6 +31,9 @@ class AdminMainScaffold extends StatefulWidget {
 class _AdminMainScaffoldState extends State<AdminMainScaffold> {
   int _currentIndex = 0;
 
+  // ────────────────────────────────────────────────────────
+  // LISTA DE PANTALLAS (Índices 0 al 15)
+  // ────────────────────────────────────────────────────────
   final List<Widget> _screens = [
     const AdminDashboardScreen(),      // 0 - Inicio
     const AdminObrasScreen(),          // 1 - Obras
@@ -34,14 +45,18 @@ class _AdminMainScaffoldState extends State<AdminMainScaffold> {
     const AdminTrabajadoresScreen(),   // 7 - Trabajadores
     const AdminUsuariosScreen(),       // 8 - Usuarios
     const AdminCatalogosScreen(),      // 9 - Catálogos
-    const AdminAuditoriaScreen(),      // 10 - Auditoría (NUEVO)
-    const AdminPerfilScreen(),         // 11 - Perfil (Corrido a 11)
+    const AdminAuditoriaScreen(),      // 10 - Auditoría
+    const AdminIncidenciasScreen(),    // 11 - Incidencias (NUEVO)
+    const AdminBitacorasScreen(),      // 12 - Bitácoras (NUEVO)
+    const AdminMaterialesScreen(),     // 13 - Materiales (NUEVO)
+    const AdminEvidenciasScreen(),     // 14 - Evidencias (NUEVO)
+    const AdminPerfilScreen(),         // 15 - Perfil (Al final)
   ];
 
   int get _currentMobileNavIndex {
-    if (_currentIndex == 0) return 0;
-    if (_currentIndex == 1) return 1;
-    if (_currentIndex == 11) return 3; // Perfil ahora es el índice 11
+    if (_currentIndex == 0) return 0; // Inicio
+    if (_currentIndex == 1) return 1; // Obras
+    if (_currentIndex == 15) return 3; // Perfil
     return 2; // Todo lo demás cae en "Gestión"
   }
 
@@ -73,7 +88,7 @@ class _AdminMainScaffoldState extends State<AdminMainScaffold> {
             setState(() {
               if (index == 0) _currentIndex = 0; // Inicio
               if (index == 1) _currentIndex = 1; // Obras
-              if (index == 3) _currentIndex = 11; // Perfil (Actualizado a 11)
+              if (index == 3) _currentIndex = 15; // Perfil (Ahora en 15)
             });
           }
         },
@@ -101,9 +116,10 @@ class _AdminMainScaffoldState extends State<AdminMainScaffold> {
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
+      isScrollControlled: true, // Para que no se corte en pantallas pequeñas
       builder: (ctx) {
         return SafeArea(
-          child: Padding(
+          child: SingleChildScrollView(
             padding: const EdgeInsets.all(16.0),
             child: Column(
               mainAxisSize: MainAxisSize.min,
@@ -122,9 +138,14 @@ class _AdminMainScaffoldState extends State<AdminMainScaffold> {
                     _buildMenuOption(ctx, 'Maquinaria', Icons.precision_manufacturing, 5),
                     _buildMenuOption(ctx, 'Personal', Icons.groups, 6),
                     _buildMenuOption(ctx, 'Trabajadores', Icons.engineering, 7),
-                    _buildMenuOption(ctx, 'Catálogos', Icons.list_alt, 9),
-                    _buildMenuOption(ctx, 'Auditoría', Icons.security_update_good, 10), // <-- NUEVO
                     _buildMenuOption(ctx, 'Usuarios', Icons.manage_accounts, 8),
+                    _buildMenuOption(ctx, 'Catálogos', Icons.list_alt, 9),
+                    _buildMenuOption(ctx, 'Auditoría', Icons.security_update_good, 10),
+                    // 👇 NUEVOS MÓDULOS 👇
+                    _buildMenuOption(ctx, 'Incidencias', Icons.warning_amber, 11),
+                    _buildMenuOption(ctx, 'Bitácoras', Icons.menu_book, 12),
+                    _buildMenuOption(ctx, 'Materiales', Icons.inventory, 13),
+                    _buildMenuOption(ctx, 'Evidencias', Icons.photo_library, 14),
                   ],
                 ),
               ],
@@ -162,13 +183,12 @@ class _AdminMainScaffoldState extends State<AdminMainScaffold> {
   }
 
   // ============================================================
-  // SIDEBAR ESCRITORIO (Con Índices Corregidos)
+  // SIDEBAR ESCRITORIO
   // ============================================================
   Widget _buildDesktopSidebar() {
     return Container(
       width: 240,
       color: AppColors.fondoNavegacion,
-      // Agregamos scroll por si la pantalla de la compu es pequeña
       child: SingleChildScrollView(
         child: Column(
           children: [
@@ -189,7 +209,7 @@ class _AdminMainScaffoldState extends State<AdminMainScaffold> {
                 ],
               ),
             ),
-            // 👇 ÍNDICES CORREGIDOS 0 a 11
+            // ─── ÍTEMS DEL SIDEBAR ───
             _buildDesktopItem(0, Icons.home_outlined, Icons.home, 'Inicio'),
             _buildDesktopItem(1, Icons.business_center_outlined, Icons.business_center, 'Obras'),
             _buildDesktopItem(2, Icons.link_outlined, Icons.link, 'Asignaciones'),
@@ -200,8 +220,14 @@ class _AdminMainScaffoldState extends State<AdminMainScaffold> {
             _buildDesktopItem(7, Icons.engineering_outlined, Icons.engineering, 'Trabajadores'),
             _buildDesktopItem(8, Icons.manage_accounts_outlined, Icons.manage_accounts, 'Usuarios'),
             _buildDesktopItem(9, Icons.list_alt_outlined, Icons.list_alt, 'Catálogos'),
-            _buildDesktopItem(10, Icons.security_update_good_outlined, Icons.security_update_good, 'Auditoría'), // <-- NUEVO
-            _buildDesktopItem(11, Icons.person_outline, Icons.person, 'Perfil'), // <-- Perfil en 11
+            _buildDesktopItem(10, Icons.security_update_good_outlined, Icons.security_update_good, 'Auditoría'),
+            // 👇 NUEVOS MÓDULOS EN EL SIDEBAR 👇
+            _buildDesktopItem(11, Icons.warning_amber_outlined, Icons.warning_amber, 'Incidencias'),
+            _buildDesktopItem(12, Icons.menu_book_outlined, Icons.menu_book, 'Bitácoras'),
+            _buildDesktopItem(13, Icons.inventory_outlined, Icons.inventory, 'Materiales'),
+            _buildDesktopItem(14, Icons.photo_library_outlined, Icons.photo_library, 'Evidencias'),
+            // ─── PERFIL AL FINAL ───
+            _buildDesktopItem(15, Icons.person_outline, Icons.person, 'Perfil'),
             const SizedBox(height: 20),
           ],
         ),

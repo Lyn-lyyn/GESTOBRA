@@ -30,6 +30,20 @@ class ApiService {
     return jsonDecode(response.body);
   }
 
+  // 👇 NUEVO MÉTODO PUT 👇
+  static Future<Map<String, dynamic>> put(String endpoint, Map<String, dynamic> body) async {
+    final token = await AuthService.obtenerToken();
+    final response = await http.put(
+      Uri.parse('$baseUrl/$endpoint'),
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer $token',
+      },
+      body: jsonEncode(body),
+    );
+    return jsonDecode(response.body);
+  }
+
   static Future<Map<String, dynamic>> delete(String endpoint) async {
     final token = await AuthService.obtenerToken();
     final response = await http.delete(
