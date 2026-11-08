@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:gestobra/config/theme/app_colors.dart';
+import 'package:gestobra/servicios/api_service.dart';
 import 'package:gestobra/ui/screens/obras/obra_detail_screen.dart';
 
 class ObrasListScreen extends StatefulWidget {
@@ -13,68 +14,112 @@ class _ObrasListScreenState extends State<ObrasListScreen> {
   final TextEditingController _busquedaController = TextEditingController();
   String _filtro = 'Todas';
 
-  final List<Map<String, dynamic>> _obras = [
-    {
-      'codigo': 'OBRA-2026-042',
-      'titulo': 'Edificio de oficinas corporativas',
-      'cliente': 'Inmobiliaria del Golfo S.A. de C.V.',
-      'ubicacion': 'Boca del Río, Veracruz',
-      'residente': 'Ing. Carlos Márquez',
-      'periodo': '28/09/2026 al 28/10/2026',
-      'estado': 'EN PROCESO',
-      'estadoKey': 'en_ejecucion',
-      'avance': 0.78,
-      'avanceTexto': '78%',
-    },
-    {
-      'codigo': 'OBRA-2026-043',
-      'titulo': 'Construcción de vivienda 2 plantas',
-      'cliente': 'Grupo Constructor del Norte S.A.',
-      'ubicacion': 'Monterrey, Nuevo León',
-      'residente': 'Ing. Laura Sánchez',
-      'periodo': '15/09/2026 al 15/12/2026',
-      'estado': 'EN PROCESO',
-      'estadoKey': 'en_ejecucion',
-      'avance': 0.45,
-      'avanceTexto': '45%',
-    },
-    {
-      'codigo': 'OBRA-2026-044',
-      'titulo': 'Pavimentación con concreto hidráulico',
-      'cliente': 'Ayuntamiento de Veracruz',
-      'ubicacion': 'Veracruz, Veracruz',
-      'residente': 'Ing. Roberto Díaz',
-      'periodo': '01/10/2026 al 30/11/2026',
-      'estado': 'PLANIFICADA',
-      'estadoKey': 'planificada',
-      'avance': 0.0,
-      'avanceTexto': '0%',
-    },
-    {
-      'codigo': 'OBRA-2026-045',
-      'titulo': 'Remodelación Centro Médico Santa María',
-      'cliente': 'Servicios Médicos del Sur S.A.',
-      'ubicacion': 'Coaztacoalcos, Veracruz',
-      'residente': 'Ing. Patricia Ríos',
-      'periodo': '10/08/2026 al 10/11/2026',
-      'estado': 'SUSPENDIDA',
-      'estadoKey': 'suspendida',
-      'avance': 0.30,
-      'avanceTexto': '30%',
-    },
-    {
-      'codigo': 'OBRA-2026-038',
-      'titulo': 'Ampliación de bodega industrial',
-      'cliente': 'Logística Portuaria S.A. de C.V.',
-      'ubicacion': 'Manzanillo, Colima',
-      'residente': 'Ing. Fernando Cruz',
-      'periodo': '15/05/2026 al 15/08/2026',
-      'estado': 'FINALIZADA',
-      'estadoKey': 'finalizada',
-      'avance': 1.0,
-      'avanceTexto': '100%',
-    },
-  ];
+  List<Map<String, dynamic>> _obras = [];
+  bool _cargando = true;
+  String? _error;
+
+  @override
+  void initState() {
+    super.initState();
+    _cargarObras();
+  }
+
+  Future<void> _cargarObras() async {
+    setState(() {
+      _cargando = true;
+      _error = null;
+    });
+    try {
+      final respuesta = await ApiService.get('obras.php');
+      if (respuesta['estado'] != true) {
+        throw Exception(respuesta['mensaje'] ?? 'No se pudieron cargar las obras');
+      }
+      final obras = List<Map<String, dynamic>>.from(respuesta['obras'] as List)
+          .map(_mapearObra)
+          .toList();
+      if (!mounted) return;
+      setState(() {
+        _obras = obras;
+        _cargando = false;
+      });
+    } catch (error) {
+      if (!mounted) return;
+      setState(() {
+        _cargando = false;
+        _error = error.toString().replaceFirst('Exception: ', '');
+      });
+    }
+  }
+
+  Map<String, dynamic> _mapearObra(Map<String, dynamic> obra) {
+    final estado = (obra['estado_nombre'] ?? '').toString().toUpperCase();
+    final estadoKey = switch (estado) {
+      'EN_EJECUCION' => 'en_ejecucion',
+      'PLANIFICADA' => 'planificada',
+      'SUSPENDIDA' => 'suspendida',
+      'FINALIZADA' => 'finalizada',
+      _ => estado.toLowerCase(),
+    };
+    final avance = (double.tryParse(obra['avance_general']?.toString() ?? '') ?? 0)
+        .clamp(0, 100)
+        .toDouble();
+    final inicio = _fechaCorta(obra['fecha_inicio']);
+    final fin = _fechaCorta(obra['fecha_fin_estimada']);
+    return {
+      'id_obra': obra['id_obra'],
+      'codigo': obra['codigo'] ?? '',
+      'titulo': obra['nombre'] ?? '',
+      'cliente': obra['nombre_cliente'] ?? 'Sin cliente',
+      'ubicacion': obra['ubicacion'] ?? '',
+      'descripcion': obra['descripcion'] ?? '',
+      'residente': 'Personal asignado a la obra',
+      'periodo': '$inicio al $fin',
+      'estado': estado.replaceAll('_', ' '),
+      'estadoKey': estadoKey,
+      'avance': avance / 100,
+      'avanceTexto': '${avance.round()}%',
+    };
+  }
+
+  String _fechaCorta(dynamic valor) {
+    if (valor == null || valor.toString().isEmpty) return 'Sin fecha';
+    final partes = valor.toString().split('-');
+    if (partes.length != 3) return valor.toString();
+    return '${partes[2].substring(0, 2)}/${partes[1]}/${partes[0]}';
+  }
+
+  Widget _buildObrasList({required bool desktop}) {
+    if (_cargando) {
+      return const Padding(
+        padding: EdgeInsets.all(28),
+        child: Center(child: CircularProgressIndicator()),
+      );
+    }
+    if (_error != null) {
+      return Padding(
+        padding: const EdgeInsets.all(24),
+        child: Column(mainAxisSize: MainAxisSize.min, children: [
+          Text(_error!, textAlign: TextAlign.center),
+          const SizedBox(height: 8),
+          TextButton.icon(
+            onPressed: _cargarObras,
+            icon: const Icon(Icons.refresh),
+            label: const Text('Reintentar'),
+          ),
+        ]),
+      );
+    }
+    final obras = _obrasFiltradas;
+    if (obras.isEmpty) return _buildSinResultados();
+    return ListView.builder(
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      itemCount: obras.length,
+      itemBuilder: (context, index) => desktop
+          ? _buildDesktopObraCard(obras[index])
+          : _ObraCard(obra: obras[index], onTap: () => _abrirObra(obras[index])),
+    );
+  }
 
   @override
   void dispose() {
@@ -240,16 +285,7 @@ class _ObrasListScreenState extends State<ObrasListScreen> {
               const SizedBox(height: 24),
               
               // Lista de Obras
-              _obrasFiltradas.isEmpty
-                  ? _buildSinResultados()
-                  : ListView.builder(
-                      shrinkWrap: true,
-                      physics: const NeverScrollableScrollPhysics(),
-                      itemCount: _obrasFiltradas.length,
-                      itemBuilder: (context, index) {
-                        return _buildDesktopObraCard(_obrasFiltradas[index]);
-                      },
-                    ),
+              _buildObrasList(desktop: true),
             ],
           ),
         ),
@@ -590,19 +626,7 @@ class _ObrasListScreenState extends State<ObrasListScreen> {
           ],
           _buildBuscadorYFiltros(),
           const SizedBox(height: 18),
-          _obrasFiltradas.isEmpty
-              ? _buildSinResultados()
-              : ListView.builder(
-                  shrinkWrap: true,
-                  physics: const NeverScrollableScrollPhysics(),
-                  itemCount: _obrasFiltradas.length,
-                  itemBuilder: (context, index) {
-                    return _ObraCard(
-                      obra: _obrasFiltradas[index],
-                      onTap: () => _abrirObra(_obrasFiltradas[index]),
-                    );
-                  },
-                ),
+          _buildObrasList(desktop: false),
         ],
       ),
     );

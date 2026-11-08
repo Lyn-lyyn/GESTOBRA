@@ -33,6 +33,8 @@ dependencies:
   flutter_localizations:
     sdk: flutter  
   http: ^1.6.0
+  file_picker: ^10.3.10 # Selecciona imágenes desde teléfono, Windows y otras plataformas
+  image_picker: 1.2.1 # Permite tomar una foto con la cámara en Android/iOS
   shared_preferences: ^2.2.2  # Para guardar el token y recordar sesión
   google_fonts: ^6.1.0        # Opcional, para la tipografía del diseño
   fl_chart: ^0.69.0
@@ -53,6 +55,22 @@ dev_dependencies:
   # package. See that file for information about deactivating specific lint
   # rules and activating additional ones.
   flutter_lints: ^5.0.0
+
+dependency_overrides:
+  # Mantiene la dependencia Android compatible con Dart 3.7 / Flutter 3.29.
+  flutter_plugin_android_lifecycle: 2.0.30
+  # La última cross_file sube a Dart 3.10; esta versión mantiene compatibilidad con Dart 3.7.
+  cross_file: 0.3.5
+  # Fija los adaptadores para que Pub no suba el mínimo del proyecto al resolver image_picker.
+  image_picker_android: 0.8.13+1
+  image_picker_ios: 0.8.13
+  image_picker_for_web: 3.1.0
+  image_picker_platform_interface: 2.11.1
+  # Evita que el adaptador macOS transitivo fuerce Flutter 3.47 en el lockfile.
+  file_selector_macos: 0.9.4+4
+  file_selector_linux: 0.9.3+2
+  file_selector_windows: 0.9.3+4
+  image_picker_macos: 0.2.2
 
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../../config/theme/app_colors.dart';
+import '../../../servicios/api_service.dart';
 import '../obras/obra_detail_screen.dart';
 
 class DashboardScreen extends StatefulWidget {
@@ -16,68 +17,79 @@ class _DashboardScreenState extends State<DashboardScreen> {
     {'titulo': 'Obras registradas', 'valor': '16', 'color': Colors.black},
   ];
 
-  final List<Map<String, dynamic>> _obras = [
-    {
-      'titulo': 'Edificio de oficinas corporativas',
-      'cliente': 'Cliente: Inmobiliaria del Golfo S.A. de C.V.',
-      'ubicacion': 'Boca del Río, Veracruz',
-      'supervisor': 'Ing. Carlos Márquez',
-      'fecha': '28/09/2026 al 28/10/2026',
-      'avance': 0.78,
-      'estado': 'EN PROCESO',
-      'colorEstado': AppColors.naranja,
-    },
-    {
-      'titulo': 'Construcción de vivienda 2 plantas',
-      'cliente': 'Cliente: Sra. Juan Pérez González',
-      'ubicacion': 'Cuitláhuac, Veracruz (Col. Petrolera)',
-      'supervisor': 'Ing. Carlos Márquez',
-      'fecha': '28/09/2026 al 28/10/2026',
-      'avance': 0.44,
-      'estado': 'EN PROCESO',
-      'colorEstado': AppColors.naranja,
-    },
-    {
-      'titulo': 'Pavimentación con concreto hidráulico y drenaje',
-      'cliente': 'Cliente: Gobierno municipal / Obra pública',
-      'ubicacion': 'Cuitláhuac, Veracruz (Av. de la Sepultura)',
-      'supervisor': 'Ing. Carlos Márquez',
-      'fecha': '28/09/2026 al 28/10/2026',
-      'avance': 0.08,
-      'estado': 'EN PROCESO',
-      'colorEstado': AppColors.naranja,
-    },
-    {
-      'titulo': 'Remodelación Centro Médico Santa María',
-      'cliente': 'Cliente: Grupo Salud Integral',
-      'ubicacion': 'Cuitláhuac, Veracruz',
-      'supervisor': 'Ing. Carlos Márquez',
-      'fecha': '28/09/2026 al 28/10/2026',
-      'avance': 0.50,
-      'estado': 'EN PROCESO',
-      'colorEstado': AppColors.naranja,
-    },
-    {
-      'titulo': 'Construcción de bodega industrial',
-      'cliente': 'Cliente: Logística del Sureste',
-      'ubicacion': 'Boca del Río, Veracruz',
-      'supervisor': 'Ing. Carlos Márquez',
-      'fecha': '28/09/2026 al 28/10/2026',
-      'avance': 0.15,
-      'estado': 'EN PROCESO',
-      'colorEstado': AppColors.naranja,
-    },
-    {
-      'titulo': 'Ampliación de red de agua potable',
-      'cliente': 'Cliente: CAEV',
-      'ubicacion': 'Cuitláhuac, Veracruz',
-      'supervisor': 'Ing. Carlos Márquez',
-      'fecha': '28/09/2026 al 28/10/2026',
-      'avance': 1.0,
-      'estado': 'CONCLUIDO',
-      'colorEstado': Colors.green,
-    },
-  ];
+  List<Map<String, dynamic>> _obras = [];
+  bool _cargandoObras = true;
+  String? _errorObras;
+
+  @override
+  void initState() {
+    super.initState();
+    _cargarObras();
+  }
+
+  Future<void> _cargarObras() async {
+    setState(() {
+      _cargandoObras = true;
+      _errorObras = null;
+    });
+    try {
+      final respuesta = await ApiService.get('obras.php');
+      if (respuesta['estado'] != true || respuesta['obras'] is! List) {
+        throw Exception(respuesta['mensaje'] ?? 'No se pudieron cargar las obras');
+      }
+      final obras = (respuesta['obras'] as List).whereType<Map>().map((item) {
+        final obra = Map<String, dynamic>.from(item);
+        final avance = ((double.tryParse(obra['avance_general']?.toString() ?? '') ?? 0)
+                .clamp(0, 100)) /
+            100;
+        final estado = (obra['estado_nombre'] ?? 'SIN ESTADO').toString()
+            .replaceAll('_', ' ');
+        return <String, dynamic>{
+          ...obra,
+          'titulo': obra['nombre'] ?? 'Obra sin nombre',
+          'cliente': 'Cliente: ${obra['nombre_cliente'] ?? 'Sin cliente'}',
+          'ubicacion': obra['ubicacion'] ?? 'Ubicación no registrada',
+          'supervisor': obra['residente'] ?? 'Personal asignado',
+          'fecha': _rangoFechas(obra['fecha_inicio'], obra['fecha_fin_estimada']),
+          'avance': avance,
+          'estado': estado,
+          'colorEstado': estado.contains('FINALIZADA') ? Colors.green : AppColors.naranja,
+        };
+      }).toList();
+      if (!mounted) return;
+      setState(() {
+        _obras = obras;
+        _cargandoObras = false;
+      });
+    } catch (error) {
+      if (!mounted) return;
+      setState(() {
+        _errorObras = error.toString().replaceFirst('Exception: ', '');
+        _cargandoObras = false;
+      });
+    }
+  }
+
+  String _rangoFechas(dynamic inicio, dynamic fin) {
+    String mostrar(dynamic fecha) {
+      if (fecha == null || fecha.toString().isEmpty) return 'Sin fecha';
+      final partes = fecha.toString().split('-');
+      return partes.length == 3 ? '${partes[2].substring(0, 2)}/${partes[1]}/${partes[0]}' : fecha.toString();
+    }
+    return '${mostrar(inicio)} al ${mostrar(fin)}';
+  }
+
+  Widget _buildEstadoObras() {
+    if (_cargandoObras) return const Center(child: CircularProgressIndicator());
+    if (_errorObras != null) {
+      return Center(child: Column(mainAxisSize: MainAxisSize.min, children: [
+        Text(_errorObras!, textAlign: TextAlign.center),
+        TextButton.icon(onPressed: _cargarObras, icon: const Icon(Icons.refresh), label: const Text('Reintentar')),
+      ]));
+    }
+    if (_obras.isEmpty) return const Center(child: Text('No hay obras asignadas.'));
+    return const SizedBox.shrink();
+  }
 
   bool _isDesktop(BuildContext context) {
     return MediaQuery.of(context).size.width >= 900;
@@ -173,20 +185,21 @@ class _DashboardScreenState extends State<DashboardScreen> {
             ),
             const SizedBox(height: 16),
 
-            GridView.builder(
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
-                maxCrossAxisExtent: 320,
-                mainAxisExtent: 260,
-                crossAxisSpacing: 16,
-                mainAxisSpacing: 16,
+            if (_cargandoObras || _errorObras != null || _obras.isEmpty)
+              SizedBox(height: 180, child: _buildEstadoObras())
+            else
+              GridView.builder(
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
+                  maxCrossAxisExtent: 320,
+                  mainAxisExtent: 260,
+                  crossAxisSpacing: 16,
+                  mainAxisSpacing: 16,
+                ),
+                itemCount: _obras.length,
+                itemBuilder: (context, index) => _buildDesktopObraCard(_obras[index]),
               ),
-              itemCount: _obras.length,
-              itemBuilder: (context, index) {
-                return _buildDesktopObraCard(_obras[index]);
-              },
-            ),
           ],
         ),
       ),
@@ -339,20 +352,21 @@ class _DashboardScreenState extends State<DashboardScreen> {
               ],
             ),
           const SizedBox(height: 16),
-          GridView.builder(
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
-              maxCrossAxisExtent: 250,
-              mainAxisExtent: 235,
-              crossAxisSpacing: 12,
-              mainAxisSpacing: 12,
+          if (_cargandoObras || _errorObras != null || _obras.isEmpty)
+            SizedBox(height: 180, child: _buildEstadoObras())
+          else
+            GridView.builder(
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
+                maxCrossAxisExtent: 250,
+                mainAxisExtent: 235,
+                crossAxisSpacing: 12,
+                mainAxisSpacing: 12,
+              ),
+              itemCount: _obras.length,
+              itemBuilder: (context, index) => _buildMobileObraCard(_obras[index], context),
             ),
-            itemCount: _obras.length,
-            itemBuilder: (context, index) {
-              return _buildMobileObraCard(_obras[index], context);
-            },
-          ),
         ],
       ),
     );

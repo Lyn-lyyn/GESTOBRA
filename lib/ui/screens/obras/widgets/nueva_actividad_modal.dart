@@ -1,12 +1,15 @@
 import 'package:flutter/material.dart';
+import 'package:gestobra/servicios/api_service.dart';
 import '../../../../config/theme/app_colors.dart';
 
 class NuevaActividadModal extends StatefulWidget {
+  final int obraId;
   final List<Map<String, dynamic>> fasesDisponibles;
-  final Function(Map<String, dynamic>) onCrear;
+  final VoidCallback onCrear;
 
   const NuevaActividadModal({
     super.key,
+    required this.obraId,
     required this.fasesDisponibles,
     required this.onCrear,
   });
@@ -19,23 +22,14 @@ class _NuevaActividadModalState extends State<NuevaActividadModal> {
   // Controladores para los campos
   final _nombreController = TextEditingController();
   final _descripcionController = TextEditingController();
-  
+
   // Fechas seleccionadas
   DateTime? _fechaInicio;
   DateTime? _fechaFin;
 
   // Valores de los dropdowns
   String? _faseSeleccionada;
-  String? _responsableSeleccionado;
-
-  // Lista de responsables simulada
-  final List<String> _responsables = [
-    'Cuadrilla 1 - Don Pedro',
-    'Cuadrilla 2 - Operador Retro',
-    'Topógrafo Miguel Narvaez',
-    'Ing. Carlos Morales',
-    'Maestro de obra Juan Ramírez',
-  ];
+  bool _guardando = false;
 
   @override
   void dispose() {
@@ -82,12 +76,11 @@ class _NuevaActividadModalState extends State<NuevaActividadModal> {
   }
 
   // Función al presionar CREAR ACTIVIDAD
-  void _handleCrear() {
+  Future<void> _handleCrear() async {
     // Validaciones básicas
     if (_faseSeleccionada == null ||
         _nombreController.text.isEmpty ||
         _descripcionController.text.isEmpty ||
-        _responsableSeleccionado == null ||
         _fechaInicio == null ||
         _fechaFin == null) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -109,28 +102,41 @@ class _NuevaActividadModalState extends State<NuevaActividadModal> {
       return;
     }
 
-    // Crear el objeto de la nueva actividad
-    final nuevaActividad = {
-      'fase': _faseSeleccionada!.toUpperCase(),
-      'estado': 'Pendiente',
-      'titulo': _nombreController.text,
-      'descripcion': _descripcionController.text,
-      'responsable': _responsableSeleccionado,
-      'programado': 'Programado ${_formatearFecha(_fechaInicio)} al ${_formatearFecha(_fechaFin)}',
-      'fechaInicio': _fechaInicio,
-      'fechaFin': _fechaFin,
-      'reporte': 'Sin reportes aún',
-      'avance': 0.0,
-      'ponderacion': '5%',
-      'isCompleted': false,
-    };
-
-    // Llamamos al callback para que la pantalla principal se entere
-    widget.onCrear(nuevaActividad);
-    
-    // Cerramos el modal
-    Navigator.pop(context);
+    final fasesEncontradas =
+        widget.fasesDisponibles
+            .where((f) => f['nombre'] == _faseSeleccionada)
+            .toList();
+    if (fasesEncontradas.isEmpty) return;
+    final fase = fasesEncontradas.first;
+    setState(() => _guardando = true);
+    try {
+      final respuesta = await ApiService.post('actividades.php', {
+        'id_obra': widget.obraId,
+        'id_fase': fase['id_fase'],
+        'nombre': _nombreController.text.trim(),
+        'descripcion': _descripcionController.text.trim(),
+        'fecha_inicio_programada': _fechaIso(_fechaInicio!),
+        'fecha_fin_programada': _fechaIso(_fechaFin!),
+      });
+      if (!mounted) return;
+      if (respuesta['estado'] != true) {
+        throw Exception(
+          respuesta['mensaje'] ?? 'No se pudo crear la actividad',
+        );
+      }
+      widget.onCrear();
+      Navigator.pop(context, true);
+    } catch (error) {
+      if (!mounted) return;
+      setState(() => _guardando = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('No se pudo crear la actividad: $error')),
+      );
+    }
   }
+
+  String _fechaIso(DateTime fecha) =>
+      '${fecha.year}-${fecha.month.toString().padLeft(2, '0')}-${fecha.day.toString().padLeft(2, '0')}';
 
   @override
   Widget build(BuildContext context) {
@@ -154,18 +160,25 @@ class _NuevaActividadModalState extends State<NuevaActividadModal> {
                       color: AppColors.naranja,
                       borderRadius: BorderRadius.circular(8),
                     ),
-                    child: const Icon(Icons.edit_note, color: Colors.white, size: 24),
+                    child: const Icon(
+                      Icons.edit_note,
+                      color: Colors.white,
+                      size: 24,
+                    ),
                   ),
                   const SizedBox(width: 12),
                   const Expanded(
                     child: Text(
                       'Agregar nueva actividad a la obra',
-                      style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
                   ),
                   IconButton(
                     icon: const Icon(Icons.close, color: Colors.black87),
-                    onPressed: () => Navigator.pop(context),
+                    onPressed: _guardando ? null : () => Navigator.pop(context),
                   ),
                 ],
               ),
@@ -176,7 +189,10 @@ class _NuevaActividadModalState extends State<NuevaActividadModal> {
               _buildDropdown(
                 value: _faseSeleccionada,
                 hint: 'Selecciona una fase',
-                items: widget.fasesDisponibles.map((f) => f['nombre'] as String).toList(),
+                items:
+                    widget.fasesDisponibles
+                        .map((f) => f['nombre'] as String)
+                        .toList(),
                 onChanged: (value) => setState(() => _faseSeleccionada = value),
               ),
               const SizedBox(height: 16),
@@ -198,13 +214,9 @@ class _NuevaActividadModalState extends State<NuevaActividadModal> {
               ),
               const SizedBox(height: 16),
 
-              // ---- RESPONSABLE ----
-              _buildLabel('Responsable / Cuadrilla'),
-              _buildDropdown(
-                value: _responsableSeleccionado,
-                hint: 'Selecciona un responsable',
-                items: _responsables,
-                onChanged: (value) => setState(() => _responsableSeleccionado = value),
+              const Text(
+                'La actividad se guardará sin responsable asignado.',
+                style: TextStyle(fontSize: 11, color: AppColors.gris),
               ),
               const SizedBox(height: 16),
 
@@ -248,16 +260,22 @@ class _NuevaActividadModalState extends State<NuevaActividadModal> {
                   SizedBox(
                     height: 44,
                     child: OutlinedButton(
-                      onPressed: () => Navigator.pop(context),
+                      onPressed:
+                          _guardando ? null : () => Navigator.pop(context),
                       style: OutlinedButton.styleFrom(
                         foregroundColor: AppColors.gris,
                         side: const BorderSide(color: AppColors.bordeSuave),
                         padding: const EdgeInsets.symmetric(horizontal: 24),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8),
+                        ),
                       ),
                       child: const Text(
                         'CANCELAR',
-                        style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 12,
+                        ),
                       ),
                     ),
                   ),
@@ -266,17 +284,31 @@ class _NuevaActividadModalState extends State<NuevaActividadModal> {
                   SizedBox(
                     height: 44,
                     child: ElevatedButton(
-                      onPressed: _handleCrear,
+                      onPressed: _guardando ? null : _handleCrear,
                       style: ElevatedButton.styleFrom(
                         backgroundColor: AppColors.naranja,
                         foregroundColor: Colors.white,
                         padding: const EdgeInsets.symmetric(horizontal: 24),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8),
+                        ),
                       ),
-                      child: const Text(
-                        'CREAR ACTIVIDAD',
-                        style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
-                      ),
+                      child:
+                          _guardando
+                              ? const SizedBox(
+                                width: 18,
+                                height: 18,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                ),
+                              )
+                              : const Text(
+                                'CREAR ACTIVIDAD',
+                                style: TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 12,
+                                ),
+                              ),
                     ),
                   ),
                 ],
@@ -323,7 +355,10 @@ class _NuevaActividadModalState extends State<NuevaActividadModal> {
           hintText: hint,
           hintStyle: TextStyle(fontSize: 12, color: Colors.grey.shade400),
           border: InputBorder.none,
-          contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
+          contentPadding: const EdgeInsets.symmetric(
+            horizontal: 12,
+            vertical: 14,
+          ),
           isDense: true,
         ),
       ),
@@ -353,19 +388,23 @@ class _NuevaActividadModalState extends State<NuevaActividadModal> {
           ),
           icon: const Icon(Icons.arrow_drop_down, color: AppColors.naranja),
           style: const TextStyle(fontSize: 13, color: Colors.black87),
-          items: items.map((item) {
-            return DropdownMenuItem<String>(
-              value: item,
-              child: Text(item, style: const TextStyle(fontSize: 13)),
-            );
-          }).toList(),
+          items:
+              items.map((item) {
+                return DropdownMenuItem<String>(
+                  value: item,
+                  child: Text(item, style: const TextStyle(fontSize: 13)),
+                );
+              }).toList(),
           onChanged: onChanged,
         ),
       ),
     );
   }
 
-  Widget _buildDateField({required DateTime? fecha, required VoidCallback onTap}) {
+  Widget _buildDateField({
+    required DateTime? fecha,
+    required VoidCallback onTap,
+  }) {
     return GestureDetector(
       onTap: onTap,
       child: Container(
@@ -387,7 +426,11 @@ class _NuevaActividadModalState extends State<NuevaActividadModal> {
                 ),
               ),
             ),
-            const Icon(Icons.calendar_today, size: 16, color: AppColors.naranja),
+            const Icon(
+              Icons.calendar_today,
+              size: 16,
+              color: AppColors.naranja,
+            ),
           ],
         ),
       ),
