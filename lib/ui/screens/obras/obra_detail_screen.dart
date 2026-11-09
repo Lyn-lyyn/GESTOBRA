@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:gestobra/config/theme/app_colors.dart';
 import 'package:gestobra/servicios/api_service.dart';
+import 'package:gestobra/servicios/auth_service.dart';
 import 'sections/bitacora_section.dart';
 import 'sections/materiales_section.dart';
 import 'sections/evidencias_section.dart';
@@ -22,10 +23,170 @@ class _ObraDetailScreenState extends State<ObraDetailScreen> {
   bool _showPipeline = false;
   String _faseSeleccionada = 'Todas las fases';
   String _tipoReporte = 'Semanal';
+  bool _cargandoDetalle = true;
+  String? _errorDetalle;
+  String _rolUsuario = '';
 
-  bool _cargando = true;
-  List<Map<String, dynamic>> _fases = [];
-  List<Map<String, dynamic>> _actividades = [];
+  bool get _puedeCrearActividad => const {
+    'ADMINISTRADOR',
+    'DESARROLLADOR',
+    'COORDINADOR_OBRAS',
+    'SUPERVISOR',
+  }.contains(_rolUsuario);
+
+  bool get _puedeRegistrarAvance =>
+      _puedeCrearActividad || _rolUsuario == 'CAPTURISTA';
+
+  int get _obraId =>
+      int.tryParse(widget.obra['id_obra']?.toString() ?? '') ?? 0;
+
+  @override
+  void initState() {
+    super.initState();
+    _fases.clear();
+    _actividades.clear();
+    _cargarDetalle();
+  }
+
+  Future<void> _cargarDetalle() async {
+    if (_obraId <= 0) {
+      setState(() {
+        _cargandoDetalle = false;
+        _errorDetalle = 'Esta obra no tiene un ID válido de la base de datos.';
+      });
+      return;
+    }
+    setState(() {
+      _cargandoDetalle = true;
+      _errorDetalle = null;
+    });
+    try {
+      final usuario = await AuthService.obtenerUsuario();
+      _rolUsuario = (usuario?['rol'] ?? '').toString();
+      final respuestas = await Future.wait([
+        ApiService.get('fases_obra.php?id_obra=$_obraId'),
+        ApiService.get('actividades.php?id_obra=$_obraId'),
+      ]);
+      for (final respuesta in respuestas) {
+        if (respuesta['estado'] != true) {
+          throw Exception(respuesta['mensaje'] ?? 'No se pudo cargar la obra');
+        }
+      }
+      final fasesBase = List<Map<String, dynamic>>.from(
+        respuestas[0]['data'] as List,
+      );
+      final fasesPorId = <String, Map<String, dynamic>>{
+        for (final fase in fasesBase) fase['id_fase'].toString(): fase,
+      };
+      final actividadesBase = List<Map<String, dynamic>>.from(
+        respuestas[1]['data'] as List,
+      );
+      final actividades =
+          actividadesBase.map((actividad) {
+            final porcentaje =
+                (double.tryParse(
+                          actividad['porcentaje_avance']?.toString() ?? '',
+                        ) ??
+                        0)
+                    .clamp(0, 100)
+                    .toDouble();
+            final inicio =
+                DateTime.tryParse(
+                  actividad['fecha_inicio_programada']?.toString() ?? '',
+                ) ??
+                DateTime.now();
+            final fin =
+                DateTime.tryParse(
+                  actividad['fecha_fin_programada']?.toString() ?? '',
+                ) ??
+                inicio;
+            final fase = fasesPorId[actividad['id_fase'].toString()];
+            final estado =
+                (actividad['estado_nombre'] ?? 'PENDIENTE').toString();
+            return <String, dynamic>{
+              ...actividad,
+              'fase': (fase?['nombre'] ?? 'Sin fase').toString().toUpperCase(),
+              'estado': estado.replaceAll('_', ' '),
+              'titulo': actividad['nombre']?.toString() ?? '',
+              'descripcion': actividad['descripcion']?.toString() ?? '',
+              'responsable': actividad['responsable_nombre'] ?? 'Sin asignar',
+              'fechaInicio': inicio,
+              'fechaFin': fin,
+              'programado':
+                  'Programado ${_formatoFecha(inicio)} al ${_formatoFecha(fin)}',
+              'reporte':
+                  actividad['ultimo_reporte']?.toString().isNotEmpty == true
+                      ? actividad['ultimo_reporte'].toString()
+                      : 'Sin reportes de avance',
+              'avance': porcentaje / 100,
+              'ponderacion': '—',
+              'isCompleted':
+                  porcentaje >= 100 || estado.toUpperCase().contains('COMPLET'),
+            };
+          }).toList();
+      final fases =
+          fasesBase.map((fase) {
+            final faseActividades =
+                actividadesBase
+                    .where(
+                      (actividad) =>
+                          actividad['id_fase'].toString() ==
+                          fase['id_fase'].toString(),
+                    )
+                    .toList();
+            final sumaAvances = faseActividades.fold<double>(
+              0,
+              (suma, actividad) =>
+                  suma +
+                  (double.tryParse(
+                        actividad['porcentaje_avance']?.toString() ?? '',
+                      ) ??
+                      0),
+            );
+            final porcentaje =
+                faseActividades.isEmpty
+                    ? 0
+                    : (sumaAvances / faseActividades.length).round();
+            final concluidas =
+                faseActividades
+                    .where(
+                      (actividad) =>
+                          (double.tryParse(
+                                actividad['porcentaje_avance']?.toString() ??
+                                    '',
+                              ) ??
+                              0) >=
+                          100,
+                    )
+                    .length;
+            return <String, dynamic>{
+              ...fase,
+              'porcentaje': porcentaje,
+              'concluidas': concluidas,
+              'total': faseActividades.length,
+            };
+          }).toList();
+      if (!mounted) return;
+      setState(() {
+        _fases
+          ..clear()
+          ..addAll(fases);
+        _actividades
+          ..clear()
+          ..addAll(actividades);
+        _cargandoDetalle = false;
+      });
+    } catch (error) {
+      if (!mounted) return;
+      setState(() {
+        _cargandoDetalle = false;
+        _errorDetalle = error.toString().replaceFirst('Exception: ', '');
+      });
+    }
+  }
+
+  String _formatoFecha(DateTime fecha) =>
+      '${fecha.year}/${fecha.month.toString().padLeft(2, '0')}/${fecha.day.toString().padLeft(2, '0')}';
 
   bool _isDesktop(BuildContext context) {
     return MediaQuery.of(context).size.width >= 900;
@@ -168,24 +329,35 @@ class _ObraDetailScreenState extends State<ObraDetailScreen> {
     return Wrap(
       spacing: 8,
       runSpacing: 8,
-      children: opciones.map((opcion) {
-        final isSelected = _tipoReporte == opcion;
-        return GestureDetector(
-          onTap: () => setState(() => _tipoReporte = opcion),
-          child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-            decoration: BoxDecoration(
-              color: isSelected ? AppColors.naranja : AppColors.blanco,
-              borderRadius: BorderRadius.circular(20),
-              border: Border.all(color: isSelected ? AppColors.naranja : AppColors.gris, width: 1.2),
-            ),
-            child: Text(
-              opcion,
-              style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: isSelected ? Colors.white : AppColors.textoGris),
-            ),
-          ),
-        );
-      }).toList(),
+      children:
+          opciones.map((opcion) {
+            final isSelected = _tipoReporte == opcion;
+            return GestureDetector(
+              onTap: () => setState(() => _tipoReporte = opcion),
+              child: Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 10,
+                ),
+                decoration: BoxDecoration(
+                  color: isSelected ? AppColors.naranja : AppColors.blanco,
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(
+                    color: isSelected ? AppColors.naranja : AppColors.gris,
+                    width: 1.2,
+                  ),
+                ),
+                child: Text(
+                  opcion,
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.bold,
+                    color: isSelected ? Colors.white : AppColors.textoGris,
+                  ),
+                ),
+              ),
+            );
+          }).toList(),
     );
   }
 
@@ -199,14 +371,28 @@ class _ObraDetailScreenState extends State<ObraDetailScreen> {
       ),
       title: Row(
         children: [
-          Image.asset('assets/images/logo_gestobra.png', height: 28,
-              errorBuilder: (context, error, stackTrace) => const Icon(Icons.construction, color: AppColors.naranja, size: 28)),
+          Image.asset(
+            'assets/images/logo_gestobra.png',
+            height: 28,
+            errorBuilder:
+                (context, error, stackTrace) => const Icon(
+                  Icons.construction,
+                  color: AppColors.naranja,
+                  size: 28,
+                ),
+          ),
           const SizedBox(width: 8),
           const Text('GestObra', style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold, fontSize: 20)),
         ],
       ),
       actions: [
-        IconButton(icon: const Icon(Icons.notifications_outlined, color: AppColors.naranja), onPressed: () {}),
+        IconButton(
+          icon: const Icon(
+            Icons.notifications_outlined,
+            color: AppColors.naranja,
+          ),
+          onPressed: () {},
+        ),
         const SizedBox(width: 8),
       ],
     );
@@ -229,7 +415,11 @@ class _ObraDetailScreenState extends State<ObraDetailScreen> {
         children: [
           Row(
             children: [
-              _buildBadge(widget.obra['codigo'] ?? 'OBRA', AppColors.naranja, isOutlined: true),
+              _buildBadge(
+                widget.obra['codigo']?.toString() ?? 'OBRA',
+                AppColors.naranja,
+                isOutlined: true,
+              ),
               const SizedBox(width: 8),
               _buildBadge(widget.obra['estado'] ?? 'EN EJECUCIÓN', Colors.green.shade700, isOutlined: true),
             ],
@@ -321,9 +511,13 @@ class _ObraDetailScreenState extends State<ObraDetailScreen> {
       child: ElevatedButton.icon(
         onPressed: () => setState(() => _showPipeline = true),
         icon: const Icon(Icons.view_timeline_outlined, size: 19),
-        label: const Text('Vista de pipeline', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+        label: const Text(
+          'Vista de pipeline',
+          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+        ),
         style: ElevatedButton.styleFrom(
-          backgroundColor: _showPipeline ? AppColors.naranja : AppColors.noseleccionado,
+          backgroundColor:
+              _showPipeline ? AppColors.naranja : AppColors.noseleccionado,
           foregroundColor: _showPipeline ? Colors.white : AppColors.gris,
           alignment: Alignment.centerLeft,
           padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -334,6 +528,70 @@ class _ObraDetailScreenState extends State<ObraDetailScreen> {
   }
 
   Widget _buildTabs() {
+    final tabs = [
+      'ACTIVIDADES',
+      'BITÁCORA',
+      'MATERIALES',
+      'EVIDENCIAS',
+      'REPORTES',
+    ];
+
+    Widget buildTab(int index) {
+      final isSelected = !_showPipeline && _selectedTabIndex == index;
+      return GestureDetector(
+        onTap:
+            () => setState(() {
+              _selectedTabIndex = index;
+              _showPipeline = false;
+            }),
+        child: Container(
+          height: 40,
+          alignment: Alignment.center,
+          padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 6),
+          decoration: BoxDecoration(
+            color: isSelected ? AppColors.naranja : AppColors.noseleccionado,
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: FittedBox(
+            fit: BoxFit.scaleDown,
+            child: Text(
+              tabs[index],
+              maxLines: 1,
+              softWrap: false,
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: 10,
+                fontWeight: FontWeight.bold,
+                color: isSelected ? Colors.white : AppColors.gris,
+              ),
+            ),
+          ),
+        ),
+      );
+    }
+
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        if (constraints.maxWidth < 500) {
+          const spacing = 6.0;
+          final tabWidth = (constraints.maxWidth - spacing * 2) / 3;
+          return Wrap(
+            spacing: spacing,
+            runSpacing: spacing,
+            children: List.generate(
+              tabs.length,
+              (index) => SizedBox(width: tabWidth, child: buildTab(index)),
+            ),
+          );
+        }
+        return Row(
+          children: List.generate(
+            tabs.length,
+            (index) => Expanded(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 2),
+                child: buildTab(index),
+              ),
     final tabs = ['ACTIVIDADES', 'BITÁCORA', 'MATERIALES', 'EVIDENCIAS', 'REPORTES'];
     return Row(
       children: List.generate(tabs.length, (index) {
@@ -356,7 +614,7 @@ class _ObraDetailScreenState extends State<ObraDetailScreen> {
             ),
           ),
         );
-      }),
+      },
     );
   }
 
@@ -407,6 +665,7 @@ class _ObraDetailScreenState extends State<ObraDetailScreen> {
   }
 
   Widget _buildNuevaActividadButton() {
+    if (!_puedeCrearActividad) return const SizedBox.shrink();
     return SizedBox(
       height: 40,
       child: ElevatedButton.icon(
@@ -418,8 +677,18 @@ class _ObraDetailScreenState extends State<ObraDetailScreen> {
     );
   }
 
-  void _abrirModalNuevaActividad() {
-    showDialog(
+  Future<void> _abrirModalNuevaActividad() async {
+    if (_obraId <= 0 || _fases.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'Se requiere una obra y sus fases cargadas para crear actividades.',
+          ),
+        ),
+      );
+      return;
+    }
+    final creada = await showDialog<bool>(
       context: context,
       barrierDismissible: true,
       builder: (BuildContext context) {
@@ -433,6 +702,11 @@ class _ObraDetailScreenState extends State<ObraDetailScreen> {
         );
       },
     );
+    if (creada == true && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Actividad creada correctamente')),
+      );
+    }
   }
 
   Widget _buildFasesResumen() {
@@ -446,8 +720,21 @@ class _ObraDetailScreenState extends State<ObraDetailScreen> {
             children: _fases.map((fase) => SizedBox(width: 200, child: _buildFaseCard(fase))).toList(),
           );
         }
-        return Row(
-          children: _fases.map((fase) => Expanded(child: _buildFaseCard(fase))).toList(),
+
+        const spacing = 8.0;
+        final columns = constraints.maxWidth < 360 ? 1 : 2;
+        final cardWidth =
+            (constraints.maxWidth - spacing * (columns - 1)) / columns;
+        return Wrap(
+          spacing: spacing,
+          runSpacing: spacing,
+          children:
+              _fases
+                  .map(
+                    (fase) =>
+                        SizedBox(width: cardWidth, child: _buildFaseCard(fase)),
+                  )
+                  .toList(),
         );
       },
     );
@@ -476,7 +763,114 @@ class _ObraDetailScreenState extends State<ObraDetailScreen> {
     );
   }
 
+  Future<void> _registrarAvance(Map<String, dynamic> actividad) async {
+    final idActividad =
+        int.tryParse(actividad['id_actividad']?.toString() ?? '') ?? 0;
+    if (idActividad <= 0) return;
+    final avanceActual = ((actividad['avance'] as num?)?.toDouble() ?? 0) * 100;
+    final porcentajeController = TextEditingController(
+      text: avanceActual.toStringAsFixed(0),
+    );
+    final observacionesController = TextEditingController();
+    final confirmado = await showDialog<bool>(
+      context: context,
+      builder:
+          (context) => AlertDialog(
+            title: const Text('Registrar avance'),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                TextField(
+                  controller: porcentajeController,
+                  keyboardType: const TextInputType.numberWithOptions(
+                    decimal: true,
+                  ),
+                  decoration: const InputDecoration(
+                    labelText: 'Avance (%)',
+                    hintText: '0 a 100',
+                  ),
+                ),
+                const SizedBox(height: 12),
+                TextField(
+                  controller: observacionesController,
+                  maxLines: 3,
+                  decoration: const InputDecoration(labelText: 'Observaciones'),
+                ),
+              ],
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context, false),
+                child: const Text('Cancelar'),
+              ),
+              FilledButton(
+                onPressed: () => Navigator.pop(context, true),
+                child: const Text('Guardar'),
+              ),
+            ],
+          ),
+    );
+    if (confirmado != true || !mounted) {
+      porcentajeController.dispose();
+      observacionesController.dispose();
+      return;
+    }
+    final porcentaje = double.tryParse(porcentajeController.text.trim());
+    porcentajeController.dispose();
+    if (porcentaje == null || porcentaje < 0 || porcentaje > 100) {
+      observacionesController.dispose();
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('El avance debe ser un número entre 0 y 100.'),
+        ),
+      );
+      return;
+    }
+    try {
+      final observaciones = observacionesController.text.trim();
+      observacionesController.dispose();
+      final respuesta = await ApiService.post('actividad_avance.php', {
+        'id_actividad': idActividad,
+        'porcentaje_nuevo': porcentaje,
+        'observaciones': observaciones,
+      });
+      if (respuesta['estado'] != true) {
+        throw Exception(
+          respuesta['mensaje'] ?? 'No se pudo registrar el avance',
+        );
+      }
+      await _cargarDetalle();
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Avance registrado correctamente')),
+      );
+    } catch (error) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('No se pudo registrar el avance: $error')),
+      );
+    }
+  }
+
   Widget _buildActividadCard(Map<String, dynamic> actividad) {
+    final estado = (actividad['estado'] ?? 'PENDIENTE').toString();
+    final avance = (actividad['avance'] as num?)?.toDouble() ?? 0;
+    final completada = actividad['isCompleted'] == true || avance >= 1;
+    final enProgreso =
+        !completada &&
+        (avance > 0 || estado.toUpperCase().contains('PROGRESO'));
+    final colorEstado =
+        completada
+            ? Colors.green.shade700
+            : enProgreso
+            ? AppColors.naranja
+            : AppColors.gris;
+    final iconoEstado =
+        completada
+            ? Icons.check
+            : enProgreso
+            ? Icons.timelapse
+            : Icons.schedule;
     return Container(
       margin: const EdgeInsets.only(bottom: 8),
       padding: const EdgeInsets.all(16),
@@ -486,9 +880,13 @@ class _ObraDetailScreenState extends State<ObraDetailScreen> {
         children: [
           Row(
             children: [
-              _buildBadge(actividad['fase'], AppColors.naranja, isOutlined: true),
+              _buildBadge(
+                actividad['fase'],
+                AppColors.naranja,
+                isOutlined: true,
+              ),
               const SizedBox(width: 8),
-              _buildBadge(actividad['estado'], Colors.green.shade700, icon: Icons.check),
+              _buildBadge(estado, colorEstado, icon: iconoEstado),
               const Spacer(),
               Text('Ponderación ${actividad['ponderacion']}', style: const TextStyle(fontSize: 10, color: AppColors.gris)),
             ],
@@ -515,7 +913,10 @@ class _ObraDetailScreenState extends State<ObraDetailScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text('Avance actual', style: TextStyle(fontSize: 10, color: AppColors.gris)),
+                    const Text(
+                      'Avance actual',
+                      style: TextStyle(fontSize: 10, color: AppColors.gris),
+                    ),
                     const SizedBox(height: 4),
                     Row(
                       children: [
@@ -577,7 +978,28 @@ class _ObraDetailScreenState extends State<ObraDetailScreen> {
     );
   }
 
-  Widget _buildBadge(String text, Color color, {bool isOutlined = false, IconData? icon}) {
+  Widget _buildErrorDetalle() => Padding(
+    padding: const EdgeInsets.all(20),
+    child: Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Text(_errorDetalle!, textAlign: TextAlign.center),
+        const SizedBox(height: 8),
+        TextButton.icon(
+          onPressed: _cargarDetalle,
+          icon: const Icon(Icons.refresh),
+          label: const Text('Reintentar'),
+        ),
+      ],
+    ),
+  );
+
+  Widget _buildBadge(
+    String text,
+    Color color, {
+    bool isOutlined = false,
+    IconData? icon,
+  }) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(color: isOutlined ? Colors.transparent : color.withOpacity(0.1), borderRadius: BorderRadius.circular(20), border: isOutlined ? Border.all(color: color) : null),
@@ -609,7 +1031,21 @@ class _ObraDetailScreenState extends State<ObraDetailScreen> {
         children: [
           _buildActionBar(),
           const SizedBox(height: 16),
-          PipelineActividadesSection(actividades: _actividades, fases: _fases, faseSeleccionada: _faseSeleccionada),
+          if (_cargandoDetalle)
+            const Center(
+              child: Padding(
+                padding: EdgeInsets.all(24),
+                child: CircularProgressIndicator(),
+              ),
+            )
+          else if (_errorDetalle != null)
+            _buildErrorDetalle()
+          else
+            PipelineActividadesSection(
+              actividades: _actividades,
+              fases: _fases,
+              faseSeleccionada: _faseSeleccionada,
+            ),
         ],
       );
     }
@@ -629,7 +1065,7 @@ class _ObraDetailScreenState extends State<ObraDetailScreen> {
         ),
         BitacoraSection(obra: widget.obra),
         MaterialesSection(obra: widget.obra),
-        EvidenciasSection(obra: widget.obra, fasesDisponibles: _fases),
+        EvidenciasSection(obra: widget.obra),
         ReportesSection(obra: widget.obra, tipoReporteInicial: _tipoReporte),
       ],
     );

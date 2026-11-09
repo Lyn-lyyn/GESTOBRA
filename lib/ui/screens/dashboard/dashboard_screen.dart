@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:gestobra/config/theme/app_colors.dart';
+import '../../../servicios/api_service.dart';
 import '../obras/obra_detail_screen.dart';
 import 'package:gestobra/servicios/api_service.dart';
 
@@ -163,20 +164,21 @@ class _DashboardScreenState extends State<DashboardScreen> {
             const Text('Proyectos y obras civiles', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.black87)),
             const SizedBox(height: 16),
 
-            _obras.isEmpty 
-              ? const Center(child: Text('No hay obras registradas', style: TextStyle(color: Colors.grey)))
-              : GridView.builder(
-                  shrinkWrap: true,
-                  physics: const NeverScrollableScrollPhysics(),
-                  gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
-                    maxCrossAxisExtent: 320,
-                    mainAxisExtent: 260,
-                    crossAxisSpacing: 16,
-                    mainAxisSpacing: 16,
-                  ),
-                  itemCount: _obras.length,
-                  itemBuilder: (context, index) => _buildDesktopObraCard(_obras[index]),
+            if (_cargandoObras || _errorObras != null || _obras.isEmpty)
+              SizedBox(height: 180, child: _buildEstadoObras())
+            else
+              GridView.builder(
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
+                  maxCrossAxisExtent: 320,
+                  mainAxisExtent: 260,
+                  crossAxisSpacing: 16,
+                  mainAxisSpacing: 16,
                 ),
+                itemCount: _obras.length,
+                itemBuilder: (context, index) => _buildDesktopObraCard(_obras[index]),
+              ),
           ],
         ),
       ),
@@ -262,23 +264,21 @@ class _DashboardScreenState extends State<DashboardScreen> {
             ),
           ),
           const SizedBox(height: 16),
-          _obras.isEmpty
-            ? const Padding(
-                padding: EdgeInsets.all(20),
-                child: Center(child: Text('No hay obras registradas', style: TextStyle(color: Colors.grey))),
-              )
-            : GridView.builder(
-                shrinkWrap: true,
-                physics: const NeverScrollableScrollPhysics(),
-                gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
-                  maxCrossAxisExtent: 250,
-                  mainAxisExtent: 235,
-                  crossAxisSpacing: 12,
-                  mainAxisSpacing: 12,
-                ),
-                itemCount: _obras.length,
-                itemBuilder: (context, index) => _buildMobileObraCard(_obras[index], context),
+          if (_cargandoObras || _errorObras != null || _obras.isEmpty)
+            SizedBox(height: 180, child: _buildEstadoObras())
+          else
+            GridView.builder(
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
+                maxCrossAxisExtent: 250,
+                mainAxisExtent: 235,
+                crossAxisSpacing: 12,
+                mainAxisSpacing: 12,
               ),
+              itemCount: _obras.length,
+              itemBuilder: (context, index) => _buildMobileObraCard(_obras[index], context),
+            ),
         ],
       ),
     );

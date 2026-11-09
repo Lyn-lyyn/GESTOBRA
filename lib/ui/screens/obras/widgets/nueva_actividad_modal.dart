@@ -1,11 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:gestobra/servicios/api_service.dart';
 import '../../../../config/theme/app_colors.dart';
 import 'package:gestobra/servicios/api_service.dart';
 
 class NuevaActividadModal extends StatefulWidget {
   final int idObra;
   final List<Map<String, dynamic>> fasesDisponibles;
-  final Function(Map<String, dynamic>) onCrear;
+  final VoidCallback onCrear;
 
   const NuevaActividadModal({
     super.key,
@@ -22,6 +23,8 @@ class _NuevaActividadModalState extends State<NuevaActividadModal> {
   final _nombreController = TextEditingController();
   final _descripcionController = TextEditingController();
   
+
+  // Fechas seleccionadas
   DateTime? _fechaInicio;
   DateTime? _fechaFin;
   int? _faseSeleccionadaId; // Guardamos el ID de la fase
@@ -35,6 +38,10 @@ class _NuevaActividadModalState extends State<NuevaActividadModal> {
     'Ing. Carlos Morales',
     'Maestro de obra Juan Ramírez',
   ];
+
+  // Valores de los dropdowns
+  String? _faseSeleccionada;
+  bool _guardando = false;
 
   @override
   void dispose() {
@@ -66,13 +73,24 @@ class _NuevaActividadModalState extends State<NuevaActividadModal> {
   }
 
   String _formatearFecha(DateTime? fecha) {
-    if (fecha == null) return '';
-    return '${fecha.year}-${fecha.month.toString().padLeft(2, '0')}-${fecha.day.toString().padLeft(2, '0')}'; // YYYY-MM-DD para MySQL
+    if (fecha == null) return 'dd/mm/aaaa';
+    return '${fecha.day.toString().padLeft(2, '0')}/${fecha.month.toString().padLeft(2, '0')}/${fecha.year}';
   }
 
-  void _handleCrear() async {
-    if (_faseSeleccionadaId == null || _nombreController.text.isEmpty || _fechaInicio == null || _fechaFin == null) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Completa fase, nombre y fechas'), backgroundColor: Colors.red));
+  // Función al presionar CREAR ACTIVIDAD
+  Future<void> _handleCrear() async {
+    // Validaciones básicas
+    if (_faseSeleccionada == null ||
+        _nombreController.text.isEmpty ||
+        _descripcionController.text.isEmpty ||
+        _fechaInicio == null ||
+        _fechaFin == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Por favor, completa todos los campos'),
+          backgroundColor: Colors.red,
+        ),
+      );
       return;
     }
 
@@ -134,10 +152,17 @@ class _NuevaActividadModalState extends State<NuevaActividadModal> {
             children: [
               Row(
                 children: [
-                  Container(padding: const EdgeInsets.all(8), decoration: BoxDecoration(color: AppColors.naranja, borderRadius: BorderRadius.circular(8)), child: const Icon(Icons.edit_note, color: Colors.white, size: 24)),
+                  Container(padding: const EdgeInsets.all(8), decoration: BoxDecoration(color: AppColors.naranja, borderRadius: BorderRadius.circular(8)), child: const Icon(
+                      Icons.edit_note,
+                      color: Colors.white,
+                      size: 24,
+                    )),
                   const SizedBox(width: 12),
-                  const Expanded(child: Text('Agregar nueva actividad', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold))),
-                  IconButton(icon: const Icon(Icons.close), onPressed: () => Navigator.pop(context)),
+                  const Expanded(child: Text('Agregar nueva actividad', style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                      ))),
+                  IconButton(icon: const Icon(Icons.close), onPressed: _guardando ? null : () => Navigator.pop(context)),
                 ],
               ),
               const SizedBox(height: 24),
@@ -146,7 +171,10 @@ class _NuevaActividadModalState extends State<NuevaActividadModal> {
               _buildDropdown(
                 value: _faseSeleccionadaId,
                 hint: 'Selecciona una fase',
-                items: widget.fasesDisponibles.map((f) => DropdownMenuItem<int>(value: f['id_fase'] as int, child: Text(f['nombre']))).toList(),
+                items:
+                    widget.fasesDisponibles
+                        .map((f) => DropdownMenuItem<int>(value: f['id_fase'] as int, child: Text(f['nombre'])))
+                        .toList(),
                 onChanged: (value) => setState(() => _faseSeleccionadaId = value),
               ),
               const SizedBox(height: 16),
@@ -238,7 +266,10 @@ class _NuevaActividadModalState extends State<NuevaActividadModal> {
     );
   }
 
-  Widget _buildDateField({required DateTime? fecha, required VoidCallback onTap}) {
+  Widget _buildDateField({
+    required DateTime? fecha,
+    required VoidCallback onTap,
+  }) {
     return GestureDetector(
       onTap: onTap,
       child: Container(
