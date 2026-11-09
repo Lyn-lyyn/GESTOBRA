@@ -7,6 +7,7 @@ import 'sections/evidencias_section.dart';
 import 'sections/reportes_section.dart';
 import 'widgets/nueva_actividad_modal.dart';
 import 'sections/pipeline_actividades_section.dart';
+import 'package:flutter/services.dart';
 
 class ObraDetailScreen extends StatefulWidget {
   final Map<String, dynamic> obra;
@@ -22,6 +23,8 @@ class _ObraDetailScreenState extends State<ObraDetailScreen> {
   bool _showPipeline = false;
   String _faseSeleccionada = 'Todas las fases';
   String _tipoReporte = 'Semanal';
+  
+  DateTimeRange? _rangoPersonalizado;
 
   bool _cargando = true;
   List<Map<String, dynamic>> _fases = [];
@@ -54,7 +57,6 @@ class _ObraDetailScreenState extends State<ObraDetailScreen> {
         _fases = List<Map<String, dynamic>>.from(resFases['data']);
         
         _actividades = List<Map<String, dynamic>>.from(resActs['data']).map((a) {
-          // Validar que las fechas no vengan nulas
           DateTime fi = DateTime.now();
           DateTime ff = DateTime.now();
           if (a['fecha_inicio_programada'] != null) fi = DateTime.parse(a['fecha_inicio_programada']);
@@ -93,7 +95,6 @@ class _ObraDetailScreenState extends State<ObraDetailScreen> {
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg), backgroundColor: AppColors.estadoRojo));
   }
 
-  // ─── Helper para formatear fechas de MySQL (YYYY-MM-DD) a visual (DD/MM/YYYY) ───
   String _formatearFecha(String? fechaStr) {
     if (fechaStr == null || fechaStr.isEmpty || fechaStr == 'Sin fecha' || fechaStr == '--') return fechaStr ?? 'Sin fecha';
     try {
@@ -164,24 +165,165 @@ class _ObraDetailScreenState extends State<ObraDetailScreen> {
   }
 
   Widget _buildSelectorTiempo() {
-    final opciones = ['Diario', 'Semanal', 'Quincenal', 'Acumulado'];
+    final opciones = [
+      'Diario',
+      'Semanal',
+      'Quincenal',
+      'Acumulado',
+      'Personalizado'
+    ];
+
     return Wrap(
       spacing: 8,
       runSpacing: 8,
       children: opciones.map((opcion) {
         final isSelected = _tipoReporte == opcion;
+
         return GestureDetector(
-          onTap: () => setState(() => _tipoReporte = opcion),
+          onTap: () async {
+            if (opcion == 'Personalizado') {
+              final ThemeData originalTheme = Theme.of(context);
+
+              final DateTimeRange? picked = await showDateRangePicker(
+                context: context,
+                firstDate: DateTime(2020),
+                lastDate: DateTime.now(),
+                initialDateRange: _rangoPersonalizado,
+                // Permite cambiar libremente entre Calendario y Teclado (lápiz)
+                initialEntryMode: DatePickerEntryMode.calendar,
+                helpText: 'Selecciona el rango de fechas',
+                cancelText: 'Cancelar',
+                confirmText: 'Aceptar',
+                // Textos de ayuda visual para el modo teclado
+                fieldStartLabelText: 'Fecha inicio',
+                fieldEndLabelText: 'Fecha fin',
+                fieldStartHintText: 'dd/mm/aaaa',
+                fieldEndHintText: 'dd/mm/aaaa',
+                builder: (context, child) {
+                  return Theme(
+                    data: originalTheme.copyWith(
+                      colorScheme: originalTheme.colorScheme.copyWith(
+                        primary: AppColors.naranja,
+                        surface: Colors.white,
+                        onSurface: Colors.black87,
+                      ),
+                      dialogBackgroundColor: Colors.white,
+                      inputDecorationTheme: InputDecorationTheme(
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(8),
+                          borderSide: const BorderSide(color: AppColors.gris),
+                        ),
+                        focusedBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(8),
+                          borderSide: const BorderSide(color: AppColors.naranja, width: 2),
+                        ),
+                        contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                      ),
+                      datePickerTheme: DatePickerThemeData(
+                        backgroundColor: Colors.white,
+                        headerBackgroundColor: AppColors.naranja,
+                        headerForegroundColor: Colors.white,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                        elevation: 8,
+                        rangeSelectionBackgroundColor:
+                            AppColors.naranja.withOpacity(0.2),
+                        todayForegroundColor:
+                            WidgetStateProperty.all(AppColors.naranja),
+                        headerHeadlineStyle: const TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.white,
+                        ),
+                        headerHelpStyle: const TextStyle(
+                          fontSize: 12,
+                          color: Colors.white70,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ),
+                    child: Center(
+                      child: ConstrainedBox(
+                        // Dimensiones amplias para que quepan holgadamente ambos modos (Calendario y Teclado)
+                        constraints: const BoxConstraints(
+                          maxWidth: 540,
+                          maxHeight: 640,
+                        ),
+                        child: ClipRRect(
+                          borderRadius: BorderRadius.circular(16),
+                          child: MediaQuery(
+                            data: MediaQuery.of(context).copyWith(textScaler: const TextScaler.linear(1.0)),
+                            child: Directionality(
+                              textDirection: TextDirection.ltr,
+                              child: Align(
+                                alignment: Alignment.center,
+                                child: child!,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  );
+                },
+              );
+
+              if (picked != null) {
+                setState(() {
+                  _rangoPersonalizado = picked;
+                  _tipoReporte = opcion;
+                });
+              }
+            } else {
+              setState(() {
+                _tipoReporte = opcion;
+                _rangoPersonalizado = null;
+              });
+            }
+          },
           child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-            decoration: BoxDecoration(
-              color: isSelected ? AppColors.naranja : AppColors.blanco,
-              borderRadius: BorderRadius.circular(20),
-              border: Border.all(color: isSelected ? AppColors.naranja : AppColors.gris, width: 1.2),
+            padding: const EdgeInsets.symmetric(
+              horizontal: 16,
+              vertical: 10,
             ),
-            child: Text(
-              opcion,
-              style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: isSelected ? Colors.white : AppColors.textoGris),
+            decoration: BoxDecoration(
+              color: isSelected
+                  ? AppColors.naranja
+                  : AppColors.blanco,
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(
+                color: isSelected
+                    ? AppColors.naranja
+                    : AppColors.gris,
+                width: 1.2,
+              ),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                if (opcion == 'Personalizado')
+                  Padding(
+                    padding: const EdgeInsets.only(right: 4),
+                    child: Icon(
+                      Icons.date_range,
+                      size: 14,
+                      color: isSelected
+                          ? Colors.white
+                          : AppColors.textoGris,
+                    ),
+                  ),
+                Text(
+                  opcion,
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.bold,
+                    color: isSelected
+                        ? Colors.white
+                        : AppColors.textoGris,
+                  ),
+                ),
+              ],
             ),
           ),
         );
@@ -630,8 +772,40 @@ class _ObraDetailScreenState extends State<ObraDetailScreen> {
         BitacoraSection(obra: widget.obra),
         MaterialesSection(obra: widget.obra),
         EvidenciasSection(obra: widget.obra, fasesDisponibles: _fases),
-        ReportesSection(obra: widget.obra, tipoReporteInicial: _tipoReporte),
+        ReportesSection(
+          obra: widget.obra, 
+          tipoReporteInicial: _tipoReporte,
+          rangoPersonalizado: _rangoPersonalizado, // <-- PASAMOS EL RANGO
+        ),
       ],
+    );
+  }
+}
+
+// ============================================================================
+// --- CLASE PARA EL AUTO-FORMATO DE FECHAS CON "/" ---
+// ============================================================================
+class DateInputFormatter extends TextInputFormatter {
+  @override
+  TextEditingValue formatEditUpdate(TextEditingValue oldValue, TextEditingValue newValue) {
+    var text = newValue.text;
+    
+    if (newValue.selection.baseOffset == 0) return newValue;
+
+    text = text.replaceAll(RegExp(r'[^0-9]'), '');
+    if (text.length > 8) text = text.substring(0, 8);
+
+    String formatted = '';
+    for (int i = 0; i < text.length; i++) {
+      formatted += text[i];
+      if ((i == 1 || i == 3) && i != text.length - 1) {
+        formatted += '/';
+      }
+    }
+
+    return TextEditingValue(
+      text: formatted,
+      selection: TextSelection.collapsed(offset: formatted.length),
     );
   }
 }
