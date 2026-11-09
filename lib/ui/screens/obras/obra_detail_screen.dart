@@ -19,14 +19,21 @@ class ObraDetailScreen extends StatefulWidget {
 }
 
 class _ObraDetailScreenState extends State<ObraDetailScreen> {
+  // ─── Variables de Estado ───
   int _selectedTabIndex = 0;
   bool _showPipeline = false;
   String _faseSeleccionada = 'Todas las fases';
   String _tipoReporte = 'Semanal';
-  bool _cargandoDetalle = true;
+  
+  bool _cargando = true;
   String? _errorDetalle;
   String _rolUsuario = '';
 
+  // Listas de datos
+  final List<Map<String, dynamic>> _fases = [];
+  final List<Map<String, dynamic>> _actividades = [];
+
+  // ─── Permisos ───
   bool get _puedeCrearActividad => const {
     'ADMINISTRADOR',
     'DESARROLLADOR',
@@ -43,129 +50,86 @@ class _ObraDetailScreenState extends State<ObraDetailScreen> {
   @override
   void initState() {
     super.initState();
-    _fases.clear();
-    _actividades.clear();
     _cargarDetalle();
   }
 
+  // ─── Carga de Datos ───
   Future<void> _cargarDetalle() async {
     if (_obraId <= 0) {
       setState(() {
-        _cargandoDetalle = false;
+        _cargando = false;
         _errorDetalle = 'Esta obra no tiene un ID válido de la base de datos.';
       });
       return;
     }
+
     setState(() {
-      _cargandoDetalle = true;
+      _cargando = true;
       _errorDetalle = null;
     });
+
     try {
       final usuario = await AuthService.obtenerUsuario();
       _rolUsuario = (usuario?['rol'] ?? '').toString();
+
       final respuestas = await Future.wait([
         ApiService.get('fases_obra.php?id_obra=$_obraId'),
         ApiService.get('actividades.php?id_obra=$_obraId'),
       ]);
+
       for (final respuesta in respuestas) {
         if (respuesta['estado'] != true) {
           throw Exception(respuesta['mensaje'] ?? 'No se pudo cargar la obra');
         }
       }
-      final fasesBase = List<Map<String, dynamic>>.from(
-        respuestas[0]['data'] as List,
-      );
+
+      final fasesBase = List<Map<String, dynamic>>.from(respuestas[0]['data'] as List);
       final fasesPorId = <String, Map<String, dynamic>>{
         for (final fase in fasesBase) fase['id_fase'].toString(): fase,
       };
-      final actividadesBase = List<Map<String, dynamic>>.from(
-        respuestas[1]['data'] as List,
-      );
-      final actividades =
-          actividadesBase.map((actividad) {
-            final porcentaje =
-                (double.tryParse(
-                          actividad['porcentaje_avance']?.toString() ?? '',
-                        ) ??
-                        0)
-                    .clamp(0, 100)
-                    .toDouble();
-            final inicio =
-                DateTime.tryParse(
-                  actividad['fecha_inicio_programada']?.toString() ?? '',
-                ) ??
-                DateTime.now();
-            final fin =
-                DateTime.tryParse(
-                  actividad['fecha_fin_programada']?.toString() ?? '',
-                ) ??
-                inicio;
-            final fase = fasesPorId[actividad['id_fase'].toString()];
-            final estado =
-                (actividad['estado_nombre'] ?? 'PENDIENTE').toString();
-            return <String, dynamic>{
-              ...actividad,
-              'fase': (fase?['nombre'] ?? 'Sin fase').toString().toUpperCase(),
-              'estado': estado.replaceAll('_', ' '),
-              'titulo': actividad['nombre']?.toString() ?? '',
-              'descripcion': actividad['descripcion']?.toString() ?? '',
-              'responsable': actividad['responsable_nombre'] ?? 'Sin asignar',
-              'fechaInicio': inicio,
-              'fechaFin': fin,
-              'programado':
-                  'Programado ${_formatoFecha(inicio)} al ${_formatoFecha(fin)}',
-              'reporte':
-                  actividad['ultimo_reporte']?.toString().isNotEmpty == true
-                      ? actividad['ultimo_reporte'].toString()
-                      : 'Sin reportes de avance',
-              'avance': porcentaje / 100,
-              'ponderacion': '—',
-              'isCompleted':
-                  porcentaje >= 100 || estado.toUpperCase().contains('COMPLET'),
-            };
-          }).toList();
-      final fases =
-          fasesBase.map((fase) {
-            final faseActividades =
-                actividadesBase
-                    .where(
-                      (actividad) =>
-                          actividad['id_fase'].toString() ==
-                          fase['id_fase'].toString(),
-                    )
-                    .toList();
-            final sumaAvances = faseActividades.fold<double>(
-              0,
-              (suma, actividad) =>
-                  suma +
-                  (double.tryParse(
-                        actividad['porcentaje_avance']?.toString() ?? '',
-                      ) ??
-                      0),
-            );
-            final porcentaje =
-                faseActividades.isEmpty
-                    ? 0
-                    : (sumaAvances / faseActividades.length).round();
-            final concluidas =
-                faseActividades
-                    .where(
-                      (actividad) =>
-                          (double.tryParse(
-                                actividad['porcentaje_avance']?.toString() ??
-                                    '',
-                              ) ??
-                              0) >=
-                          100,
-                    )
-                    .length;
-            return <String, dynamic>{
-              ...fase,
-              'porcentaje': porcentaje,
-              'concluidas': concluidas,
-              'total': faseActividades.length,
-            };
-          }).toList();
+
+      final actividadesBase = List<Map<String, dynamic>>.from(respuestas[1]['data'] as List);
+      
+      final actividades = actividadesBase.map((actividad) {
+        final porcentaje = (double.tryParse(actividad['porcentaje_avance']?.toString() ?? '') ?? 0).clamp(0, 100).toDouble();
+        final inicio = DateTime.tryParse(actividad['fecha_inicio_programada']?.toString() ?? '') ?? DateTime.now();
+        final fin = DateTime.tryParse(actividad['fecha_fin_programada']?.toString() ?? '') ?? inicio;
+        final fase = fasesPorId[actividad['id_fase'].toString()];
+        final estado = (actividad['estado_nombre'] ?? 'PENDIENTE').toString();
+
+        return <String, dynamic>{
+          ...actividad,
+          'fase': (fase?['nombre'] ?? 'Sin fase').toString().toUpperCase(),
+          'estado': estado.replaceAll('_', ' '),
+          'titulo': actividad['nombre']?.toString() ?? '',
+          'descripcion': actividad['descripcion']?.toString() ?? '',
+          'responsable': actividad['responsable_nombre'] ?? 'Sin asignar',
+          'fechaInicio': inicio,
+          'fechaFin': fin,
+          'programado': 'Programado ${_formatoFecha(inicio)} al ${_formatoFecha(fin)}',
+          'reporte': actividad['ultimo_reporte']?.toString().isNotEmpty == true
+              ? actividad['ultimo_reporte'].toString()
+              : 'Sin reportes de avance',
+          'avance': porcentaje / 100,
+          'ponderacion': '—',
+          'isCompleted': porcentaje >= 100 || estado.toUpperCase().contains('COMPLET'),
+        };
+      }).toList();
+
+      final fases = fasesBase.map((fase) {
+        final faseActividades = actividadesBase.where((actividad) => actividad['id_fase'].toString() == fase['id_fase'].toString()).toList();
+        final sumaAvances = faseActividades.fold<double>(0, (suma, actividad) => suma + (double.tryParse(actividad['porcentaje_avance']?.toString() ?? '') ?? 0));
+        final porcentaje = faseActividades.isEmpty ? 0 : (sumaAvances / faseActividades.length).round();
+        final concluidas = faseActividades.where((actividad) => (double.tryParse(actividad['porcentaje_avance']?.toString() ?? '') ?? 0) >= 100).length;
+
+        return <String, dynamic>{
+          ...fase,
+          'porcentaje': porcentaje,
+          'concluidas': concluidas,
+          'total': faseActividades.length,
+        };
+      }).toList();
+
       if (!mounted) return;
       setState(() {
         _fases
@@ -174,17 +138,18 @@ class _ObraDetailScreenState extends State<ObraDetailScreen> {
         _actividades
           ..clear()
           ..addAll(actividades);
-        _cargandoDetalle = false;
+        _cargando = false;
       });
     } catch (error) {
       if (!mounted) return;
       setState(() {
-        _cargandoDetalle = false;
+        _cargando = false;
         _errorDetalle = error.toString().replaceFirst('Exception: ', '');
       });
     }
   }
 
+  // ─── Helpers ───
   String _formatoFecha(DateTime fecha) =>
       '${fecha.year}/${fecha.month.toString().padLeft(2, '0')}/${fecha.day.toString().padLeft(2, '0')}';
 
@@ -192,69 +157,6 @@ class _ObraDetailScreenState extends State<ObraDetailScreen> {
     return MediaQuery.of(context).size.width >= 900;
   }
 
-  @override
-  void initState() {
-    super.initState();
-    _cargarDatosObra();
-  }
-
-  Future<void> _cargarDatosObra() async {
-    final idObra = widget.obra['id_obra'];
-    if (idObra == null) {
-      setState(() => _cargando = false);
-      return;
-    }
-
-    setState(() => _cargando = true);
-
-    final resFases = await ApiService.get('fases_obra.php?id_obra=$idObra');
-    final resActs = await ApiService.get('actividades.php?id_obra=$idObra');
-
-    if (resFases['estado'] == true && resActs['estado'] == true) {
-      setState(() {
-        _fases = List<Map<String, dynamic>>.from(resFases['data']);
-        
-        _actividades = List<Map<String, dynamic>>.from(resActs['data']).map((a) {
-          // Validar que las fechas no vengan nulas
-          DateTime fi = DateTime.now();
-          DateTime ff = DateTime.now();
-          if (a['fecha_inicio_programada'] != null) fi = DateTime.parse(a['fecha_inicio_programada']);
-          if (a['fecha_fin_programada'] != null) ff = DateTime.parse(a['fecha_fin_programada']);
-
-          final strFi = '${fi.year}/${fi.month.toString().padLeft(2, '0')}/${fi.day.toString().padLeft(2, '0')}';
-          final strFf = '${ff.year}/${ff.month.toString().padLeft(2, '0')}/${ff.day.toString().padLeft(2, '0')}';
-
-          return {
-            'id_actividad': a['id_actividad'],
-            'fase': a['fase_nombre'] ?? 'Sin fase', 
-            'estado': a['estado_nombre'],
-            'titulo': a['nombre'],
-            'descripcion': a['descripcion'] ?? 'Sin descripción',
-            'responsable': a['responsable_nombre'] ?? 'Sin asignar',
-            'programado': 'Programado $strFi al $strFf',
-            'fechaInicio': fi,
-            'fechaFin': ff,
-            'reporte': 'Sin reportes recientes',
-            'avance': (double.tryParse(a['porcentaje_avance'].toString()) ?? 0.0) / 100.0,
-            'isCompleted': a['porcentaje_avance'] == 100,
-            'ponderacion': '5%',
-          };
-        }).toList();
-        
-        _cargando = false;
-      });
-    } else {
-      setState(() => _cargando = false);
-      _showError('Error al cargar datos');
-    }
-  }
-
-  void _showError(String msg) {
-    if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg), backgroundColor: AppColors.estadoRojo));
-  }
-
-  // ─── Helper para formatear fechas de MySQL (YYYY-MM-DD) a visual (DD/MM/YYYY) ───
   String _formatearFecha(String? fechaStr) {
     if (fechaStr == null || fechaStr.isEmpty || fechaStr == 'Sin fecha' || fechaStr == '--') return fechaStr ?? 'Sin fecha';
     try {
@@ -265,6 +167,12 @@ class _ObraDetailScreenState extends State<ObraDetailScreen> {
     }
   }
 
+  void _showError(String msg) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg), backgroundColor: AppColors.estadoRojo));
+  }
+
+  // ─── UI Principal ───
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -296,9 +204,7 @@ class _ObraDetailScreenState extends State<ObraDetailScreen> {
                         ),
                       ),
                       const SizedBox(width: 16),
-                      Expanded(
-                        child: _buildTabContent(),
-                      ),
+                      Expanded(child: _buildTabContent()),
                     ],
                   ),
                 )
@@ -324,43 +230,7 @@ class _ObraDetailScreenState extends State<ObraDetailScreen> {
     );
   }
 
-  Widget _buildSelectorTiempo() {
-    final opciones = ['Diario', 'Semanal', 'Quincenal', 'Acumulado'];
-    return Wrap(
-      spacing: 8,
-      runSpacing: 8,
-      children:
-          opciones.map((opcion) {
-            final isSelected = _tipoReporte == opcion;
-            return GestureDetector(
-              onTap: () => setState(() => _tipoReporte = opcion),
-              child: Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 16,
-                  vertical: 10,
-                ),
-                decoration: BoxDecoration(
-                  color: isSelected ? AppColors.naranja : AppColors.blanco,
-                  borderRadius: BorderRadius.circular(20),
-                  border: Border.all(
-                    color: isSelected ? AppColors.naranja : AppColors.gris,
-                    width: 1.2,
-                  ),
-                ),
-                child: Text(
-                  opcion,
-                  style: TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.bold,
-                    color: isSelected ? Colors.white : AppColors.textoGris,
-                  ),
-                ),
-              ),
-            );
-          }).toList(),
-    );
-  }
-
+  // ─── AppBar ───
   PreferredSizeWidget _buildAppBar() {
     return AppBar(
       backgroundColor: Colors.white,
@@ -374,12 +244,7 @@ class _ObraDetailScreenState extends State<ObraDetailScreen> {
           Image.asset(
             'assets/images/logo_gestobra.png',
             height: 28,
-            errorBuilder:
-                (context, error, stackTrace) => const Icon(
-                  Icons.construction,
-                  color: AppColors.naranja,
-                  size: 28,
-                ),
+            errorBuilder: (context, error, stackTrace) => const Icon(Icons.construction, color: AppColors.naranja, size: 28),
           ),
           const SizedBox(width: 8),
           const Text('GestObra', style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold, fontSize: 20)),
@@ -387,10 +252,7 @@ class _ObraDetailScreenState extends State<ObraDetailScreen> {
       ),
       actions: [
         IconButton(
-          icon: const Icon(
-            Icons.notifications_outlined,
-            color: AppColors.naranja,
-          ),
+          icon: const Icon(Icons.notifications_outlined, color: AppColors.naranja),
           onPressed: () {},
         ),
         const SizedBox(width: 8),
@@ -398,6 +260,7 @@ class _ObraDetailScreenState extends State<ObraDetailScreen> {
     );
   }
 
+  // ─── Header de la Obra ───
   Widget _buildObraHeader() {
     final rawAvance = widget.obra['avance_general']?.toString() ?? '0';
     final double avanceVal = double.tryParse(rawAvance) ?? ((widget.obra['avance'] ?? 0) * 100);
@@ -415,30 +278,17 @@ class _ObraDetailScreenState extends State<ObraDetailScreen> {
         children: [
           Row(
             children: [
-              _buildBadge(
-                widget.obra['codigo']?.toString() ?? 'OBRA',
-                AppColors.naranja,
-                isOutlined: true,
-              ),
+              _buildBadge(widget.obra['codigo']?.toString() ?? 'OBRA', AppColors.naranja, isOutlined: true),
               const SizedBox(width: 8),
               _buildBadge(widget.obra['estado'] ?? 'EN EJECUCIÓN', Colors.green.shade700, isOutlined: true),
             ],
           ),
           const SizedBox(height: 12),
-          Text(
-            widget.obra['titulo'] ?? 'Sin título',
-            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 20),
-          ),
+          Text(widget.obra['titulo'] ?? 'Sin título', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 20)),
           const SizedBox(height: 4),
-          Text(
-            widget.obra['cliente'] ?? 'Sin cliente',
-            style: const TextStyle(fontSize: 12, color: AppColors.naranja, fontWeight: FontWeight.bold),
-          ),
+          Text(widget.obra['cliente'] ?? 'Sin cliente', style: const TextStyle(fontSize: 12, color: AppColors.naranja, fontWeight: FontWeight.bold)),
           const SizedBox(height: 12),
-          Text(
-            widget.obra['descripcion'] ?? 'Sin descripción',
-            style: const TextStyle(fontSize: 12, color: AppColors.gris, height: 1.4),
-          ),
+          Text(widget.obra['descripcion'] ?? 'Sin descripción', style: const TextStyle(fontSize: 12, color: AppColors.gris, height: 1.4)),
           const SizedBox(height: 16),
           Wrap(
             spacing: 16,
@@ -446,9 +296,7 @@ class _ObraDetailScreenState extends State<ObraDetailScreen> {
             children: [
               _buildIconText(Icons.location_on, widget.obra['ubicacion'] ?? 'Sin ubicación'),
               _buildIconText(Icons.person, 'Ver asignaciones'),
-              _buildIconText(Icons.calendar_today, 
-                '${_formatearFecha(widget.obra['fechaInicio'])} al ${_formatearFecha(widget.obra['fechaTermino'])}'
-              ),
+              _buildIconText(Icons.calendar_today, '${_formatearFecha(widget.obra['fechaInicio'])} al ${_formatearFecha(widget.obra['fechaTermino'])}'),
             ],
           ),
           const SizedBox(height: 16),
@@ -467,8 +315,7 @@ class _ObraDetailScreenState extends State<ObraDetailScreen> {
                   children: [
                     const Text('AVANCE GENERAL', style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: AppColors.gris)),
                     const SizedBox(height: 4),
-                    Text('${avanceVal.toInt()}%', 
-                      style: const TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: AppColors.naranja)),
+                    Text('${avanceVal.toInt()}%', style: const TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: AppColors.naranja)),
                   ],
                 ),
                 const SizedBox(width: 16),
@@ -504,6 +351,7 @@ class _ObraDetailScreenState extends State<ObraDetailScreen> {
     );
   }
 
+  // ─── Botones y Selectores ───
   Widget _buildPipelineButton() {
     return SizedBox(
       width: double.infinity,
@@ -511,13 +359,9 @@ class _ObraDetailScreenState extends State<ObraDetailScreen> {
       child: ElevatedButton.icon(
         onPressed: () => setState(() => _showPipeline = true),
         icon: const Icon(Icons.view_timeline_outlined, size: 19),
-        label: const Text(
-          'Vista de pipeline',
-          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
-        ),
+        label: const Text('Vista de pipeline', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
         style: ElevatedButton.styleFrom(
-          backgroundColor:
-              _showPipeline ? AppColors.naranja : AppColors.noseleccionado,
+          backgroundColor: _showPipeline ? AppColors.naranja : AppColors.noseleccionado,
           foregroundColor: _showPipeline ? Colors.white : AppColors.gris,
           alignment: Alignment.centerLeft,
           padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -528,22 +372,15 @@ class _ObraDetailScreenState extends State<ObraDetailScreen> {
   }
 
   Widget _buildTabs() {
-    final tabs = [
-      'ACTIVIDADES',
-      'BITÁCORA',
-      'MATERIALES',
-      'EVIDENCIAS',
-      'REPORTES',
-    ];
+    final tabs = ['ACTIVIDADES', 'BITÁCORA', 'MATERIALES', 'EVIDENCIAS', 'REPORTES'];
 
     Widget buildTab(int index) {
       final isSelected = !_showPipeline && _selectedTabIndex == index;
       return GestureDetector(
-        onTap:
-            () => setState(() {
-              _selectedTabIndex = index;
-              _showPipeline = false;
-            }),
+        onTap: () => setState(() {
+          _selectedTabIndex = index;
+          _showPipeline = false;
+        }),
         child: Container(
           height: 40,
           alignment: Alignment.center,
@@ -578,10 +415,7 @@ class _ObraDetailScreenState extends State<ObraDetailScreen> {
           return Wrap(
             spacing: spacing,
             runSpacing: spacing,
-            children: List.generate(
-              tabs.length,
-              (index) => SizedBox(width: tabWidth, child: buildTab(index)),
-            ),
+            children: List.generate(tabs.length, (index) => SizedBox(width: tabWidth, child: buildTab(index))),
           );
         }
         return Row(
@@ -592,25 +426,6 @@ class _ObraDetailScreenState extends State<ObraDetailScreen> {
                 padding: const EdgeInsets.symmetric(horizontal: 2),
                 child: buildTab(index),
               ),
-    final tabs = ['ACTIVIDADES', 'BITÁCORA', 'MATERIALES', 'EVIDENCIAS', 'REPORTES'];
-    return Row(
-      children: List.generate(tabs.length, (index) {
-        final isSelected = !_showPipeline && _selectedTabIndex == index;
-        return Expanded(
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 2.0),
-            child: GestureDetector(
-              onTap: () => setState(() { _selectedTabIndex = index; _showPipeline = false; }),
-              child: Container(
-                padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 4),
-                decoration: BoxDecoration(
-                  color: isSelected ? AppColors.naranja : AppColors.noseleccionado,
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Center(
-                  child: Text(tabs[index], textAlign: TextAlign.center, style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: isSelected ? Colors.white : AppColors.gris)),
-                ),
-              ),
             ),
           ),
         );
@@ -618,6 +433,37 @@ class _ObraDetailScreenState extends State<ObraDetailScreen> {
     );
   }
 
+  Widget _buildSelectorTiempo() {
+    final opciones = ['Diario', 'Semanal', 'Quincenal', 'Acumulado'];
+    return Wrap(
+      spacing: 8,
+      runSpacing: 8,
+      children: opciones.map((opcion) {
+        final isSelected = _tipoReporte == opcion;
+        return GestureDetector(
+          onTap: () => setState(() => _tipoReporte = opcion),
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+            decoration: BoxDecoration(
+              color: isSelected ? AppColors.naranja : AppColors.blanco,
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(color: isSelected ? AppColors.naranja : AppColors.gris, width: 1.2),
+            ),
+            child: Text(
+              opcion,
+              style: TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.bold,
+                color: isSelected ? Colors.white : AppColors.textoGris,
+              ),
+            ),
+          ),
+        );
+      }).toList(),
+    );
+  }
+
+  // ─── Action Bar (Fases y Nueva Actividad) ───
   Widget _buildActionBar() {
     return Container(
       width: double.infinity,
@@ -679,13 +525,7 @@ class _ObraDetailScreenState extends State<ObraDetailScreen> {
 
   Future<void> _abrirModalNuevaActividad() async {
     if (_obraId <= 0 || _fases.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text(
-            'Se requiere una obra y sus fases cargadas para crear actividades.',
-          ),
-        ),
-      );
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Se requiere una obra y sus fases cargadas para crear actividades.')));
       return;
     }
     final creada = await showDialog<bool>(
@@ -696,19 +536,18 @@ class _ObraDetailScreenState extends State<ObraDetailScreen> {
           idObra: widget.obra['id_obra'],
           fasesDisponibles: _fases,
           onCrear: (nuevaActividad) {
-            _cargarDatosObra();
+            _cargarDetalle();
             ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Actividad creada correctamente'), backgroundColor: Colors.green));
           },
         );
       },
     );
     if (creada == true && mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Actividad creada correctamente')),
-      );
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Actividad creada correctamente')));
     }
   }
 
+  // ─── Fases Resumen ───
   Widget _buildFasesResumen() {
     return LayoutBuilder(
       builder: (context, constraints) {
@@ -723,18 +562,11 @@ class _ObraDetailScreenState extends State<ObraDetailScreen> {
 
         const spacing = 8.0;
         final columns = constraints.maxWidth < 360 ? 1 : 2;
-        final cardWidth =
-            (constraints.maxWidth - spacing * (columns - 1)) / columns;
+        final cardWidth = (constraints.maxWidth - spacing * (columns - 1)) / columns;
         return Wrap(
           spacing: spacing,
           runSpacing: spacing,
-          children:
-              _fases
-                  .map(
-                    (fase) =>
-                        SizedBox(width: cardWidth, child: _buildFaseCard(fase)),
-                  )
-                  .toList(),
+          children: _fases.map((fase) => SizedBox(width: cardWidth, child: _buildFaseCard(fase))).toList(),
         );
       },
     );
@@ -763,114 +595,16 @@ class _ObraDetailScreenState extends State<ObraDetailScreen> {
     );
   }
 
-  Future<void> _registrarAvance(Map<String, dynamic> actividad) async {
-    final idActividad =
-        int.tryParse(actividad['id_actividad']?.toString() ?? '') ?? 0;
-    if (idActividad <= 0) return;
-    final avanceActual = ((actividad['avance'] as num?)?.toDouble() ?? 0) * 100;
-    final porcentajeController = TextEditingController(
-      text: avanceActual.toStringAsFixed(0),
-    );
-    final observacionesController = TextEditingController();
-    final confirmado = await showDialog<bool>(
-      context: context,
-      builder:
-          (context) => AlertDialog(
-            title: const Text('Registrar avance'),
-            content: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                TextField(
-                  controller: porcentajeController,
-                  keyboardType: const TextInputType.numberWithOptions(
-                    decimal: true,
-                  ),
-                  decoration: const InputDecoration(
-                    labelText: 'Avance (%)',
-                    hintText: '0 a 100',
-                  ),
-                ),
-                const SizedBox(height: 12),
-                TextField(
-                  controller: observacionesController,
-                  maxLines: 3,
-                  decoration: const InputDecoration(labelText: 'Observaciones'),
-                ),
-              ],
-            ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(context, false),
-                child: const Text('Cancelar'),
-              ),
-              FilledButton(
-                onPressed: () => Navigator.pop(context, true),
-                child: const Text('Guardar'),
-              ),
-            ],
-          ),
-    );
-    if (confirmado != true || !mounted) {
-      porcentajeController.dispose();
-      observacionesController.dispose();
-      return;
-    }
-    final porcentaje = double.tryParse(porcentajeController.text.trim());
-    porcentajeController.dispose();
-    if (porcentaje == null || porcentaje < 0 || porcentaje > 100) {
-      observacionesController.dispose();
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('El avance debe ser un número entre 0 y 100.'),
-        ),
-      );
-      return;
-    }
-    try {
-      final observaciones = observacionesController.text.trim();
-      observacionesController.dispose();
-      final respuesta = await ApiService.post('actividad_avance.php', {
-        'id_actividad': idActividad,
-        'porcentaje_nuevo': porcentaje,
-        'observaciones': observaciones,
-      });
-      if (respuesta['estado'] != true) {
-        throw Exception(
-          respuesta['mensaje'] ?? 'No se pudo registrar el avance',
-        );
-      }
-      await _cargarDetalle();
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Avance registrado correctamente')),
-      );
-    } catch (error) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('No se pudo registrar el avance: $error')),
-      );
-    }
-  }
-
+  // ─── Tarjetas de Actividad ───
   Widget _buildActividadCard(Map<String, dynamic> actividad) {
     final estado = (actividad['estado'] ?? 'PENDIENTE').toString();
     final avance = (actividad['avance'] as num?)?.toDouble() ?? 0;
     final completada = actividad['isCompleted'] == true || avance >= 1;
-    final enProgreso =
-        !completada &&
-        (avance > 0 || estado.toUpperCase().contains('PROGRESO'));
-    final colorEstado =
-        completada
-            ? Colors.green.shade700
-            : enProgreso
-            ? AppColors.naranja
-            : AppColors.gris;
-    final iconoEstado =
-        completada
-            ? Icons.check
-            : enProgreso
-            ? Icons.timelapse
-            : Icons.schedule;
+    final enProgreso = !completada && (avance > 0 || estado.toUpperCase().contains('PROGRESO'));
+    
+    final colorEstado = completada ? Colors.green.shade700 : enProgreso ? AppColors.naranja : AppColors.gris;
+    final iconoEstado = completada ? Icons.check : enProgreso ? Icons.timelapse : Icons.schedule;
+
     return Container(
       margin: const EdgeInsets.only(bottom: 8),
       padding: const EdgeInsets.all(16),
@@ -880,11 +614,7 @@ class _ObraDetailScreenState extends State<ObraDetailScreen> {
         children: [
           Row(
             children: [
-              _buildBadge(
-                actividad['fase'],
-                AppColors.naranja,
-                isOutlined: true,
-              ),
+              _buildBadge(actividad['fase'], AppColors.naranja, isOutlined: true),
               const SizedBox(width: 8),
               _buildBadge(estado, colorEstado, icon: iconoEstado),
               const Spacer(),
@@ -913,10 +643,7 @@ class _ObraDetailScreenState extends State<ObraDetailScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text(
-                      'Avance actual',
-                      style: TextStyle(fontSize: 10, color: AppColors.gris),
-                    ),
+                    const Text('Avance actual', style: TextStyle(fontSize: 10, color: AppColors.gris)),
                     const SizedBox(height: 4),
                     Row(
                       children: [
@@ -943,7 +670,7 @@ class _ObraDetailScreenState extends State<ObraDetailScreen> {
               ),
               const SizedBox(width: 16),
               ElevatedButton(
-                onPressed: () {},
+                onPressed: () {}, // Aquí podrías llamar a editar actividad
                 style: ElevatedButton.styleFrom(backgroundColor: AppColors.naranja, foregroundColor: Colors.white, padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20))),
                 child: const Text('Editar', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
               ),
@@ -978,52 +705,7 @@ class _ObraDetailScreenState extends State<ObraDetailScreen> {
     );
   }
 
-  Widget _buildErrorDetalle() => Padding(
-    padding: const EdgeInsets.all(20),
-    child: Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Text(_errorDetalle!, textAlign: TextAlign.center),
-        const SizedBox(height: 8),
-        TextButton.icon(
-          onPressed: _cargarDetalle,
-          icon: const Icon(Icons.refresh),
-          label: const Text('Reintentar'),
-        ),
-      ],
-    ),
-  );
-
-  Widget _buildBadge(
-    String text,
-    Color color, {
-    bool isOutlined = false,
-    IconData? icon,
-  }) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-      decoration: BoxDecoration(color: isOutlined ? Colors.transparent : color.withOpacity(0.1), borderRadius: BorderRadius.circular(20), border: isOutlined ? Border.all(color: color) : null),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          if (icon != null) ...[Icon(icon, size: 12, color: color), const SizedBox(width: 4)],
-          Text(text, style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: color)),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildIconText(IconData icon, String text) {
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Icon(icon, size: 14, color: AppColors.gris),
-        const SizedBox(width: 6),
-        Flexible(child: Text(text, style: const TextStyle(fontSize: 11, color: AppColors.gris), overflow: TextOverflow.ellipsis)),
-      ],
-    );
-  }
-
+  // ─── Contenido de las Pestañas ───
   Widget _buildTabContent() {
     if (_showPipeline) {
       return Column(
@@ -1031,13 +713,8 @@ class _ObraDetailScreenState extends State<ObraDetailScreen> {
         children: [
           _buildActionBar(),
           const SizedBox(height: 16),
-          if (_cargandoDetalle)
-            const Center(
-              child: Padding(
-                padding: EdgeInsets.all(24),
-                child: CircularProgressIndicator(),
-              ),
-            )
+          if (_cargando)
+            const Center(child: Padding(padding: EdgeInsets.all(24), child: CircularProgressIndicator()))
           else if (_errorDetalle != null)
             _buildErrorDetalle()
           else
@@ -1067,6 +744,52 @@ class _ObraDetailScreenState extends State<ObraDetailScreen> {
         MaterialesSection(obra: widget.obra),
         EvidenciasSection(obra: widget.obra),
         ReportesSection(obra: widget.obra, tipoReporteInicial: _tipoReporte),
+      ],
+    );
+  }
+
+  // ─── Widgets Auxiliares de UI ───
+  Widget _buildErrorDetalle() => Padding(
+    padding: const EdgeInsets.all(20),
+    child: Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Text(_errorDetalle!, textAlign: TextAlign.center),
+        const SizedBox(height: 8),
+        TextButton.icon(
+          onPressed: _cargarDetalle,
+          icon: const Icon(Icons.refresh),
+          label: const Text('Reintentar'),
+        ),
+      ],
+    ),
+  );
+
+  Widget _buildBadge(String text, Color color, {bool isOutlined = false, IconData? icon}) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      decoration: BoxDecoration(
+        color: isOutlined ? Colors.transparent : color.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(20),
+        border: isOutlined ? Border.all(color: color) : null
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          if (icon != null) ...[Icon(icon, size: 12, color: color), const SizedBox(width: 4)],
+          Text(text, style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: color)),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildIconText(IconData icon, String text) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Icon(icon, size: 14, color: AppColors.gris),
+        const SizedBox(width: 6),
+        Flexible(child: Text(text, style: const TextStyle(fontSize: 11, color: AppColors.gris), overflow: TextOverflow.ellipsis)),
       ],
     );
   }
