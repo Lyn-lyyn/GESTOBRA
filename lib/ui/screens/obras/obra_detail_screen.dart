@@ -19,7 +19,7 @@ class ObraDetailScreen extends StatefulWidget {
 }
 
 class _ObraDetailScreenState extends State<ObraDetailScreen> {
-  // ─── Variables de Estado ───
+  // ─── Estado ───
   int _selectedTabIndex = 0;
   bool _showPipeline = false;
   String _faseSeleccionada = 'Todas las fases';
@@ -29,7 +29,6 @@ class _ObraDetailScreenState extends State<ObraDetailScreen> {
   String? _errorDetalle;
   String _rolUsuario = '';
 
-  // Listas de datos
   final List<Map<String, dynamic>> _fases = [];
   final List<Map<String, dynamic>> _actividades = [];
 
@@ -41,11 +40,7 @@ class _ObraDetailScreenState extends State<ObraDetailScreen> {
     'SUPERVISOR',
   }.contains(_rolUsuario);
 
-  bool get _puedeRegistrarAvance =>
-      _puedeCrearActividad || _rolUsuario == 'CAPTURISTA';
-
-  int get _obraId =>
-      int.tryParse(widget.obra['id_obra']?.toString() ?? '') ?? 0;
+  int get _obraId => int.tryParse(widget.obra['id_obra']?.toString() ?? '') ?? 0;
 
   @override
   void initState() {
@@ -58,7 +53,7 @@ class _ObraDetailScreenState extends State<ObraDetailScreen> {
     if (_obraId <= 0) {
       setState(() {
         _cargando = false;
-        _errorDetalle = 'Esta obra no tiene un ID válido de la base de datos.';
+        _errorDetalle = 'Esta obra no tiene un ID válido.';
       });
       return;
     }
@@ -84,10 +79,8 @@ class _ObraDetailScreenState extends State<ObraDetailScreen> {
       }
 
       final fasesBase = List<Map<String, dynamic>>.from(respuestas[0]['data'] as List);
-      final fasesPorId = <String, Map<String, dynamic>>{
-        for (final fase in fasesBase) fase['id_fase'].toString(): fase,
-      };
-
+      final fasesPorId = {for (var fase in fasesBase) fase['id_fase'].toString(): fase};
+      
       final actividadesBase = List<Map<String, dynamic>>.from(respuestas[1]['data'] as List);
       
       final actividades = actividadesBase.map((actividad) {
@@ -117,10 +110,10 @@ class _ObraDetailScreenState extends State<ObraDetailScreen> {
       }).toList();
 
       final fases = fasesBase.map((fase) {
-        final faseActividades = actividadesBase.where((actividad) => actividad['id_fase'].toString() == fase['id_fase'].toString()).toList();
-        final sumaAvances = faseActividades.fold<double>(0, (suma, actividad) => suma + (double.tryParse(actividad['porcentaje_avance']?.toString() ?? '') ?? 0));
+        final faseActividades = actividadesBase.where((a) => a['id_fase'].toString() == fase['id_fase'].toString()).toList();
+        final sumaAvances = faseActividades.fold<double>(0, (suma, a) => suma + (double.tryParse(a['porcentaje_avance']?.toString() ?? '') ?? 0));
         final porcentaje = faseActividades.isEmpty ? 0 : (sumaAvances / faseActividades.length).round();
-        final concluidas = faseActividades.where((actividad) => (double.tryParse(actividad['porcentaje_avance']?.toString() ?? '') ?? 0) >= 100).length;
+        final concluidas = faseActividades.where((a) => (double.tryParse(a['porcentaje_avance']?.toString() ?? '') ?? 0) >= 100).length;
 
         return <String, dynamic>{
           ...fase,
@@ -153,9 +146,7 @@ class _ObraDetailScreenState extends State<ObraDetailScreen> {
   String _formatoFecha(DateTime fecha) =>
       '${fecha.year}/${fecha.month.toString().padLeft(2, '0')}/${fecha.day.toString().padLeft(2, '0')}';
 
-  bool _isDesktop(BuildContext context) {
-    return MediaQuery.of(context).size.width >= 900;
-  }
+  bool _isDesktop(BuildContext context) => MediaQuery.of(context).size.width >= 900;
 
   String _formatearFecha(String? fechaStr) {
     if (fechaStr == null || fechaStr.isEmpty || fechaStr == 'Sin fecha' || fechaStr == '--') return fechaStr ?? 'Sin fecha';
@@ -172,7 +163,7 @@ class _ObraDetailScreenState extends State<ObraDetailScreen> {
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg), backgroundColor: AppColors.estadoRojo));
   }
 
-  // ─── UI Principal ───
+  // ─── Build Principal ───
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -230,7 +221,7 @@ class _ObraDetailScreenState extends State<ObraDetailScreen> {
     );
   }
 
-  // ─── AppBar ───
+  // ─── Widgets de UI ───
   PreferredSizeWidget _buildAppBar() {
     return AppBar(
       backgroundColor: Colors.white,
@@ -241,26 +232,18 @@ class _ObraDetailScreenState extends State<ObraDetailScreen> {
       ),
       title: Row(
         children: [
-          Image.asset(
-            'assets/images/logo_gestobra.png',
-            height: 28,
-            errorBuilder: (context, error, stackTrace) => const Icon(Icons.construction, color: AppColors.naranja, size: 28),
-          ),
+          Image.asset('assets/images/logo_gestobra.png', height: 28, errorBuilder: (_, __, ___) => const Icon(Icons.construction, color: AppColors.naranja, size: 28)),
           const SizedBox(width: 8),
           const Text('GestObra', style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold, fontSize: 20)),
         ],
       ),
       actions: [
-        IconButton(
-          icon: const Icon(Icons.notifications_outlined, color: AppColors.naranja),
-          onPressed: () {},
-        ),
+        IconButton(icon: const Icon(Icons.notifications_outlined, color: AppColors.naranja), onPressed: () {}),
         const SizedBox(width: 8),
       ],
     );
   }
 
-  // ─── Header de la Obra ───
   Widget _buildObraHeader() {
     final rawAvance = widget.obra['avance_general']?.toString() ?? '0';
     final double avanceVal = double.tryParse(rawAvance) ?? ((widget.obra['avance'] ?? 0) * 100);
@@ -278,7 +261,7 @@ class _ObraDetailScreenState extends State<ObraDetailScreen> {
         children: [
           Row(
             children: [
-              _buildBadge(widget.obra['codigo']?.toString() ?? 'OBRA', AppColors.naranja, isOutlined: true),
+              _buildBadge(widget.obra['codigo'] ?? 'OBRA', AppColors.naranja, isOutlined: true),
               const SizedBox(width: 8),
               _buildBadge(widget.obra['estado'] ?? 'EN EJECUCIÓN', Colors.green.shade700, isOutlined: true),
             ],
@@ -351,7 +334,6 @@ class _ObraDetailScreenState extends State<ObraDetailScreen> {
     );
   }
 
-  // ─── Botones y Selectores ───
   Widget _buildPipelineButton() {
     return SizedBox(
       width: double.infinity,
@@ -396,11 +378,7 @@ class _ObraDetailScreenState extends State<ObraDetailScreen> {
               maxLines: 1,
               softWrap: false,
               textAlign: TextAlign.center,
-              style: TextStyle(
-                fontSize: 10,
-                fontWeight: FontWeight.bold,
-                color: isSelected ? Colors.white : AppColors.gris,
-              ),
+              style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: isSelected ? Colors.white : AppColors.gris),
             ),
           ),
         ),
@@ -419,15 +397,7 @@ class _ObraDetailScreenState extends State<ObraDetailScreen> {
           );
         }
         return Row(
-          children: List.generate(
-            tabs.length,
-            (index) => Expanded(
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 2),
-                child: buildTab(index),
-              ),
-            ),
-          ),
+          children: List.generate(tabs.length, (index) => Expanded(child: Padding(padding: const EdgeInsets.symmetric(horizontal: 2), child: buildTab(index)))),
         );
       },
     );
@@ -451,11 +421,7 @@ class _ObraDetailScreenState extends State<ObraDetailScreen> {
             ),
             child: Text(
               opcion,
-              style: TextStyle(
-                fontSize: 12,
-                fontWeight: FontWeight.bold,
-                color: isSelected ? Colors.white : AppColors.textoGris,
-              ),
+              style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: isSelected ? Colors.white : AppColors.textoGris),
             ),
           ),
         );
@@ -463,7 +429,6 @@ class _ObraDetailScreenState extends State<ObraDetailScreen> {
     );
   }
 
-  // ─── Action Bar (Fases y Nueva Actividad) ───
   Widget _buildActionBar() {
     return Container(
       width: double.infinity,
@@ -488,10 +453,7 @@ class _ObraDetailScreenState extends State<ObraDetailScreen> {
 
   Widget _buildFaseDropdown() {
     final fasesNombres = ['Todas las fases', ..._fases.map((f) => f['nombre'].toString())];
-    
-    if (!fasesNombres.contains(_faseSeleccionada)) {
-      _faseSeleccionada = 'Todas las fases';
-    }
+    if (!fasesNombres.contains(_faseSeleccionada)) _faseSeleccionada = 'Todas las fases';
 
     return SizedBox(
       height: 40,
@@ -547,7 +509,6 @@ class _ObraDetailScreenState extends State<ObraDetailScreen> {
     }
   }
 
-  // ─── Fases Resumen ───
   Widget _buildFasesResumen() {
     return LayoutBuilder(
       builder: (context, constraints) {
@@ -595,7 +556,6 @@ class _ObraDetailScreenState extends State<ObraDetailScreen> {
     );
   }
 
-  // ─── Tarjetas de Actividad ───
   Widget _buildActividadCard(Map<String, dynamic> actividad) {
     final estado = (actividad['estado'] ?? 'PENDIENTE').toString();
     final avance = (actividad['avance'] as num?)?.toDouble() ?? 0;
@@ -670,7 +630,7 @@ class _ObraDetailScreenState extends State<ObraDetailScreen> {
               ),
               const SizedBox(width: 16),
               ElevatedButton(
-                onPressed: () {}, // Aquí podrías llamar a editar actividad
+                onPressed: () => _registrarAvance(actividad),
                 style: ElevatedButton.styleFrom(backgroundColor: AppColors.naranja, foregroundColor: Colors.white, padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20))),
                 child: const Text('Editar', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
               ),
@@ -682,8 +642,8 @@ class _ObraDetailScreenState extends State<ObraDetailScreen> {
   }
 
   Widget _buildActividadesSection() {
-    final actsFiltradas = _faseSeleccionada == 'Todas las fases' 
-        ? _actividades 
+    final actsFiltradas = _faseSeleccionada == 'Todas las fases'
+        ? _actividades
         : _actividades.where((a) => a['fase'] == _faseSeleccionada).toList();
 
     return Container(
@@ -705,7 +665,47 @@ class _ObraDetailScreenState extends State<ObraDetailScreen> {
     );
   }
 
-  // ─── Contenido de las Pestañas ───
+  Widget _buildErrorDetalle() => Padding(
+    padding: const EdgeInsets.all(20),
+    child: Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Text(_errorDetalle!, textAlign: TextAlign.center),
+        const SizedBox(height: 8),
+        TextButton.icon(
+          onPressed: _cargarDetalle,
+          icon: const Icon(Icons.refresh),
+          label: const Text('Reintentar'),
+        ),
+      ],
+    ),
+  );
+
+  Widget _buildBadge(String text, Color color, {bool isOutlined = false, IconData? icon}) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      decoration: BoxDecoration(color: isOutlined ? Colors.transparent : color.withOpacity(0.1), borderRadius: BorderRadius.circular(20), border: isOutlined ? Border.all(color: color) : null),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          if (icon != null) ...[Icon(icon, size: 12, color: color), const SizedBox(width: 4)],
+          Text(text, style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: color)),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildIconText(IconData icon, String text) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Icon(icon, size: 14, color: AppColors.gris),
+        const SizedBox(width: 6),
+        Flexible(child: Text(text, style: const TextStyle(fontSize: 11, color: AppColors.gris), overflow: TextOverflow.ellipsis)),
+      ],
+    );
+  }
+
   Widget _buildTabContent() {
     if (_showPipeline) {
       return Column(
@@ -718,11 +718,7 @@ class _ObraDetailScreenState extends State<ObraDetailScreen> {
           else if (_errorDetalle != null)
             _buildErrorDetalle()
           else
-            PipelineActividadesSection(
-              actividades: _actividades,
-              fases: _fases,
-              faseSeleccionada: _faseSeleccionada,
-            ),
+            PipelineActividadesSection(actividades: _actividades, fases: _fases, faseSeleccionada: _faseSeleccionada),
         ],
       );
     }
@@ -744,52 +740,6 @@ class _ObraDetailScreenState extends State<ObraDetailScreen> {
         MaterialesSection(obra: widget.obra),
         EvidenciasSection(obra: widget.obra),
         ReportesSection(obra: widget.obra, tipoReporteInicial: _tipoReporte),
-      ],
-    );
-  }
-
-  // ─── Widgets Auxiliares de UI ───
-  Widget _buildErrorDetalle() => Padding(
-    padding: const EdgeInsets.all(20),
-    child: Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Text(_errorDetalle!, textAlign: TextAlign.center),
-        const SizedBox(height: 8),
-        TextButton.icon(
-          onPressed: _cargarDetalle,
-          icon: const Icon(Icons.refresh),
-          label: const Text('Reintentar'),
-        ),
-      ],
-    ),
-  );
-
-  Widget _buildBadge(String text, Color color, {bool isOutlined = false, IconData? icon}) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-      decoration: BoxDecoration(
-        color: isOutlined ? Colors.transparent : color.withOpacity(0.1),
-        borderRadius: BorderRadius.circular(20),
-        border: isOutlined ? Border.all(color: color) : null
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          if (icon != null) ...[Icon(icon, size: 12, color: color), const SizedBox(width: 4)],
-          Text(text, style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: color)),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildIconText(IconData icon, String text) {
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Icon(icon, size: 14, color: AppColors.gris),
-        const SizedBox(width: 6),
-        Flexible(child: Text(text, style: const TextStyle(fontSize: 11, color: AppColors.gris), overflow: TextOverflow.ellipsis)),
       ],
     );
   }
