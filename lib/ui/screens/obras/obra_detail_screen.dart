@@ -142,6 +142,82 @@ class _ObraDetailScreenState extends State<ObraDetailScreen> {
     }
   }
 
+  // ─── Registrar Avance ───
+  Future<void> _registrarAvance(Map<String, dynamic> actividad) async {
+    final idActividad = int.tryParse(actividad['id_actividad']?.toString() ?? '') ?? 0;
+    if (idActividad <= 0) return;
+
+    final avanceActual = ((actividad['avance'] as num?)?.toDouble() ?? 0) * 100;
+    final porcentajeController = TextEditingController(text: avanceActual.toStringAsFixed(0));
+    final observacionesController = TextEditingController();
+
+    final confirmado = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Registrar avance'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextField(
+              controller: porcentajeController,
+              keyboardType: const TextInputType.numberWithOptions(decimal: true),
+              decoration: const InputDecoration(labelText: 'Avance (%)', hintText: '0 a 100'),
+            ),
+            const SizedBox(height: 12),
+            TextField(
+              controller: observacionesController,
+              maxLines: 3,
+              decoration: const InputDecoration(labelText: 'Observaciones'),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancelar')),
+          FilledButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Guardar')),
+        ],
+      ),
+    );
+
+    if (confirmado != true || !mounted) {
+      porcentajeController.dispose();
+      observacionesController.dispose();
+      return;
+    }
+
+    final porcentaje = double.tryParse(porcentajeController.text.trim());
+    porcentajeController.dispose();
+
+    if (porcentaje == null || porcentaje < 0 || porcentaje > 100) {
+      observacionesController.dispose();
+      _showError('El avance debe ser un número entre 0 y 100.');
+      return;
+    }
+
+    try {
+      final observaciones = observacionesController.text.trim();
+      observacionesController.dispose();
+
+      final respuesta = await ApiService.post('actividad_avance.php', {
+        'id_actividad': idActividad,
+        'porcentaje_nuevo': porcentaje,
+        'observaciones': observaciones,
+      });
+
+      if (respuesta['estado'] != true) {
+        throw Exception(respuesta['mensaje'] ?? 'No se pudo registrar el avance');
+      }
+
+      await _cargarDetalle();
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Avance registrado correctamente'), backgroundColor: Colors.green),
+      );
+    } catch (error) {
+      if (!mounted) return;
+      _showError('No se pudo registrar el avance: $error');
+    }
+  }
+
   // ─── Helpers ───
   String _formatoFecha(DateTime fecha) =>
       '${fecha.year}/${fecha.month.toString().padLeft(2, '0')}/${fecha.day.toString().padLeft(2, '0')}';
@@ -593,7 +669,7 @@ class _ObraDetailScreenState extends State<ObraDetailScreen> {
           Container(
             width: double.infinity,
             padding: const EdgeInsets.all(10),
-            decoration: BoxDecoration(color: AppColors.naranja.withOpacity(0.1), borderRadius: BorderRadius.circular(8), border: Border.all(color: AppColors.naranja.withOpacity(0.3))),
+            decoration: BoxDecoration(color: AppColors.naranja.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(8), border: Border.all(color: AppColors.naranja.withValues(alpha: 0.3))),
             child: Text('Último reporte: "${actividad['reporte']}"', style: const TextStyle(fontSize: 11, color: AppColors.naranja, fontStyle: FontStyle.italic)),
           ),
           const SizedBox(height: 16),
@@ -684,7 +760,7 @@ class _ObraDetailScreenState extends State<ObraDetailScreen> {
   Widget _buildBadge(String text, Color color, {bool isOutlined = false, IconData? icon}) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-      decoration: BoxDecoration(color: isOutlined ? Colors.transparent : color.withOpacity(0.1), borderRadius: BorderRadius.circular(20), border: isOutlined ? Border.all(color: color) : null),
+      decoration: BoxDecoration(color: isOutlined ? Colors.transparent : color.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(20), border: isOutlined ? Border.all(color: color) : null),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
