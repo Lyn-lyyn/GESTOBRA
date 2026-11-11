@@ -54,8 +54,6 @@ class ReportePdfService {
       pw.MultiPage(
         pageFormat: PdfPageFormat.a4,
         margin: const pw.EdgeInsets.all(30),
-        
-        // ─── AQUÍ AGREGAMOS EL PIE DE PÁGINA ───
         footer: (pw.Context context) {
           return pw.Column(
             mainAxisSize: pw.MainAxisSize.min,
@@ -71,7 +69,6 @@ class ReportePdfService {
             ],
           );
         },
-
         build: (context) => [
           // ─── ENCABEZADO CORPORATIVO ───
           pw.Container(
@@ -185,7 +182,7 @@ class ReportePdfService {
           ),
           pw.SizedBox(height: 10),
 
-          // ───  AVANCE ───
+          // ─── 1. AVANCE ───
           _tablaHeader('1. REPORTE DE AVANCE %', estiloTituloSeccion, colorGrisFondo, colorBorde),
           pw.Table(
             border: pw.TableBorder.all(color: colorBorde, width: 1),
@@ -216,7 +213,7 @@ class ReportePdfService {
           ),
           pw.SizedBox(height: 10),
 
-          // ───  ACTIVIDADES Y FRENTES ───
+          // ─── 2. ACTIVIDADES Y FRENTES ───
           _tablaHeader('2. ACTIVIDADES Y FRENTES DE TRABAJO', estiloTituloSeccion, colorGrisFondo, colorBorde),
           pw.TableHelper.fromTextArray(
             border: pw.TableBorder.all(color: colorBorde, width: 1),
@@ -257,7 +254,7 @@ class ReportePdfService {
           ),
           pw.SizedBox(height: 10),
 
-          // ───  MATERIALES ───
+          // ─── 3. MATERIALES ───
           _tablaHeader('3. RESUMEN DE MATERIALES UTILIZADOS', estiloTituloSeccion, colorGrisFondo, colorBorde),
           pw.TableHelper.fromTextArray(
             border: pw.TableBorder.all(color: colorBorde, width: 1),
@@ -286,7 +283,7 @@ class ReportePdfService {
           ),
           pw.SizedBox(height: 10),
 
-          // ───  PERSONAL Y MAQUINARIA ───
+          // ─── 4. PERSONAL Y MAQUINARIA ───
           pw.Row(
             crossAxisAlignment: pw.CrossAxisAlignment.start,
             children: [
@@ -359,7 +356,7 @@ class ReportePdfService {
           ),
           pw.SizedBox(height: 10),
 
-          // ─── INCIDENCIAS ───
+          // ─── 5. INCIDENCIAS ───
           _tablaHeader('5. INCIDENCIAS / PAROS REGISTRADOS', estiloTituloSeccion, colorGrisFondo, colorBorde),
           pw.Table(
             border: pw.TableBorder.all(color: colorBorde, width: 1),
@@ -397,67 +394,75 @@ class ReportePdfService {
           ),
           pw.SizedBox(height: 10),
 
-          // ───  EVIDENCIAS FOTOGRÁFICAS ───
-          pw.Wrap(
-            children: [
-              pw.Column(
-                crossAxisAlignment: pw.CrossAxisAlignment.stretch,
-                children: [
-                  _tablaHeader('6. REPORTE FOTOGRÁFICO', estiloTituloSeccion, colorGrisFondo, colorBorde),
-                  pw.Container(
-                    decoration: pw.BoxDecoration(
-                      border: pw.Border.all(color: colorBorde, width: 1),
-                    ),
+          // ─── 6. EVIDENCIAS FOTOGRÁFICAS (Ancho completo y tarjetas con tamaño uniforme) ───
+          _tablaHeader('6. REPORTE FOTOGRÁFICO', estiloTituloSeccion, colorGrisFondo, colorBorde),
+          pw.Container(
+            width: double.infinity, // Ocupa todo el ancho de la página igual que las tablas superiores
+            decoration: pw.BoxDecoration(
+              border: pw.Border.all(color: colorBorde, width: 1),
+            ),
+            padding: const pw.EdgeInsets.all(8),
+            child: evidencias.isEmpty
+                ? pw.Padding(
                     padding: const pw.EdgeInsets.all(8),
-                    child: evidencias.isEmpty
-                        ? pw.Padding(
-                            padding: const pw.EdgeInsets.all(8),
-                            child: pw.Text('No hay evidencias fotográficas registradas en este periodo.', style: estiloCuerpo),
-                          )
-                        : pw.Wrap(
-                            spacing: 10,
-                            runSpacing: 10,
-                            children: List.generate(evidencias.length, (index) {
-                              final img = imagenesEvidencias[index];
-                              final titulo = evidencias[index] is Map ? (evidencias[index]['titulo'] ?? '') : '';
+                    child: pw.Text('No hay evidencias fotográficas registradas en este periodo.', style: estiloCuerpo),
+                  )
+                : pw.Wrap(
+                    spacing: 12,
+                    runSpacing: 12,
+                    children: List.generate(evidencias.length, (index) {
+                      final img = imagenesEvidencias[index];
+                      final titulo = evidencias[index] is Map ? (evidencias[index]['titulo'] ?? '') : '';
 
-                              return pw.Container(
-                                width: 150,
-                                decoration: pw.BoxDecoration(
-                                  border: pw.Border.all(color: colorBorde, width: 1),
-                                ),
-                                child: pw.Column(
-                                  crossAxisAlignment: pw.CrossAxisAlignment.stretch,
-                                  children: [
-                                    if (img != null)
-                                      pw.Image(img, height: 100, fit: pw.BoxFit.cover)
-                                    else
-                                      pw.Container(
-                                        height: 100,
-                                        color: PdfColors.grey300,
-                                        alignment: pw.Alignment.center,
-                                        child: pw.Text('Sin imagen', style: estiloCuerpo),
-                                      ),
-                                    pw.Container(
-                                      padding: const pw.EdgeInsets.all(4),
-                                      decoration: pw.BoxDecoration(
-                                        color: PdfColor.fromHex('#F3F4F6'),
-                                        border: const pw.Border(top: pw.BorderSide(color: PdfColors.grey700, width: 1)),
-                                      ),
-                                      child: pw.Text(titulo,
-                                          textAlign: pw.TextAlign.center,
-                                          style: pw.TextStyle(
-                                              fontSize: 7, fontWeight: pw.FontWeight.bold)),
+                      // TARJETA CON TAMAÑO UNIFORME Y ALTURA FIJA PARA EL PIE DE FOTO
+                      return pw.Container(
+                        width: 140,
+                        decoration: pw.BoxDecoration(
+                          color: PdfColors.white,
+                          border: pw.Border.all(color: PdfColors.grey400, width: 0.8),
+                          borderRadius: pw.BorderRadius.circular(4),
+                        ),
+                        child: pw.ClipRRect(
+                          horizontalRadius: 4,
+                          verticalRadius: 4,
+                          child: pw.Column(
+                            crossAxisAlignment: pw.CrossAxisAlignment.stretch,
+                            children: [
+                              // Imagen con altura fija
+                              img != null
+                                  ? pw.Image(img, height: 90, fit: pw.BoxFit.cover)
+                                  : pw.Container(
+                                      height: 90,
+                                      color: PdfColors.grey200,
+                                      alignment: pw.Alignment.center,
+                                      child: pw.Text('Sin imagen', style: estiloCuerpo),
                                     ),
-                                  ],
+                              
+                              // Contenedor de título con altura fija para que todas las tarjetas midan exactamente lo mismo
+                              pw.Container(
+                                height: 35, // Altura fija uniforme para el pie de foto (hasta 2 líneas)
+                                padding: const pw.EdgeInsets.symmetric(horizontal: 4),
+                                alignment: pw.Alignment.center, // Centrado vertical y horizontal automático
+                                decoration: pw.BoxDecoration(
+                                  color: PdfColor.fromHex('#1F2937'), // Fondo gris oscuro corporativo
                                 ),
-                              );
-                            }),
+                                child: pw.Text(
+                                  titulo.isNotEmpty ? titulo : 'Sin descripción',
+                                  textAlign: pw.TextAlign.center,
+                                  maxLines: 2,
+                                  style: pw.TextStyle(
+                                    fontSize: 7.5,
+                                    fontWeight: pw.FontWeight.bold,
+                                    color: PdfColors.white, // Texto blanco
+                                  ),
+                                ),
+                              ),
+                            ],
                           ),
+                        ),
+                      );
+                    }),
                   ),
-                ],
-              ),
-            ],
           ),
           pw.SizedBox(height: 10),
 
@@ -475,7 +480,10 @@ class ReportePdfService {
             ),
           ),
           
-          pw.SizedBox(height: 60),
+          // ─── FORZAR SALTO DE PÁGINA ANTES DE LAS FIRMAS ───
+          pw.NewPage(),
+
+          pw.SizedBox(height: 50),
 
           // ─── FIRMAS ───
           pw.Row(
@@ -485,17 +493,17 @@ class ReportePdfService {
               _firmaFormal(datos['cliente'], 'SUPERVISIÓN / CLIENTE', estiloBold, estiloCuerpo),
             ],
           ),
-          
         ],
       ),
     );
 
     await Printing.sharePdf(
       bytes: await doc.save(),
-      filename: 'Reporte_Obra_${datos['periodo'].toString().replaceAll(' ', '_')}.pdf',
+      filename: 'reporte_${obra['codigo'] ?? 'obra'}.pdf',
     );
   }
 
+  // ─── HELPERS PARA DISEÑO TIPO DOCUMENTO ───
 
   static pw.Widget _tablaHeader(String titulo, pw.TextStyle estilo, PdfColor fondo, PdfColor borde) {
     return pw.Container(
@@ -536,7 +544,7 @@ class ReportePdfService {
     return pw.Column(
       children: [
         pw.Container(width: 180, height: 1, color: PdfColors.black),
-        pw.SizedBox(height: 4),
+        pw.SizedBox(height: 14),
         pw.Text(nombre, style: estiloBold),
         pw.Text(cargo, style: pw.TextStyle(fontSize: 7)),
       ],

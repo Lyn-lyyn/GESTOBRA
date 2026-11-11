@@ -1,16 +1,12 @@
 import 'package:flutter/material.dart';
 import '../../../../config/theme/app_colors.dart';
+import '../../../../servicios/api_service.dart';
 import '../widgets/nueva_evidencia_modal.dart';
 
 class EvidenciasSection extends StatefulWidget {
   final Map<String, dynamic> obra;
-  final List<Map<String, dynamic>> fasesDisponibles;
 
-  const EvidenciasSection({
-    super.key,
-    required this.obra,
-    required this.fasesDisponibles,
-  });
+  const EvidenciasSection({super.key, required this.obra});
 
   @override
   State<EvidenciasSection> createState() => _EvidenciasSectionState();
@@ -18,48 +14,101 @@ class EvidenciasSection extends StatefulWidget {
 
 class _EvidenciasSectionState extends State<EvidenciasSection> {
   String _faseSeleccionada = 'Todas las fases';
+  final List<Map<String, dynamic>> _evidencias = [];
+  List<Map<String, dynamic>> _fases = [];
+  List<Map<String, dynamic>> _actividades = [];
+  bool _cargando = true;
+  String? _error;
 
-  final List<Map<String, dynamic>> _evidencias = [
-    {
-      'codigo': 'EV 0001',
-      'fase': 'Cimentación',
-      'actividad': 'Colado de zapatas y contratrabes',
-      'descripcion': 'Toma de cilindros de prueba para ensayo a compresión de 250 kg/cm² a los 7 y 28 días.',
-      'fecha': '2026-09-22',
-      'responsable': 'Arq. Sofía Méndez',
-      'imagenPath': 'assets/images/evidencia_colado_zapatas.png',
-      'color': const Color(0xFF9EAD91),
-    },
-    {
-      'codigo': 'EV 0002',
-      'fase': 'Cimentación',
-      'actividad': 'Armado de acero en zapatas y dados',
-      'descripcion': 'Armado terminado en zapata Z4 y dado D4. Separadores de concreto de 5 cm colocados.',
-      'fecha': '2026-09-20',
-      'responsable': 'Ing. Carlos Morales',
-      'imagenPath': 'assets/images/evidencia_armado_cimentacion.png',
-      'color': const Color(0xFF879293),
-    },
-    {
-      'codigo': 'EV 0003',
-      'fase': 'Cimentación',
-      'actividad': 'Excavación para zapatas y contratrabes',
-      'descripcion': 'Profundidad de cepa Z3 verificada a 1.60 m según especificación estructural.',
-      'fecha': '2026-09-14',
-      'responsable': 'Arq. Sofía Méndez',
-      'imagenPath': 'assets/images/evidencia_armado_cimentacion.png',
-      'color': const Color(0xFF986A58),
-    },
-    {
-      'codigo': 'EV 0004',
-      'fase': 'Preliminares',
-      'actividad': 'Limpieza y desmonte del terreno',
-      'descripcion': 'Terreno limpio y despal incluido al 100%, retiro de escombros concluido.',
-      'fecha': '2026-09-08',
-      'responsable': 'Ing. Carlos Morales',
-      'color': const Color(0xFFA88A54),
-    },
-  ];
+  int get _obraId =>
+      int.tryParse(widget.obra['id_obra']?.toString() ?? '') ?? 0;
+
+  @override
+  void initState() {
+    super.initState();
+    _cargarDatos();
+  }
+
+  Future<void> _cargarDatos() async {
+    if (_obraId <= 0) {
+      setState(() {
+        _cargando = false;
+        _error = 'Esta obra de muestra no tiene un ID de la base de datos.';
+      });
+      return;
+    }
+    setState(() {
+      _cargando = true;
+      _error = null;
+    });
+    try {
+      final respuestas = await Future.wait([
+        ApiService.get('fases_obra.php?id_obra=$_obraId'),
+        ApiService.get('actividades.php?id_obra=$_obraId'),
+        ApiService.get('evidencias.php?id_obra=$_obraId'),
+      ]);
+      for (final respuesta in respuestas) {
+        if (respuesta['estado'] != true) {
+          throw Exception(
+            respuesta['mensaje'] ?? 'No se pudieron cargar las evidencias',
+          );
+        }
+      }
+      final fases = List<Map<String, dynamic>>.from(
+        respuestas[0]['data'] as List,
+      );
+      final fasesPorId = <String, String>{
+        for (final fase in fases)
+          fase['id_fase'].toString(): fase['nombre'].toString(),
+      };
+      final actividades =
+          List<Map<String, dynamic>>.from(respuestas[1]['data'] as List)
+              .map(
+                (actividad) => {
+                  ...actividad,
+                  'fase':
+                      fasesPorId[actividad['id_fase'].toString()] ?? 'Sin fase',
+                },
+              )
+              .toList();
+      final evidencias =
+          List<Map<String, dynamic>>.from(respuestas[2]['data'] as List).map((
+            evidencia,
+          ) {
+            final ruta = evidencia['archivo_url']?.toString() ?? '';
+            return {
+              'codigo': evidencia['codigo'] ?? 'EV',
+              'fase': evidencia['fase'] ?? 'Sin fase',
+              'actividad': evidencia['actividad'] ?? 'Sin actividad',
+              'descripcion': evidencia['descripcion'] ?? '',
+              'fecha':
+                  evidencia['fecha_captura']?.toString().split(' ').first ?? '',
+              'responsable':
+                  evidencia['responsable_nombre'] ?? 'Sin responsable',
+              'imagenUrl':
+                  ruta.isEmpty
+                      ? null
+                      : Uri.parse(ApiService.baseUrl).resolve(ruta).toString(),
+              'color': const Color(0xFF9EAD91),
+            };
+          }).toList();
+      if (!mounted) return;
+      setState(() {
+        _fases = fases;
+        _actividades = actividades;
+        _evidencias
+          ..clear()
+          ..addAll(evidencias);
+        _cargando = false;
+      });
+    } catch (error) {
+      if (!mounted) return;
+      setState(() {
+        _cargando = false;
+        _error = error.toString().replaceFirst('Exception: ', '');
+      });
+    }
+  }
 
   List<Map<String, dynamic>> get _evidenciasFiltradas {
     if (_faseSeleccionada == 'Todas las fases') return _evidencias;
@@ -69,35 +118,34 @@ class _EvidenciasSectionState extends State<EvidenciasSection> {
   }
 
   Future<void> _abrirModal() async {
+    if (_obraId <= 0 || _actividades.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            _obraId <= 0
+                ? 'Abre una obra cargada desde la base de datos para subir evidencia.'
+                : 'Esta obra aún no tiene actividades disponibles.',
+          ),
+        ),
+      );
+      return;
+    }
     final evidencia = await showDialog<Map<String, dynamic>>(
       context: context,
       barrierDismissible: true,
-      builder: (_) => NuevaEvidenciaModal(
-        fasesDisponibles: widget.fasesDisponibles,
-      ),
+      builder:
+          (_) => NuevaEvidenciaModal(
+            obraId: _obraId,
+            actividadesDisponibles: _actividades,
+          ),
     );
     if (evidencia == null || !mounted) return;
-    final nuevaEvidencia = Map<String, dynamic>.from(evidencia);
-    setState(() {
-      nuevaEvidencia['codigo'] = _siguienteCodigo();
-      nuevaEvidencia['responsable'] = 'Ing. Carlos Morales';
-      nuevaEvidencia['color'] = const Color(0xFF9EAD91);
-      _evidencias.insert(0, nuevaEvidencia);
-      _faseSeleccionada = 'Todas las fases';
-    });
+    _faseSeleccionada = 'Todas las fases';
+    await _cargarDatos();
+    if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(content: Text('Evidencia guardada correctamente')),
     );
-  }
-
-  String _siguienteCodigo() {
-    var mayorCodigo = 0;
-    for (final evidencia in _evidencias) {
-      final digitos = evidencia['codigo'].toString().replaceAll(RegExp(r'\D'), '');
-      final codigo = int.tryParse(digitos) ?? 0;
-      if (codigo > mayorCodigo) mayorCodigo = codigo;
-    }
-    return 'EV ${(mayorCodigo + 1).toString().padLeft(4, '0')}';
   }
 
   @override
@@ -113,49 +161,107 @@ class _EvidenciasSectionState extends State<EvidenciasSection> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            children: [
-              const Expanded(
-                child: Text(
-                  'Evidencias Fotográficas\nGeorreferenciadas y Foliadas',
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, height: 1.2),
+          LayoutBuilder(
+            builder: (context, constraints) {
+              final compact = constraints.maxWidth < 620;
+              final title = const Text(
+                'Evidencias fotográficas georreferenciadas y foliadas',
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                  height: 1.2,
                 ),
-              ),
-              _buildFaseDropdown(),
-              const SizedBox(width: 8),
-              SizedBox(
-                height: 40,
-                child: ElevatedButton.icon(
-                  onPressed: _abrirModal,
-                  icon: const Icon(Icons.add, size: 16),
-                  label: const Text('Subir evidencia', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.naranja,
-                    foregroundColor: Colors.black,
-                    padding: const EdgeInsets.symmetric(horizontal: 14),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+              );
+              final actions = Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                crossAxisAlignment: WrapCrossAlignment.center,
+                children: [
+                  _buildFaseDropdown(),
+                  SizedBox(
+                    height: 40,
+                    child: ElevatedButton.icon(
+                      onPressed: _abrirModal,
+                      icon: const Icon(Icons.add, size: 16),
+                      label: const Text(
+                        'Subir evidencia',
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppColors.naranja,
+                        foregroundColor: Colors.black,
+                        padding: const EdgeInsets.symmetric(horizontal: 14),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                      ),
+                    ),
                   ),
-                ),
-              ),
-            ],
+                ],
+              );
+
+              if (compact) {
+                return Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [title, const SizedBox(height: 10), actions],
+                );
+              }
+              return Row(children: [Expanded(child: title), actions]);
+            },
           ),
           const SizedBox(height: 12),
-          if (_evidenciasFiltradas.isEmpty)
+          if (_cargando)
+            const Center(
+              child: Padding(
+                padding: EdgeInsets.all(24),
+                child: CircularProgressIndicator(),
+              ),
+            )
+          else if (_error != null)
+            Center(
+              child: Padding(
+                padding: const EdgeInsets.all(24),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      _error!,
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(color: AppColors.textoGris),
+                    ),
+                    const SizedBox(height: 10),
+                    TextButton.icon(
+                      onPressed: _cargarDatos,
+                      icon: const Icon(Icons.refresh),
+                      label: const Text('Reintentar'),
+                    ),
+                  ],
+                ),
+              ),
+            )
+          else if (_evidenciasFiltradas.isEmpty)
             _buildEmptyState()
           else
             LayoutBuilder(
               builder: (context, constraints) {
                 final columns = constraints.maxWidth >= 430 ? 2 : 1;
-                final cardWidth = (constraints.maxWidth - (columns - 1) * 12) / columns;
+                final cardWidth =
+                    (constraints.maxWidth - (columns - 1) * 12) / columns;
                 return Wrap(
                   spacing: 12,
                   runSpacing: 12,
-                  children: _evidenciasFiltradas
-                      .map((evidencia) => SizedBox(
-                            width: cardWidth,
-                            child: _buildEvidenceCard(evidencia),
-                          ))
-                      .toList(),
+                  children:
+                      _evidenciasFiltradas
+                          .map(
+                            (evidencia) => SizedBox(
+                              width: cardWidth,
+                              child: _buildEvidenceCard(evidencia),
+                            ),
+                          )
+                          .toList(),
                 );
               },
             ),
@@ -167,7 +273,7 @@ class _EvidenciasSectionState extends State<EvidenciasSection> {
   Widget _buildFaseDropdown() {
     final fases = [
       'Todas las fases',
-      ...widget.fasesDisponibles.map((fase) => fase['nombre'] as String),
+      ..._fases.map((fase) => fase['nombre'].toString()),
     ];
     return Container(
       height: 40,
@@ -179,9 +285,22 @@ class _EvidenciasSectionState extends State<EvidenciasSection> {
       child: DropdownButtonHideUnderline(
         child: DropdownButton<String>(
           value: _faseSeleccionada,
-          icon: const Icon(Icons.keyboard_arrow_down, size: 18, color: AppColors.gris),
-          style: const TextStyle(fontSize: 11, color: AppColors.textoNegro, fontWeight: FontWeight.bold),
-          items: fases.map((fase) => DropdownMenuItem(value: fase, child: Text(fase))).toList(),
+          icon: const Icon(
+            Icons.keyboard_arrow_down,
+            size: 18,
+            color: AppColors.gris,
+          ),
+          style: const TextStyle(
+            fontSize: 11,
+            color: AppColors.textoNegro,
+            fontWeight: FontWeight.bold,
+          ),
+          items:
+              fases
+                  .map(
+                    (fase) => DropdownMenuItem(value: fase, child: Text(fase)),
+                  )
+                  .toList(),
           onChanged: (value) {
             if (value != null) setState(() => _faseSeleccionada = value);
           },
@@ -192,7 +311,7 @@ class _EvidenciasSectionState extends State<EvidenciasSection> {
 
   Widget _buildEvidenceCard(Map<String, dynamic> evidencia) {
     final color = evidencia['color'] as Color;
-    final imagenPath = evidencia['imagenPath'] as String?;
+    final imagenUrl = evidencia['imagenUrl'] as String?;
     return Container(
       height: 288,
       clipBehavior: Clip.antiAlias,
@@ -209,11 +328,13 @@ class _EvidenciasSectionState extends State<EvidenciasSection> {
             child: Stack(
               fit: StackFit.expand,
               children: [
-                if (imagenPath != null)
-                  Image.asset(
-                    imagenPath,
+                if (imagenUrl != null)
+                  Image.network(
+                    imagenUrl,
                     fit: BoxFit.cover,
-                    errorBuilder: (context, error, stackTrace) => _imagePlaceholder(color),
+                    errorBuilder:
+                        (context, error, stackTrace) =>
+                            _imagePlaceholder(color),
                   )
                 else
                   _imagePlaceholder(color),
@@ -241,7 +362,12 @@ class _EvidenciasSectionState extends State<EvidenciasSection> {
                     evidencia['actividad'].toString(),
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(fontSize: 12, color: AppColors.naranja, fontWeight: FontWeight.bold, height: 1.2),
+                    style: const TextStyle(
+                      fontSize: 12,
+                      color: AppColors.naranja,
+                      fontWeight: FontWeight.bold,
+                      height: 1.2,
+                    ),
                   ),
                   const SizedBox(height: 3),
                   Expanded(
@@ -261,16 +387,27 @@ class _EvidenciasSectionState extends State<EvidenciasSection> {
             height: 43,
             child: Padding(
               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
-            child: Row(
-              children: [
-                const Icon(Icons.calendar_today, size: 12),
-                const SizedBox(width: 4),
-                Expanded(child: Text(evidencia['fecha'].toString(), style: const TextStyle(fontSize: 9))),
-                const Icon(Icons.person_outline, size: 12),
-                const SizedBox(width: 4),
-                Flexible(child: Text(evidencia['responsable'].toString(), overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 9))),
-              ],
-            ),
+              child: Row(
+                children: [
+                  const Icon(Icons.calendar_today, size: 12),
+                  const SizedBox(width: 4),
+                  Expanded(
+                    child: Text(
+                      evidencia['fecha'].toString(),
+                      style: const TextStyle(fontSize: 9),
+                    ),
+                  ),
+                  const Icon(Icons.person_outline, size: 12),
+                  const SizedBox(width: 4),
+                  Flexible(
+                    child: Text(
+                      evidencia['responsable'].toString(),
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(fontSize: 9),
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
         ],
@@ -287,15 +424,29 @@ class _EvidenciasSectionState extends State<EvidenciasSection> {
           colors: [color.withOpacity(.75), color.withOpacity(.98)],
         ),
       ),
-      child: Icon(Icons.construction, size: 58, color: Colors.white.withOpacity(.45)),
+      child: Icon(
+        Icons.construction,
+        size: 58,
+        color: Colors.white.withOpacity(.45),
+      ),
     );
   }
 
   Widget _imageBadge(String label) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
-      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(4)),
-      child: Text(label, style: const TextStyle(color: AppColors.naranja, fontSize: 9, fontWeight: FontWeight.bold)),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(4),
+      ),
+      child: Text(
+        label,
+        style: const TextStyle(
+          color: AppColors.naranja,
+          fontSize: 9,
+          fontWeight: FontWeight.bold,
+        ),
+      ),
     );
   }
 
@@ -303,12 +454,19 @@ class _EvidenciasSectionState extends State<EvidenciasSection> {
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(24),
-      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(12), border: Border.all(color: AppColors.bordeSuave)),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: AppColors.bordeSuave),
+      ),
       child: const Column(
         children: [
           Icon(Icons.photo_library_outlined, size: 44, color: AppColors.gris),
           SizedBox(height: 10),
-          Text('No hay evidencias para esta fase', style: TextStyle(fontSize: 14, color: AppColors.gris)),
+          Text(
+            'No hay evidencias para esta fase',
+            style: TextStyle(fontSize: 14, color: AppColors.gris),
+          ),
         ],
       ),
     );

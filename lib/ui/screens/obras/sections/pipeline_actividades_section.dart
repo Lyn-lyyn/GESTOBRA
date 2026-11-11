@@ -28,8 +28,9 @@ class _PipelineActividadesSectionState
   static const double _timelineWidth = 760;
   static const double _tableWidth = _detailsWidth + _timelineWidth + 1;
   static const double _rowHeight = 58;
-  final ScrollController _horizontalController =
-      ScrollController(keepScrollOffset: false);
+  final ScrollController _horizontalController = ScrollController(
+    keepScrollOffset: false,
+  );
   final TextEditingController _searchController = TextEditingController();
   String _searchQuery = '';
 
@@ -108,7 +109,11 @@ class _PipelineActividadesSectionState
     final last = activities
         .map((a) => _fecha(a, 'fechaFin'))
         .reduce((a, b) => a.isAfter(b) ? a : b);
-    return DateTime(last.year, last.month, last.day).add(const Duration(days: 1));
+    return DateTime(
+      last.year,
+      last.month,
+      last.day,
+    ).add(const Duration(days: 1));
   }
 
   @override
@@ -173,8 +178,10 @@ class _PipelineActividadesSectionState
               children: [
                 Icon(Icons.swipe, size: 16, color: AppColors.gris),
                 SizedBox(width: 6),
-                Text('Desliza horizontalmente para consultar el cronograma',
-                    style: TextStyle(fontSize: 11, color: AppColors.gris)),
+                Text(
+                  'Desliza horizontalmente para consultar el cronograma',
+                  style: TextStyle(fontSize: 11, color: AppColors.gris),
+                ),
               ],
             ),
           ),
@@ -186,36 +193,39 @@ class _PipelineActividadesSectionState
   Widget _buildPhaseCards() {
     return Padding(
       padding: const EdgeInsets.fromLTRB(12, 12, 12, 0),
-      child: LayoutBuilder(builder: (context, constraints) {
-        final cards = widget.fases.map(_buildPhaseCard).toList();
-        if (constraints.maxWidth < 720) {
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final cards = widget.fases.map(_buildPhaseCard).toList();
+          if (cards.isEmpty) return const SizedBox.shrink();
           const gap = 8.0;
-          final cardWidth = (constraints.maxWidth - gap) / 2;
+          const minCardWidth = 150.0;
+          final columns = ((constraints.maxWidth + gap) / (minCardWidth + gap))
+              .floor()
+              .clamp(1, cards.length);
+          final cardWidth =
+              (constraints.maxWidth - gap * (columns - 1)) / columns;
           return Wrap(
             spacing: gap,
             runSpacing: gap,
-            children: cards
-                .map((card) => SizedBox(width: cardWidth, child: card))
-                .toList(),
+            children:
+                cards
+                    .map((card) => SizedBox(width: cardWidth, child: card))
+                    .toList(),
           );
-        }
-        return Row(children: [
-          for (var index = 0; index < cards.length; index++)
-            Expanded(child: Padding(
-              padding: EdgeInsets.only(right: index == cards.length - 1 ? 0 : 10),
-              child: cards[index],
-            )),
-        ]);
-      }),
+        },
+      ),
     );
   }
 
   Widget _buildPhaseCard(Map<String, dynamic> phase) {
-    final percent = ((phase['porcentaje'] as num?)?.toDouble() ?? 0)
-        .clamp(0.0, 100.0).toDouble();
-    final color = percent >= 100
-        ? Colors.green.shade600
-        : percent > 0
+    final percent =
+        ((phase['porcentaje'] as num?)?.toDouble() ?? 0)
+            .clamp(0.0, 100.0)
+            .toDouble();
+    final color =
+        percent >= 100
+            ? Colors.green.shade600
+            : percent > 0
             ? AppColors.naranja
             : Colors.blueGrey.shade300;
     final icon = switch ((phase['nombre'] as String).toLowerCase()) {
@@ -226,93 +236,146 @@ class _PipelineActividadesSectionState
     };
 
     return Container(
-      height: 112,
+      height: 128,
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
         color: Colors.white,
         border: Border.all(color: AppColors.bordeSuave.withOpacity(.35)),
         borderRadius: BorderRadius.circular(12),
       ),
-      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Row(children: [
-          Icon(icon, size: 17, color: color),
-          const SizedBox(width: 7),
-          Expanded(child: Text((phase['nombre'] as String).toUpperCase(),
-              maxLines: 1, overflow: TextOverflow.ellipsis,
-              style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: color))),
-        ]),
-        const Spacer(),
-        Row(children: [
-          SizedBox(
-            width: 46,
-            height: 46,
-            child: CircularProgressIndicator(
-              value: percent / 100,
-              strokeWidth: 5,
-              backgroundColor: Colors.grey.shade200,
-              valueColor: AlwaysStoppedAnimation<Color>(color),
-            ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(icon, size: 17, color: color),
+              const SizedBox(width: 7),
+              Expanded(
+                child: Text(
+                  (phase['nombre'] as String).toUpperCase(),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.bold,
+                    color: color,
+                  ),
+                ),
+              ),
+            ],
           ),
-          const SizedBox(width: 12),
-          Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Text('${percent.round()}%', style: TextStyle(
-                fontSize: 20, fontWeight: FontWeight.bold, color: color)),
-            Text('${phase['concluidas']} de ${phase['total']} actividades',
-                maxLines: 1, overflow: TextOverflow.ellipsis,
-                style: const TextStyle(fontSize: 9, color: AppColors.gris)),
-          ])),
-        ]),
-      ]),
+          const Spacer(),
+          Row(
+            children: [
+              SizedBox(
+                width: 46,
+                height: 46,
+                child: CircularProgressIndicator(
+                  value: percent / 100,
+                  strokeWidth: 5,
+                  backgroundColor: Colors.grey.shade200,
+                  valueColor: AlwaysStoppedAnimation<Color>(color),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      '${percent.round()}%',
+                      style: TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                        color: color,
+                      ),
+                    ),
+                    Text(
+                      '${phase['concluidas']} de ${phase['total']} actividades',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        fontSize: 9,
+                        color: AppColors.gris,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
     );
   }
 
   Widget _buildToolbar(int activityCount) {
-    Widget title() => const Row(mainAxisSize: MainAxisSize.min, children: [
-          Icon(Icons.view_timeline_outlined, color: AppColors.naranja, size: 21),
-          SizedBox(width: 9),
-          Flexible(child: Text('Pipeline de actividades de obra',
-              overflow: TextOverflow.ellipsis,
-              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 17))),
-        ]);
+    Widget title() => const Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Icon(Icons.view_timeline_outlined, color: AppColors.naranja, size: 21),
+        SizedBox(width: 9),
+        Flexible(
+          child: Text(
+            'Pipeline de actividades de obra',
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 17),
+          ),
+        ),
+      ],
+    );
 
     Widget searchField() => TextField(
-          controller: _searchController,
-          onChanged: (value) => setState(() => _searchQuery = value),
-          style: const TextStyle(fontSize: 12),
-          decoration: InputDecoration(
-            hintText: 'Buscar actividad...',
-            hintStyle: const TextStyle(fontSize: 12, color: AppColors.gris),
-            prefixIcon: const Icon(Icons.search, size: 18, color: AppColors.gris),
-            isDense: true,
-            contentPadding: const EdgeInsets.symmetric(vertical: 11),
-            border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
-          ),
-        );
+      controller: _searchController,
+      onChanged: (value) => setState(() => _searchQuery = value),
+      style: const TextStyle(fontSize: 12),
+      decoration: InputDecoration(
+        hintText: 'Buscar actividad...',
+        hintStyle: const TextStyle(fontSize: 12, color: AppColors.gris),
+        prefixIcon: const Icon(Icons.search, size: 18, color: AppColors.gris),
+        isDense: true,
+        contentPadding: const EdgeInsets.symmetric(vertical: 11),
+        border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+      ),
+    );
 
-    return LayoutBuilder(builder: (context, constraints) {
-      final countLabel = Text('$activityCount actividades',
-          style: const TextStyle(color: AppColors.gris, fontSize: 11));
-      return Padding(
-        padding: const EdgeInsets.fromLTRB(16, 2, 16, 12),
-        child: constraints.maxWidth < 680
-            ? Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-                Row(children: [Expanded(child: title()), countLabel]),
-                const SizedBox(height: 10),
-                searchField(),
-              ])
-            : Row(children: [
-                Expanded(child: title()),
-                SizedBox(width: 270, child: searchField()),
-                const SizedBox(width: 12),
-                countLabel,
-              ]),
-      );
-    });
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final countLabel = Text(
+          '$activityCount actividades',
+          style: const TextStyle(color: AppColors.gris, fontSize: 11),
+        );
+        return Padding(
+          padding: const EdgeInsets.fromLTRB(16, 2, 16, 12),
+          child:
+              constraints.maxWidth < 680
+                  ? Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      Row(children: [Expanded(child: title()), countLabel]),
+                      const SizedBox(height: 10),
+                      searchField(),
+                    ],
+                  )
+                  : Row(
+                    children: [
+                      Expanded(child: title()),
+                      SizedBox(width: 270, child: searchField()),
+                      const SizedBox(width: 12),
+                      countLabel,
+                    ],
+                  ),
+        );
+      },
+    );
   }
 
   Widget _buildHeader(DateTime start, int totalDays) {
     const labelStyle = TextStyle(
-        fontSize: 11, fontWeight: FontWeight.bold, color: AppColors.gris);
+      fontSize: 11,
+      fontWeight: FontWeight.bold,
+      color: AppColors.gris,
+    );
     return Container(
       height: 58,
       decoration: BoxDecoration(
@@ -325,16 +388,22 @@ class _PipelineActividadesSectionState
         children: [
           SizedBox(
             width: _detailsWidth,
-            child: Row(children: [
-              _headerCell('FASE / ACTIVIDAD', 260, labelStyle),
-              _headerCell('INICIO', 78, labelStyle),
-              _headerCell('FIN', 78, labelStyle),
-              _headerCell('DURACIÓN', 80, labelStyle),
-              _headerCell('RESPONSABLE', 145, labelStyle),
-              _headerCell('ESTADO', 159, labelStyle),
-            ]),
+            child: Row(
+              children: [
+                _headerCell('FASE / ACTIVIDAD', 260, labelStyle),
+                _headerCell('INICIO', 78, labelStyle),
+                _headerCell('FIN', 78, labelStyle),
+                _headerCell('DURACIÓN', 80, labelStyle),
+                _headerCell('RESPONSABLE', 145, labelStyle),
+                _headerCell('ESTADO', 159, labelStyle),
+              ],
+            ),
           ),
-          Container(width: 1, height: 58, color: AppColors.gris.withOpacity(.5)),
+          Container(
+            width: 1,
+            height: 58,
+            color: AppColors.gris.withOpacity(.5),
+          ),
           SizedBox(
             width: _timelineWidth,
             child: Row(children: _dateTicks(start, totalDays)),
@@ -345,15 +414,17 @@ class _PipelineActividadesSectionState
   }
 
   Widget _headerCell(String text, double width, TextStyle style) => Container(
-        width: width,
-        height: 58,
-        alignment: Alignment.centerLeft,
-        padding: const EdgeInsets.symmetric(horizontal: 8),
-        decoration: BoxDecoration(
-          border: Border(right: BorderSide(color: AppColors.bordeSuave.withOpacity(.2))),
-        ),
-        child: Text(text, style: style, overflow: TextOverflow.ellipsis),
-      );
+    width: width,
+    height: 58,
+    alignment: Alignment.centerLeft,
+    padding: const EdgeInsets.symmetric(horizontal: 8),
+    decoration: BoxDecoration(
+      border: Border(
+        right: BorderSide(color: AppColors.bordeSuave.withOpacity(.2)),
+      ),
+    ),
+    child: Text(text, style: style, overflow: TextOverflow.ellipsis),
+  );
 
   List<Widget> _dateTicks(DateTime start, int totalDays) {
     final count = 7;
@@ -365,7 +436,9 @@ class _PipelineActividadesSectionState
           height: 58,
           alignment: Alignment.center,
           decoration: BoxDecoration(
-            border: Border(right: BorderSide(color: AppColors.bordeSuave.withOpacity(.2))),
+            border: Border(
+              right: BorderSide(color: AppColors.bordeSuave.withOpacity(.2)),
+            ),
           ),
           child: Text(
             '${_fechaCorta(date)}\n${date.year}',
@@ -378,60 +451,88 @@ class _PipelineActividadesSectionState
   }
 
   Widget _buildPhaseRow(String phase, List<Map<String, dynamic>> activities) {
-    final completed = activities
-        .where((activity) => _estadoActividad(activity) == 'COMPLETADA')
-        .length;
-    final percent = activities.isEmpty ? 0 : (completed * 100 / activities.length).round();
-    final color = percent == 100
-        ? Colors.green.shade700
-        : percent > 0
+    final completed =
+        activities
+            .where((activity) => _estadoActividad(activity) == 'COMPLETADA')
+            .length;
+    final percent =
+        activities.isEmpty ? 0 : (completed * 100 / activities.length).round();
+    final color =
+        percent == 100
+            ? Colors.green.shade700
+            : percent > 0
             ? AppColors.naranja
             : Colors.blueGrey.shade700;
-    final tint = percent == 100
-        ? Colors.green.withOpacity(.08)
-        : percent > 0
+    final tint =
+        percent == 100
+            ? Colors.green.withOpacity(.08)
+            : percent > 0
             ? AppColors.naranja.withOpacity(.1)
             : Colors.blueGrey.withOpacity(.08);
 
     return Container(
       height: 38,
       color: tint,
-      child: Row(children: [
-        SizedBox(
-          width: _detailsWidth,
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 12),
-            child: Row(children: [
-              Icon(Icons.keyboard_arrow_down, color: color, size: 20),
-              const SizedBox(width: 6),
-              Text(phase, style: TextStyle(
-                  color: color, fontWeight: FontWeight.bold, fontSize: 12)),
-              const SizedBox(width: 8),
-              Text('(${activities.length} actividades)',
-                  style: const TextStyle(color: AppColors.gris, fontSize: 11)),
-            ]),
-          ),
-        ),
-        Container(width: 1, height: 38, color: AppColors.gris.withOpacity(.3)),
-        SizedBox(
-          width: _timelineWidth,
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 12),
-            child: Align(
-              alignment: Alignment.centerRight,
-              child: Text('$percent% ($completed/${activities.length})',
-                  style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: color)),
+      child: Row(
+        children: [
+          SizedBox(
+            width: _detailsWidth,
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 12),
+              child: Row(
+                children: [
+                  Icon(Icons.keyboard_arrow_down, color: color, size: 20),
+                  const SizedBox(width: 6),
+                  Text(
+                    phase,
+                    style: TextStyle(
+                      color: color,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 12,
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Text(
+                    '(${activities.length} actividades)',
+                    style: const TextStyle(color: AppColors.gris, fontSize: 11),
+                  ),
+                ],
+              ),
             ),
           ),
-        ),
-      ]),
+          Container(
+            width: 1,
+            height: 38,
+            color: AppColors.gris.withOpacity(.3),
+          ),
+          SizedBox(
+            width: _timelineWidth,
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 12),
+              child: Align(
+                alignment: Alignment.centerRight,
+                child: Text(
+                  '$percent% ($completed/${activities.length})',
+                  style: TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.bold,
+                    color: color,
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
     );
   }
 
   String _estadoActividad(Map<String, dynamic> activity) {
     final state = (activity['estado'] as String? ?? '').toLowerCase();
     final progress = (activity['avance'] as num?)?.toDouble() ?? 0;
-    if (state.contains('concluida') || state.contains('completada') || progress >= 1) {
+    if (state.contains('concluida') ||
+        state.contains('completada') ||
+        progress >= 1) {
       return 'COMPLETADA';
     }
     if (state.contains('progreso') || progress > 0) return 'EN PROGRESO';
@@ -449,7 +550,9 @@ class _PipelineActividadesSectionState
     final startOffset = start.difference(timelineStart).inDays;
     final duration = math.max(1, finish.difference(start).inDays + 1).toInt();
     final progress =
-        ((activity['avance'] as num?)?.toDouble() ?? 0).clamp(0.0, 1.0).toDouble();
+        ((activity['avance'] as num?)?.toDouble() ?? 0)
+            .clamp(0.0, 1.0)
+            .toDouble();
     final state = activity['estado'] as String? ?? 'Pendiente';
     final status = _estadoActividad(activity);
     final statusColor = switch (status) {
@@ -462,143 +565,214 @@ class _PipelineActividadesSectionState
       height: _rowHeight,
       decoration: BoxDecoration(
         color: Colors.white,
-        border: Border(bottom: BorderSide(color: AppColors.bordeSuave.withOpacity(.22))),
-      ),
-      child: Row(children: [
-        SizedBox(
-          width: _detailsWidth,
-          child: Row(children: [
-            _dataCell(
-              SizedBox(
-                width: 260,
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 10),
-                  child: Row(children: [
-                    SizedBox(width: 24, child: Text('$number.',
-                        style: const TextStyle(fontSize: 11, color: AppColors.gris))),
-                    Expanded(child: Text(activity['titulo'] as String? ?? '',
-                        maxLines: 2, overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w500))),
-                  ]),
-                ),
-              ),
-            ),
-            _textDataCell(_fechaCorta(start), 78),
-            _textDataCell(_fechaCorta(finish), 78),
-            _textDataCell('$duration ${duration == 1 ? 'día' : 'días'}', 80),
-            _textDataCell(activity['responsable'] as String? ?? '—', 145),
-            _dataCell(SizedBox(
-              width: 159,
-              child: Align(
-                alignment: Alignment.centerLeft,
-                child: Container(
-                  margin: const EdgeInsets.symmetric(horizontal: 10),
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                  decoration: BoxDecoration(
-                    color: statusColor.withOpacity(.12),
-                    borderRadius: BorderRadius.circular(7),
-                  ),
-                  child: Text(status,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold,
-                          color: statusColor)),
-                ),
-              ),
-            )),
-          ]),
+        border: Border(
+          bottom: BorderSide(color: AppColors.bordeSuave.withOpacity(.22)),
         ),
-        Container(width: 1, height: _rowHeight,
-            color: AppColors.gris.withOpacity(.5)),
-        SizedBox(
-          width: _timelineWidth,
-          child: LayoutBuilder(builder: (context, constraints) {
-            final left = (startOffset / totalDays * constraints.maxWidth)
-                .clamp(0.0, constraints.maxWidth)
-                .toDouble();
-            final barWidth = (duration / totalDays * constraints.maxWidth)
-                .clamp(14.0, constraints.maxWidth - left)
-                .toDouble();
-            return Stack(fit: StackFit.expand, children: [
-              Row(children: List.generate(7, (_) => Expanded(
-                child: Container(decoration: BoxDecoration(
-                  border: Border(right: BorderSide(color: AppColors.bordeSuave.withOpacity(.15))),
-                )),
-              ))),
-              Positioned(
-                left: left,
-                top: 17,
-                width: barWidth,
-                height: 24,
-                child: Tooltip(
-                  message: '${_fechaCorta(start)} - ${_fechaCorta(finish)} · $state',
-                  child: Container(
-                    decoration: BoxDecoration(
-                      color: statusColor.withOpacity(.16),
-                      borderRadius: BorderRadius.circular(5),
-                      border: Border.all(color: statusColor.withOpacity(.65)),
-                    ),
-                    child: Stack(
-                      fit: StackFit.expand,
-                      children: [
-                        Align(
-                          alignment: Alignment.centerLeft,
-                          child: FractionallySizedBox(
-                            widthFactor: progress,
-                            child: Container(
-                              decoration: BoxDecoration(
-                                color: statusColor,
-                                borderRadius: BorderRadius.circular(4),
+      ),
+      child: Row(
+        children: [
+          SizedBox(
+            width: _detailsWidth,
+            child: Row(
+              children: [
+                _dataCell(
+                  SizedBox(
+                    width: 260,
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 10),
+                      child: Row(
+                        children: [
+                          SizedBox(
+                            width: 24,
+                            child: Text(
+                              '$number.',
+                              style: const TextStyle(
+                                fontSize: 11,
+                                color: AppColors.gris,
                               ),
                             ),
                           ),
+                          Expanded(
+                            child: Text(
+                              activity['titulo'] as String? ?? '',
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                              style: const TextStyle(
+                                fontSize: 11,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+                _textDataCell(_fechaCorta(start), 78),
+                _textDataCell(_fechaCorta(finish), 78),
+                _textDataCell(
+                  '$duration ${duration == 1 ? 'día' : 'días'}',
+                  80,
+                ),
+                _textDataCell(activity['responsable'] as String? ?? '—', 145),
+                _dataCell(
+                  SizedBox(
+                    width: 159,
+                    child: Align(
+                      alignment: Alignment.centerLeft,
+                      child: Container(
+                        margin: const EdgeInsets.symmetric(horizontal: 10),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 10,
+                          vertical: 6,
                         ),
-                        Center(
-                          child: Padding(
-                            padding: const EdgeInsets.symmetric(horizontal: 3),
-                            child: FittedBox(
-                              fit: BoxFit.scaleDown,
-                              child: Text(
-                                '${_fechaCorta(start)}–${_fechaCorta(finish)}',
-                                maxLines: 1,
-                                style: TextStyle(
-                                  fontSize: 9,
-                                  color: statusColor,
-                                  fontWeight: FontWeight.bold,
+                        decoration: BoxDecoration(
+                          color: statusColor.withOpacity(.12),
+                          borderRadius: BorderRadius.circular(7),
+                        ),
+                        child: Text(
+                          status,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            fontSize: 10,
+                            fontWeight: FontWeight.bold,
+                            color: statusColor,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          Container(
+            width: 1,
+            height: _rowHeight,
+            color: AppColors.gris.withOpacity(.5),
+          ),
+          SizedBox(
+            width: _timelineWidth,
+            child: LayoutBuilder(
+              builder: (context, constraints) {
+                final left =
+                    (startOffset / totalDays * constraints.maxWidth)
+                        .clamp(0.0, constraints.maxWidth)
+                        .toDouble();
+                final barWidth =
+                    (duration / totalDays * constraints.maxWidth)
+                        .clamp(14.0, constraints.maxWidth - left)
+                        .toDouble();
+                return Stack(
+                  fit: StackFit.expand,
+                  children: [
+                    Row(
+                      children: List.generate(
+                        7,
+                        (_) => Expanded(
+                          child: Container(
+                            decoration: BoxDecoration(
+                              border: Border(
+                                right: BorderSide(
+                                  color: AppColors.bordeSuave.withOpacity(.15),
                                 ),
                               ),
                             ),
                           ),
                         ),
-                      ],
+                      ),
                     ),
-                  ),
-                ),
-              ),
-            ]);
-          }),
-        ),
-      ]),
+                    Positioned(
+                      left: left,
+                      top: 17,
+                      width: barWidth,
+                      height: 24,
+                      child: Tooltip(
+                        message:
+                            '${_fechaCorta(start)} - ${_fechaCorta(finish)} · $state',
+                        child: Container(
+                          decoration: BoxDecoration(
+                            color: statusColor.withOpacity(.16),
+                            borderRadius: BorderRadius.circular(5),
+                            border: Border.all(
+                              color: statusColor.withOpacity(.65),
+                            ),
+                          ),
+                          child: Stack(
+                            fit: StackFit.expand,
+                            children: [
+                              Align(
+                                alignment: Alignment.centerLeft,
+                                child: FractionallySizedBox(
+                                  widthFactor: progress,
+                                  child: Container(
+                                    decoration: BoxDecoration(
+                                      color: statusColor,
+                                      borderRadius: BorderRadius.circular(4),
+                                    ),
+                                  ),
+                                ),
+                              ),
+                              Center(
+                                child: Padding(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 3,
+                                  ),
+                                  child: FittedBox(
+                                    fit: BoxFit.scaleDown,
+                                    child: Text(
+                                      '${_fechaCorta(start)}–${_fechaCorta(finish)}',
+                                      maxLines: 1,
+                                      style: TextStyle(
+                                        fontSize: 9,
+                                        color: statusColor,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                );
+              },
+            ),
+          ),
+        ],
+      ),
     );
   }
 
   Widget _dataCell(Widget child) => Container(
-        height: _rowHeight,
-        foregroundDecoration: BoxDecoration(
-          border: Border(right: BorderSide(color: AppColors.bordeSuave.withOpacity(.16))),
-        ),
-        child: child,
-      );
+    height: _rowHeight,
+    foregroundDecoration: BoxDecoration(
+      border: Border(
+        right: BorderSide(color: AppColors.bordeSuave.withOpacity(.16)),
+      ),
+    ),
+    child: child,
+  );
 
-  Widget _textDataCell(String text, double width) => _dataCell(SizedBox(
-        width: width,
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 8),
-          child: Align(
-            alignment: Alignment.centerLeft,
-            child: Text(text, maxLines: 2, overflow: TextOverflow.ellipsis,
-                style: const TextStyle(fontSize: 10, color: AppColors.gris)),
+  Widget _textDataCell(String text, double width) => _dataCell(
+    SizedBox(
+      width: width,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 8),
+        child: Align(
+          alignment: Alignment.centerLeft,
+          child: Text(
+            text,
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+            style: const TextStyle(fontSize: 10, color: AppColors.gris),
           ),
         ),
-      ));
+      ),
+    ),
+  );
 }
