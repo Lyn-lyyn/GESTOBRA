@@ -43,6 +43,9 @@ class _ObraDetailScreenState extends State<ObraDetailScreen> {
         'SUPERVISOR',
       }.contains(_rolUsuario);
 
+  bool get _puedeRegistrarAvance =>
+      _puedeCrearActividad || _rolUsuario == 'CAPTURISTA';
+
   int get _obraId =>
       int.tryParse(widget.obra['id_obra']?.toString() ?? '') ?? 0;
 
@@ -413,7 +416,7 @@ class _ObraDetailScreenState extends State<ObraDetailScreen> {
                         ),
                         elevation: 8,
                         rangeSelectionBackgroundColor:
-                            AppColors.naranja.withOpacity(0.2),
+                            AppColors.naranja.withValues(alpha: 0.2),
                         todayForegroundColor:
                             WidgetStateProperty.all(AppColors.naranja),
                         headerHeadlineStyle: const TextStyle(
@@ -749,31 +752,54 @@ class _ObraDetailScreenState extends State<ObraDetailScreen> {
     );
   }
 
+  // ─── Action bar responsive (mejor del Archivo 1) ───
   Widget _buildActionBar() {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-          color: AppColors.blanco,
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: AppColors.bordeSuave)),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.center,
-        children: [
-          const Expanded(
-              child: Text('Programa y control de actividades',
-                  style:
-                      TextStyle(fontSize: 14, fontWeight: FontWeight.bold))),
-          Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              _buildFaseDropdown(),
-              const SizedBox(width: 8),
-              _buildNuevaActividadButton(),
-            ],
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final compact = constraints.maxWidth < 560;
+        final controls = Wrap(
+          spacing: 8,
+          runSpacing: 8,
+          crossAxisAlignment: WrapCrossAlignment.center,
+          children: [_buildFaseDropdown(), _buildNuevaActividadButton()],
+        );
+
+        return Container(
+          width: double.infinity,
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            color: AppColors.blanco,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: AppColors.bordeSuave),
           ),
-        ],
-      ),
+          child: compact
+              ? Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'Programa y control de actividades',
+                      style: TextStyle(
+                          fontSize: 14, fontWeight: FontWeight.bold),
+                    ),
+                    const SizedBox(height: 10),
+                    controls,
+                  ],
+                )
+              : Row(
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    const Expanded(
+                      child: Text(
+                        'Programa y control de actividades',
+                        style: TextStyle(
+                            fontSize: 14, fontWeight: FontWeight.bold),
+                      ),
+                    ),
+                    controls,
+                  ],
+                ),
+        );
+      },
     );
   }
 
@@ -835,33 +861,48 @@ class _ObraDetailScreenState extends State<ObraDetailScreen> {
               'Se requiere una obra y sus fases cargadas para crear actividades.')));
       return;
     }
-    final creada = await showDialog<bool>(
+    // ⚠️ Verifica el contrato real de NuevaActividadModal:
+    // Archivo 1 usaba `obraId:` + `onCrear: ()`
+    // Archivo 2 usaba `idObra:` + `onCrear: (nuevaActividad)`
+    await showDialog<bool>(
       context: context,
       barrierDismissible: true,
-      builder: (BuildContext context) {
+      builder: (BuildContext ctx) {
         return NuevaActividadModal(
           idObra: widget.obra['id_obra'],
           fasesDisponibles: _fases,
           onCrear: (nuevaActividad) {
             _cargarDetalle();
-            ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+            ScaffoldMessenger.of(ctx).showSnackBar(const SnackBar(
                 content: Text('Actividad creada correctamente'),
                 backgroundColor: Colors.green));
           },
         );
       },
     );
-    if (creada == true && mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Actividad creada correctamente')));
-    }
   }
 
   Widget _buildFasesResumen() {
     return LayoutBuilder(
       builder: (context, constraints) {
-        final isDesktop = constraints.maxWidth > 900;
-        if (isDesktop) {
+        if (_cargando) {
+          return const Center(
+            child: Padding(
+              padding: EdgeInsets.all(24),
+              child: CircularProgressIndicator(),
+            ),
+          );
+        }
+        if (_errorDetalle != null) return _buildErrorDetalle();
+        if (_fases.isEmpty) {
+          return const Center(
+            child: Padding(
+              padding: EdgeInsets.all(24),
+              child: Text('Esta obra aún no tiene fases registradas.'),
+            ),
+          );
+        }
+        if (constraints.maxWidth > 900) {
           return Wrap(
             spacing: 12,
             runSpacing: 12,
@@ -888,12 +929,25 @@ class _ObraDetailScreenState extends State<ObraDetailScreen> {
     );
   }
 
+  // ─── Fase card: usa campos precalculados (Archivo 1) con fallback local (Archivo 2) ───
   Widget _buildFaseCard(Map<String, dynamic> fase) {
-    final actsFase =
-        _actividades.where((a) => a['fase'] == fase['nombre']).toList();
-    final concluidas = actsFase.where((a) => a['isCompleted'] == true).length;
-    final total = actsFase.length;
-    final porcentaje = total == 0 ? 0 : ((concluidas / total) * 100).round();
+    final int porcentaje;
+    final int concluidas;
+    final int total;
+
+    if (fase.containsKey('porcentaje') &&
+        fase.containsKey('concluidas') &&
+        fase.containsKey('total')) {
+      porcentaje = (fase['porcentaje'] as num?)?.toInt() ?? 0;
+      concluidas = (fase['concluidas'] as num?)?.toInt() ?? 0;
+      total = (fase['total'] as num?)?.toInt() ?? 0;
+    } else {
+      final actsFase =
+          _actividades.where((a) => a['fase'] == fase['nombre']).toList();
+      concluidas = actsFase.where((a) => a['isCompleted'] == true).length;
+      total = actsFase.length;
+      porcentaje = total == 0 ? 0 : ((concluidas / total) * 100).round();
+    }
 
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 4),
@@ -1036,7 +1090,10 @@ class _ObraDetailScreenState extends State<ObraDetailScreen> {
               ),
               const SizedBox(width: 16),
               ElevatedButton(
-                onPressed: () => _registrarAvance(actividad),
+                // Permisos del Archivo 1 + texto claro
+                onPressed: _puedeRegistrarAvance
+                    ? () => _registrarAvance(actividad)
+                    : null,
                 style: ElevatedButton.styleFrom(
                     backgroundColor: AppColors.naranja,
                     foregroundColor: Colors.white,
@@ -1044,7 +1101,7 @@ class _ObraDetailScreenState extends State<ObraDetailScreen> {
                         horizontal: 20, vertical: 8),
                     shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(20))),
-                child: const Text('Editar',
+                child: const Text('Registrar avance',
                     style: TextStyle(
                         fontSize: 12, fontWeight: FontWeight.bold)),
               ),
@@ -1056,9 +1113,14 @@ class _ObraDetailScreenState extends State<ObraDetailScreen> {
   }
 
   Widget _buildActividadesSection() {
+    // Fix del Archivo 2: filtro por fase + manejo de loading/error/vacío
     final actsFiltradas = _faseSeleccionada == 'Todas las fases'
         ? _actividades
-        : _actividades.where((a) => a['fase'] == _faseSeleccionada).toList();
+        : _actividades
+            .where((a) =>
+                a['fase'].toString().toUpperCase() ==
+                _faseSeleccionada.toUpperCase())
+            .toList();
 
     return Container(
       width: double.infinity,
@@ -1070,7 +1132,16 @@ class _ObraDetailScreenState extends State<ObraDetailScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          if (actsFiltradas.isEmpty)
+          if (_cargando)
+            const Center(
+              child: Padding(
+                padding: EdgeInsets.all(24),
+                child: CircularProgressIndicator(),
+              ),
+            )
+          else if (_errorDetalle != null)
+            _buildErrorDetalle()
+          else if (actsFiltradas.isEmpty)
             const Padding(
               padding: EdgeInsets.all(20),
               child: Center(
@@ -1176,7 +1247,7 @@ class _ObraDetailScreenState extends State<ObraDetailScreen> {
         ),
         BitacoraSection(obra: widget.obra),
         MaterialesSection(obra: widget.obra),
-        EvidenciasSection(obra: widget.obra), // 👈 Corregido aquí
+        EvidenciasSection(obra: widget.obra),
         ReportesSection(
           obra: widget.obra,
           tipoReporteInicial: _tipoReporte,
