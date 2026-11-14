@@ -175,12 +175,16 @@ class _PipelineActividadesSectionState
           const Padding(
             padding: EdgeInsets.fromLTRB(16, 0, 16, 12),
             child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Icon(Icons.swipe, size: 16, color: AppColors.gris),
                 SizedBox(width: 6),
-                Text(
-                  'Desliza horizontalmente para consultar el cronograma',
-                  style: TextStyle(fontSize: 11, color: AppColors.gris),
+                Expanded(
+                  child: Text(
+                    'Desliza horizontalmente para consultar el cronograma',
+                    softWrap: true,
+                    style: TextStyle(fontSize: 11, color: AppColors.gris),
+                  ),
                 ),
               ],
             ),

@@ -24,18 +24,63 @@ class _NuevaActividadModalState extends State<NuevaActividadModal> {
   
   // Datos del formulario
   int? _faseSeleccionadaId;
-  String? _responsableSeleccionado;
+  int _responsableSeleccionadoId = -1;
   DateTime? _fechaInicio;
   DateTime? _fechaFin;
   bool _guardando = false;
+  bool _cargandoResponsables = true;
+  String? _errorResponsables;
+  List<Map<String, dynamic>> _responsables = [];
 
-  final List<String> _responsables = [
-    'Cuadrilla 1 - Don Pedro',
-    'Cuadrilla 2 - Operador Retro',
-    'Topógrafo Miguel Narvaez',
-    'Ing. Carlos Morales',
-    'Maestro de obra Juan Ramírez',
-  ];
+  @override
+  void initState() {
+    super.initState();
+    _cargarResponsables();
+  }
+
+  Future<void> _cargarResponsables() async {
+    setState(() {
+      _cargandoResponsables = true;
+      _errorResponsables = null;
+    });
+    try {
+      final respuesta = await ApiService.get(
+        'personal_obra.php?id_obra=${widget.idObra}',
+      );
+      if (respuesta['estado'] != true || respuesta['data'] is! List) {
+        throw Exception(
+          respuesta['mensaje'] ?? 'No se pudo cargar el personal de la obra.',
+        );
+      }
+      final responsables = List<Map<String, dynamic>>.from(
+        (respuesta['data'] as List).map(
+          (usuario) => Map<String, dynamic>.from(usuario as Map),
+        ),
+      );
+      if (!mounted) return;
+      setState(() {
+        _responsables = responsables;
+        _cargandoResponsables = false;
+      });
+    } catch (error) {
+      if (!mounted) return;
+      setState(() {
+        _errorResponsables = error.toString().replaceFirst('Exception: ', '');
+        _cargandoResponsables = false;
+      });
+    }
+  }
+
+  String get _responsableSeleccionadoNombre {
+    if (_responsableSeleccionadoId <= 0) return 'Sin asignar';
+    for (final responsable in _responsables) {
+      if (int.tryParse(responsable['id_usuario'].toString()) ==
+          _responsableSeleccionadoId) {
+        return responsable['nombre_completo']?.toString() ?? 'Sin asignar';
+      }
+    }
+    return 'Sin asignar';
+  }
 
   @override
   void dispose() {
@@ -112,6 +157,8 @@ class _NuevaActividadModalState extends State<NuevaActividadModal> {
       'id_fase': _faseSeleccionadaId,
       'nombre': _nombreController.text.trim(),
       'descripcion': _descripcionController.text.trim(),
+      'responsable_id':
+          _responsableSeleccionadoId > 0 ? _responsableSeleccionadoId : null,
       'fecha_inicio_programada': _formatearFechaSQL(_fechaInicio),
       'fecha_fin_programada': _formatearFechaSQL(_fechaFin),
     };
@@ -130,7 +177,7 @@ class _NuevaActividadModalState extends State<NuevaActividadModal> {
           'estado': 'PENDIENTE',
           'titulo': _nombreController.text.trim(),
           'descripcion': _descripcionController.text.trim(),
-          'responsable': _responsableSeleccionado ?? 'Sin asignar',
+          'responsable': _responsableSeleccionadoNombre,
           'programado': 'Programado ${_formatearFechaVisual(_fechaInicio)} al ${_formatearFechaVisual(_fechaFin)}',
           'fechaInicio': _fechaInicio,
           'fechaFin': _fechaFin,
@@ -160,10 +207,14 @@ class _NuevaActividadModalState extends State<NuevaActividadModal> {
   @override
   Widget build(BuildContext context) {
     return Dialog(
+      insetPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       backgroundColor: AppColors.grisfondo,
       child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 500, maxHeight: 700),
+        constraints: BoxConstraints(
+          maxWidth: 500,
+          maxHeight: MediaQuery.of(context).size.height * 0.88,
+        ),
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(24.0),
           child: Column(
@@ -211,65 +262,93 @@ class _NuevaActividadModalState extends State<NuevaActividadModal> {
               const SizedBox(height: 16),
 
               // Fechas
-              Row(
-                children: [
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        _buildLabel('Fecha inicio *'),
-                        _buildDateField(fecha: _fechaInicio, onTap: () => _seleccionarFecha(true)),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        _buildLabel('Fecha fin *'),
-                        _buildDateField(fecha: _fechaFin, onTap: () => _seleccionarFecha(false)),
-                      ],
-                    ),
-                  ),
-                ],
+              LayoutBuilder(
+                builder: (context, constraints) {
+                  final inicio = Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      _buildLabel('Fecha inicio *'),
+                      _buildDateField(
+                        fecha: _fechaInicio,
+                        onTap: () => _seleccionarFecha(true),
+                      ),
+                    ],
+                  );
+                  final fin = Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      _buildLabel('Fecha fin *'),
+                      _buildDateField(
+                        fecha: _fechaFin,
+                        onTap: () => _seleccionarFecha(false),
+                      ),
+                    ],
+                  );
+                  if (constraints.maxWidth < 380) {
+                    return Column(
+                      children: [inicio, const SizedBox(height: 12), fin],
+                    );
+                  }
+                  return Row(
+                    children: [
+                      Expanded(child: inicio),
+                      const SizedBox(width: 12),
+                      Expanded(child: fin),
+                    ],
+                  );
+                },
               ),
               const SizedBox(height: 32),
 
               // Botones
-              Row(
-                mainAxisAlignment: MainAxisAlignment.end,
-                children: [
-                  SizedBox(
-                    height: 44,
-                    child: OutlinedButton(
-                      onPressed: _guardando ? null : () => Navigator.pop(context),
-                      style: OutlinedButton.styleFrom(
-                        foregroundColor: AppColors.gris,
-                        side: const BorderSide(color: AppColors.bordeSuave),
-                        padding: const EdgeInsets.symmetric(horizontal: 24),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+              LayoutBuilder(
+                builder: (context, constraints) {
+                  final cancelar = OutlinedButton(
+                    onPressed: _guardando ? null : () => Navigator.pop(context),
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: AppColors.gris,
+                      side: const BorderSide(color: AppColors.bordeSuave),
+                      padding: const EdgeInsets.symmetric(horizontal: 24),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8),
                       ),
-                      child: const Text('CANCELAR', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
                     ),
-                  ),
-                  const SizedBox(width: 12),
-                  SizedBox(
-                    height: 44,
-                    child: ElevatedButton(
-                      onPressed: _guardando ? null : _handleCrear,
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: AppColors.naranja,
-                        foregroundColor: Colors.white,
-                        padding: const EdgeInsets.symmetric(horizontal: 24),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                    child: const Text('CANCELAR',
+                        style: TextStyle(
+                            fontWeight: FontWeight.bold, fontSize: 12)),
+                  );
+                  final crear = ElevatedButton(
+                    onPressed: _guardando ? null : _handleCrear,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.naranja,
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(horizontal: 24),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8),
                       ),
-                      child: _guardando
-                          ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
-                          : const Text('CREAR ACTIVIDAD', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
                     ),
-                  ),
-                ],
+                    child: _guardando
+                        ? const SizedBox(
+                            width: 18,
+                            height: 18,
+                            child: CircularProgressIndicator(
+                                color: Colors.white, strokeWidth: 2),
+                          )
+                        : const Text('CREAR ACTIVIDAD',
+                            style: TextStyle(
+                                fontWeight: FontWeight.bold, fontSize: 12)),
+                  );
+                  if (constraints.maxWidth < 340) {
+                    return Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [cancelar, const SizedBox(height: 8), crear],
+                    );
+                  }
+                  return Row(
+                    mainAxisAlignment: MainAxisAlignment.end,
+                    children: [cancelar, const SizedBox(width: 12), crear],
+                  );
+                },
               ),
             ],
           ),
@@ -331,6 +410,43 @@ class _NuevaActividadModalState extends State<NuevaActividadModal> {
   }
 
   Widget _buildDropdownResponsable() {
+    if (_cargandoResponsables) {
+      return const InputDecorator(
+        decoration: InputDecoration(border: OutlineInputBorder(), isDense: true),
+        child: Row(
+          children: [
+            SizedBox(
+              width: 16,
+              height: 16,
+              child: CircularProgressIndicator(strokeWidth: 2),
+            ),
+            SizedBox(width: 10),
+            Text('Cargando personal de la obra…'),
+          ],
+        ),
+      );
+    }
+    if (_errorResponsables != null) {
+      return InputDecorator(
+        decoration: const InputDecoration(border: OutlineInputBorder(), isDense: true),
+        child: Row(
+          children: [
+            const Expanded(
+              child: Text(
+                'No se pudo cargar el personal. Puedes reintentar o dejarlo sin asignar.',
+                style: TextStyle(fontSize: 12, color: AppColors.estadoRojo),
+              ),
+            ),
+            IconButton(
+              tooltip: 'Reintentar',
+              onPressed: _cargarResponsables,
+              icon: const Icon(Icons.refresh, color: AppColors.naranja),
+            ),
+          ],
+        ),
+      );
+    }
+
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12),
       decoration: BoxDecoration(
@@ -339,14 +455,26 @@ class _NuevaActividadModalState extends State<NuevaActividadModal> {
         border: Border.all(color: AppColors.naranja),
       ),
       child: DropdownButtonHideUnderline(
-        child: DropdownButton<String>(
-          value: _responsableSeleccionado,
+        child: DropdownButton<int>(
+          value: _responsableSeleccionadoId,
           isExpanded: true,
           hint: Text('Selecciona un responsable', style: TextStyle(fontSize: 12, color: Colors.grey.shade400)),
           icon: const Icon(Icons.arrow_drop_down, color: AppColors.naranja),
           style: const TextStyle(fontSize: 13, color: Colors.black87),
-          items: _responsables.map((e) => DropdownMenuItem(value: e, child: Text(e))).toList(),
-          onChanged: (value) => setState(() => _responsableSeleccionado = value),
+          items: [
+            const DropdownMenuItem<int>(value: -1, child: Text('Sin asignar')),
+            ..._responsables.map((usuario) {
+              final id = int.tryParse(usuario['id_usuario'].toString());
+              if (id == null || id <= 0) return null;
+              return DropdownMenuItem<int>(
+                value: id,
+                child: Text(usuario['nombre_completo']?.toString() ?? ''),
+              );
+            }).whereType<DropdownMenuItem<int>>(),
+          ],
+          onChanged: (value) => setState(
+            () => _responsableSeleccionadoId = value ?? -1,
+          ),
         ),
       ),
     );

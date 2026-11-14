@@ -1,8 +1,13 @@
+import 'dart:typed_data';
+
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart' show PlatformException;
 import 'package:gestobra/config/theme/app_colors.dart';
 import 'package:gestobra/ui/screens/auth/login_screen.dart';
 import 'package:gestobra/servicios/api_service.dart';
 import 'package:gestobra/servicios/auth_service.dart';
+import 'package:image_picker/image_picker.dart';
 
 class PerfilScreen extends StatefulWidget {
   const PerfilScreen({super.key});
@@ -16,6 +21,8 @@ class _PerfilScreenState extends State<PerfilScreen> {
   bool _cargando = true;
   bool _guardando = false;
   String? _error;
+  Uint8List? _fotoTemporal;
+  final ImagePicker _imagePicker = ImagePicker();
 
   // ─── Helpers ───
   String _texto(dynamic valor, {String fallback = 'No registrado'}) {
@@ -52,6 +59,7 @@ class _PerfilScreenState extends State<PerfilScreen> {
   }
 
   ImageProvider? _fotoPerfil() {
+    if (_fotoTemporal != null) return MemoryImage(_fotoTemporal!);
     final foto = _perfil?['foto_url']?.toString().trim() ?? '';
     if (foto.isEmpty || foto.toLowerCase() == 'null') return null;
     final uri = Uri.tryParse(foto);
@@ -119,10 +127,113 @@ class _PerfilScreenState extends State<PerfilScreen> {
     }
   }
 
-  void _cambiarFoto() {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('La edición de la foto aún no está conectada.')),
+  Future<void> _cambiarFoto() async {
+    if (_guardando) return;
+    final tomarFoto = await showModalBottomSheet<bool>(
+      context: context,
+      builder: (sheetContext) => SafeArea(
+        child: Wrap(
+          children: [
+            if (_imagePicker.supportsImageSource(ImageSource.camera))
+              ListTile(
+                leading: const Icon(Icons.photo_camera_outlined),
+                title: const Text('Tomar foto'),
+                onTap: () => Navigator.pop(sheetContext, true),
+              ),
+            ListTile(
+              leading: const Icon(Icons.photo_library_outlined),
+              title: const Text('Elegir del dispositivo'),
+              onTap: () => Navigator.pop(sheetContext, false),
+            ),
+          ],
+        ),
+      ),
     );
+    if (tomarFoto == null || !mounted) return;
+
+    try {
+      Uint8List? bytes;
+      String fileName;
+      if (tomarFoto) {
+        final image = await _imagePicker.pickImage(
+          source: ImageSource.camera,
+          preferredCameraDevice: CameraDevice.front,
+          imageQuality: 85,
+        );
+        if (image == null || !mounted) return;
+        bytes = await image.readAsBytes();
+        fileName = image.name;
+      } else {
+        final result = await FilePicker.platform.pickFiles(
+          type: FileType.custom,
+          allowedExtensions: ['jpg', 'jpeg', 'png', 'webp'],
+          withData: true,
+          allowMultiple: false,
+        );
+        if (result == null || result.files.isEmpty || !mounted) return;
+        bytes = result.files.single.bytes;
+        fileName = result.files.single.name;
+      }
+
+      if (bytes == null || bytes.isEmpty) {
+        throw Exception('No se pudo leer la imagen seleccionada.');
+      }
+      if (bytes.length > 8 * 1024 * 1024) {
+        throw Exception('La imagen debe pesar menos de 8 MB.');
+      }
+
+      setState(() {
+        _guardando = true;
+        _fotoTemporal = bytes;
+      });
+      final respuesta = await ApiService.uploadFile(
+        'actualizar_foto_perfil.php',
+        fields: const {},
+        bytes: bytes,
+        fileName: fileName.trim().isEmpty ? 'foto_perfil.jpg' : fileName,
+      );
+      if (!mounted) return;
+      if (respuesta['estado'] != true) {
+        throw Exception(respuesta['mensaje'] ?? 'No se pudo actualizar la foto.');
+      }
+
+      final fotoUrl = respuesta['foto_url']?.toString();
+      if (fotoUrl == null || fotoUrl.isEmpty) {
+        throw Exception('El servidor no devolvió la ruta de la foto.');
+      }
+      setState(() {
+        _perfil = {...?_perfil, 'foto_url': fotoUrl};
+        _fotoTemporal = null;
+        _guardando = false;
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Foto de perfil actualizada.')),
+      );
+    } on PlatformException catch (error) {
+      if (!mounted) return;
+      setState(() {
+        _fotoTemporal = null;
+        _guardando = false;
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            error.code == 'camera_access_denied'
+                ? 'Permite el acceso a la cámara en los ajustes del teléfono.'
+                : 'No se pudo abrir la cámara o seleccionar la imagen.',
+          ),
+        ),
+      );
+    } catch (error) {
+      if (!mounted) return;
+      setState(() {
+        _fotoTemporal = null;
+        _guardando = false;
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('No se pudo actualizar la foto: $error')),
+      );
+    }
   }
 
   void _cerrarSesion() async {
@@ -396,7 +507,7 @@ class _PerfilScreenState extends State<PerfilScreen> {
                       ),
                     ),
                     InkWell(
-                      onTap: _cambiarFoto,
+                      onTap: _guardando ? null : _cambiarFoto,
                       child: Container(
                         padding: const EdgeInsets.all(8),
                         decoration: BoxDecoration(
@@ -404,7 +515,16 @@ class _PerfilScreenState extends State<PerfilScreen> {
                           shape: BoxShape.circle,
                           border: Border.all(color: Colors.white, width: 2),
                         ),
-                        child: const Icon(Icons.camera_alt, size: 16, color: Colors.white),
+                        child: _guardando
+                            ? const SizedBox(
+                                width: 16,
+                                height: 16,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  color: Colors.white,
+                                ),
+                              )
+                            : const Icon(Icons.camera_alt, size: 16, color: Colors.white),
                       ),
                     ),
                   ],
@@ -489,21 +609,45 @@ class _PerfilScreenState extends State<PerfilScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              const Text('Información del Personal', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppColors.textoNegro)),
-              OutlinedButton.icon(
+          LayoutBuilder(
+            builder: (context, constraints) {
+              const title = Text(
+                'Información del Personal',
+                style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: AppColors.textoNegro),
+              );
+              final editButton = OutlinedButton.icon(
                 onPressed: _guardando ? null : _editarPerfil,
                 icon: const Icon(Icons.edit_outlined, size: 16),
-                label: Text(_guardando ? 'Guardando...' : 'Editar', style: const TextStyle(fontSize: 12)),
+                label: Text(_guardando ? 'Guardando...' : 'Editar',
+                    style: const TextStyle(fontSize: 12)),
                 style: OutlinedButton.styleFrom(
                   foregroundColor: AppColors.naranja,
                   side: const BorderSide(color: AppColors.naranja),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8)),
                 ),
-              ),
-            ],
+              );
+              if (constraints.maxWidth < 340) {
+                return Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    title,
+                    const SizedBox(height: 8),
+                    Align(alignment: Alignment.centerRight, child: editButton),
+                  ],
+                );
+              }
+              return Row(
+                children: [
+                  const Expanded(child: title),
+                  const SizedBox(width: 8),
+                  editButton,
+                ],
+              );
+            },
           ),
           const SizedBox(height: 20),
           _buildSubtitulo('Datos Generales'),

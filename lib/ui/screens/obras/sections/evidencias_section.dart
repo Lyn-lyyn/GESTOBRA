@@ -275,35 +275,41 @@ class _EvidenciasSectionState extends State<EvidenciasSection> {
       'Todas las fases',
       ..._fases.map((fase) => fase['nombre'].toString()),
     ];
-    return Container(
-      height: 40,
-      padding: const EdgeInsets.symmetric(horizontal: 10),
-      decoration: BoxDecoration(
-        color: AppColors.noseleccionado,
-        borderRadius: BorderRadius.circular(8),
-      ),
-      child: DropdownButtonHideUnderline(
-        child: DropdownButton<String>(
-          value: _faseSeleccionada,
-          icon: const Icon(
-            Icons.keyboard_arrow_down,
-            size: 18,
-            color: AppColors.gris,
+    final dropdownWidth =
+        (MediaQuery.of(context).size.width - 96).clamp(180.0, 220.0).toDouble();
+    return SizedBox(
+      width: dropdownWidth,
+      child: Container(
+        height: 40,
+        padding: const EdgeInsets.symmetric(horizontal: 10),
+        decoration: BoxDecoration(
+          color: AppColors.noseleccionado,
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: DropdownButtonHideUnderline(
+          child: DropdownButton<String>(
+            value: _faseSeleccionada,
+            isExpanded: true,
+            icon: const Icon(
+              Icons.keyboard_arrow_down,
+              size: 18,
+              color: AppColors.gris,
+            ),
+            style: const TextStyle(
+              fontSize: 11,
+              color: AppColors.textoNegro,
+              fontWeight: FontWeight.bold,
+            ),
+            items: fases
+                .map((fase) => DropdownMenuItem(
+                      value: fase,
+                      child: Text(fase, overflow: TextOverflow.ellipsis),
+                    ))
+                .toList(),
+            onChanged: (value) {
+              if (value != null) setState(() => _faseSeleccionada = value);
+            },
           ),
-          style: const TextStyle(
-            fontSize: 11,
-            color: AppColors.textoNegro,
-            fontWeight: FontWeight.bold,
-          ),
-          items:
-              fases
-                  .map(
-                    (fase) => DropdownMenuItem(value: fase, child: Text(fase)),
-                  )
-                  .toList(),
-          onChanged: (value) {
-            if (value != null) setState(() => _faseSeleccionada = value);
-          },
         ),
       ),
     );

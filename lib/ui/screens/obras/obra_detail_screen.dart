@@ -808,11 +808,14 @@ class _ObraDetailScreenState extends State<ObraDetailScreen> {
       'Todas las fases',
       ..._fases.map((f) => f['nombre'].toString())
     ];
+    final dropdownWidth =
+        (MediaQuery.of(context).size.width - 96).clamp(180.0, 260.0).toDouble();
     if (!fasesNombres.contains(_faseSeleccionada)) {
       _faseSeleccionada = 'Todas las fases';
     }
 
     return SizedBox(
+      width: dropdownWidth,
       height: 40,
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 12),
@@ -821,13 +824,17 @@ class _ObraDetailScreenState extends State<ObraDetailScreen> {
             borderRadius: BorderRadius.circular(8)),
         child: DropdownButton<String>(
           value: _faseSeleccionada,
+          isExpanded: true,
           underline: const SizedBox(),
           icon: const Icon(Icons.keyboard_arrow_down,
               size: 18, color: AppColors.gris),
           style: const TextStyle(
               fontSize: 12, color: AppColors.gris, fontWeight: FontWeight.bold),
           items: fasesNombres
-              .map((fase) => DropdownMenuItem(value: fase, child: Text(fase)))
+              .map((fase) => DropdownMenuItem(
+                    value: fase,
+                    child: Text(fase, overflow: TextOverflow.ellipsis),
+                  ))
               .toList(),
           onChanged: (value) => setState(() => _faseSeleccionada = value!),
         ),
@@ -1007,16 +1014,19 @@ class _ObraDetailScreenState extends State<ObraDetailScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
+          Wrap(
+            spacing: 8,
+            runSpacing: 6,
+            crossAxisAlignment: WrapCrossAlignment.center,
             children: [
-              _buildBadge(actividad['fase'], AppColors.naranja,
-                  isOutlined: true),
-              const SizedBox(width: 8),
+              ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 220),
+                child: _buildBadge(actividad['fase'], AppColors.naranja,
+                    isOutlined: true),
+              ),
               _buildBadge(estado, colorEstado, icon: iconoEstado),
-              const Spacer(),
               Text('Ponderación ${actividad['ponderacion']}',
-                  style: const TextStyle(
-                      fontSize: 10, color: AppColors.gris)),
+                  style: const TextStyle(fontSize: 10, color: AppColors.gris)),
             ],
           ),
           const SizedBox(height: 12),
@@ -1047,68 +1057,81 @@ class _ObraDetailScreenState extends State<ObraDetailScreen> {
                     fontStyle: FontStyle.italic)),
           ),
           const SizedBox(height: 16),
-          Row(
-            children: [
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text('Avance actual',
-                        style: TextStyle(
-                            fontSize: 10, color: AppColors.gris)),
-                    const SizedBox(height: 4),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: Container(
-                            decoration: BoxDecoration(
-                                border:
-                                    Border.all(color: Colors.grey.shade300),
-                                borderRadius: BorderRadius.circular(4)),
-                            child: ClipRRect(
-                              borderRadius: BorderRadius.circular(4),
-                              child: LinearProgressIndicator(
-                                value: actividad['avance'],
-                                backgroundColor: Colors.grey.shade100,
-                                valueColor: AlwaysStoppedAnimation<Color>(
-                                    actividad['isCompleted'] == true
-                                        ? Colors.green
-                                        : AppColors.naranja),
-                                minHeight: 10,
-                              ),
-                            ),
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        Text('${(actividad['avance'] * 100).toInt()}%',
-                            style: const TextStyle(
-                                fontWeight: FontWeight.bold, fontSize: 13)),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(width: 16),
-              ElevatedButton(
-                // Permisos del Archivo 1 + texto claro
-                onPressed: _puedeRegistrarAvance
-                    ? () => _registrarAvance(actividad)
-                    : null,
-                style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.naranja,
-                    foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 20, vertical: 8),
-                    shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(20))),
-                child: const Text('Registrar avance',
-                    style: TextStyle(
-                        fontSize: 12, fontWeight: FontWeight.bold)),
-              ),
-            ],
-          ),
+          _buildActividadAvance(actividad),
         ],
       ),
+    );
+  }
+
+  Widget _buildActividadAvance(Map<String, dynamic> actividad) {
+    final avance = (actividad['avance'] as num?)?.toDouble() ?? 0;
+    final indicador = Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text('Avance actual',
+            style: TextStyle(fontSize: 10, color: AppColors.gris)),
+        const SizedBox(height: 4),
+        Row(
+          children: [
+            Expanded(
+              child: Container(
+                decoration: BoxDecoration(
+                    border: Border.all(color: Colors.grey.shade300),
+                    borderRadius: BorderRadius.circular(4)),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(4),
+                  child: LinearProgressIndicator(
+                    value: avance,
+                    backgroundColor: Colors.grey.shade100,
+                    valueColor: AlwaysStoppedAnimation<Color>(
+                        actividad['isCompleted'] == true
+                            ? Colors.green
+                            : AppColors.naranja),
+                    minHeight: 10,
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(width: 8),
+            Text('${(avance * 100).toInt()}%',
+                style:
+                    const TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+          ],
+        ),
+      ],
+    );
+    final boton = ElevatedButton(
+      onPressed: _puedeRegistrarAvance ? () => _registrarAvance(actividad) : null,
+      style: ElevatedButton.styleFrom(
+          backgroundColor: AppColors.naranja,
+          foregroundColor: Colors.white,
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(20))),
+      child: const Text('Registrar avance',
+          style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+    );
+
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        if (constraints.maxWidth < 380) {
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              indicador,
+              const SizedBox(height: 12),
+              SizedBox(width: double.infinity, child: boton),
+            ],
+          );
+        }
+        return Row(
+          children: [
+            Expanded(child: indicador),
+            const SizedBox(width: 16),
+            boton,
+          ],
+        );
+      },
     );
   }
 
@@ -1188,6 +1211,8 @@ class _ObraDetailScreenState extends State<ObraDetailScreen> {
             const SizedBox(width: 4)
           ],
           Text(text,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
               style: TextStyle(
                   fontSize: 10, fontWeight: FontWeight.bold, color: color)),
         ],
