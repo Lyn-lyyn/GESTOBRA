@@ -20,6 +20,7 @@ import 'admin_incidencias_screen.dart';
 import 'admin_bitacoras_screen.dart';
 import 'admin_materiales_screen.dart';
 import 'admin_evidencias_screen.dart';
+import 'admin_reporte_materiales_screen.dart'; // 👈 NUEVA IMPORTACIÓN
 
 class AdminMainScaffold extends StatefulWidget {
   const AdminMainScaffold({super.key});
@@ -51,6 +52,7 @@ class _AdminMainScaffoldState extends State<AdminMainScaffold> {
     const AdminMaterialesScreen(),     // 13 - Materiales (NUEVO)
     const AdminEvidenciasScreen(),     // 14 - Evidencias (NUEVO)
     const AdminPerfilScreen(),         // 15 - Perfil (Al final)
+     const AdminReporteMaterialesScreen(), // 16 - Reporte Financiero 👈 NUEVO
   ];
 
   int get _currentMobileNavIndex {
@@ -146,6 +148,7 @@ class _AdminMainScaffoldState extends State<AdminMainScaffold> {
                     _buildMenuOption(ctx, 'Bitácoras', Icons.menu_book, 12),
                     _buildMenuOption(ctx, 'Materiales', Icons.inventory, 13),
                     _buildMenuOption(ctx, 'Evidencias', Icons.photo_library, 14),
+                     _buildMenuOption(ctx, 'Reporte Financiero', Icons.insights, 16),
                   ],
                 ),
               ],
@@ -226,6 +229,7 @@ class _AdminMainScaffoldState extends State<AdminMainScaffold> {
             _buildDesktopItem(12, Icons.menu_book_outlined, Icons.menu_book, 'Bitácoras'),
             _buildDesktopItem(13, Icons.inventory_outlined, Icons.inventory, 'Materiales'),
             _buildDesktopItem(14, Icons.photo_library_outlined, Icons.photo_library, 'Evidencias'),
+              _buildDesktopItem(16, Icons.insights, Icons.insights, 'Reporte Financiero'),
             // ─── PERFIL AL FINAL ───
             _buildDesktopItem(15, Icons.person_outline, Icons.person, 'Perfil'),
             const SizedBox(height: 20),

@@ -194,6 +194,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   );
                 }).toList(),
               ),
+              const SizedBox(height: 16),
+              _buildBigInfoBox(),
               const SizedBox(height: 32),
 
               const Text('Proyectos y obras civiles', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.black87)),
@@ -328,7 +330,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
     return Container(
       width: double.infinity,
-      height: 100,
+      constraints: const BoxConstraints(minHeight: 100),
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(12), border: Border.all(color: AppColors.bordeSuave)),
       child: Row(

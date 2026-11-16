@@ -161,41 +161,44 @@ class _EvidenciasSectionState extends State<EvidenciasSection> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          LayoutBuilder(
+                    LayoutBuilder(
             builder: (context, constraints) {
               final compact = constraints.maxWidth < 620;
               final title = const Text(
-                'Evidencias fotográficas georreferenciadas y foliadas',
+                'Evidencias fotográficas georeferenciadas y foliadas',
                 style: TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.bold,
                   height: 1.2,
                 ),
               );
-              final actions = Wrap(
-                spacing: 8,
-                runSpacing: 8,
-                crossAxisAlignment: WrapCrossAlignment.center,
+              
+              // Usamos Row + Expanded para que los botones llenen el espacio
+              final actions = Row(
                 children: [
-                  _buildFaseDropdown(),
-                  SizedBox(
-                    height: 40,
-                    child: ElevatedButton.icon(
-                      onPressed: _abrirModal,
-                      icon: const Icon(Icons.add, size: 16),
-                      label: const Text(
-                        'Subir evidencia',
-                        style: TextStyle(
-                          fontSize: 12,
-                          fontWeight: FontWeight.bold,
+                  Expanded(child: _buildFaseDropdown()),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: SizedBox(
+                      height: 40,
+                      child: ElevatedButton.icon(
+                        onPressed: _abrirModal,
+                        icon: const Icon(Icons.add, size: 16),
+                        label: const Text(
+                          'Subir evidencia',
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.bold,
+                          ),
                         ),
-                      ),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: AppColors.naranja,
-                        foregroundColor: Colors.black,
-                        padding: const EdgeInsets.symmetric(horizontal: 14),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(8),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: AppColors.naranja,
+                          foregroundColor: Colors.black,
+                          padding: const EdgeInsets.symmetric(horizontal: 8),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(8),
+                          ),
                         ),
                       ),
                     ),
@@ -209,7 +212,14 @@ class _EvidenciasSectionState extends State<EvidenciasSection> {
                   children: [title, const SizedBox(height: 10), actions],
                 );
               }
-              return Row(children: [Expanded(child: title), actions]);
+              return Row(
+                children: [
+                  Expanded(child: title),
+                  const SizedBox(width: 16),
+                  // En escritorio les damos un ancho fijo cómodo
+                  SizedBox(width: 360, child: actions),
+                ],
+              );
             },
           ),
           const SizedBox(height: 12),
@@ -270,11 +280,13 @@ class _EvidenciasSectionState extends State<EvidenciasSection> {
     );
   }
 
-  Widget _buildFaseDropdown() {
+   Widget _buildFaseDropdown() {
     final fases = [
       'Todas las fases',
       ..._fases.map((fase) => fase['nombre'].toString()),
     ];
+    
+    // Eliminamos el cálculo fijo del dropdownWidth y su SizedBox exterior
     return Container(
       height: 40,
       padding: const EdgeInsets.symmetric(horizontal: 10),
@@ -285,6 +297,7 @@ class _EvidenciasSectionState extends State<EvidenciasSection> {
       child: DropdownButtonHideUnderline(
         child: DropdownButton<String>(
           value: _faseSeleccionada,
+          isExpanded: true,
           icon: const Icon(
             Icons.keyboard_arrow_down,
             size: 18,
@@ -295,12 +308,12 @@ class _EvidenciasSectionState extends State<EvidenciasSection> {
             color: AppColors.textoNegro,
             fontWeight: FontWeight.bold,
           ),
-          items:
-              fases
-                  .map(
-                    (fase) => DropdownMenuItem(value: fase, child: Text(fase)),
-                  )
-                  .toList(),
+          items: fases
+              .map((fase) => DropdownMenuItem(
+                    value: fase,
+                    child: Text(fase, overflow: TextOverflow.ellipsis),
+                  ))
+              .toList(),
           onChanged: (value) {
             if (value != null) setState(() => _faseSeleccionada = value);
           },
@@ -308,7 +321,6 @@ class _EvidenciasSectionState extends State<EvidenciasSection> {
       ),
     );
   }
-
   Widget _buildEvidenceCard(Map<String, dynamic> evidencia) {
     final color = evidencia['color'] as Color;
     final imagenUrl = evidencia['imagenUrl'] as String?;

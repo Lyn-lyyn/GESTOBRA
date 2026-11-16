@@ -179,7 +179,7 @@ class _ObraDetailScreenState extends State<ObraDetailScreen> {
   }
 
   // ─── Registrar Avance ───
-  Future<void> _registrarAvance(Map<String, dynamic> actividad) async {
+    Future<void> _registrarAvance(Map<String, dynamic> actividad) async {
     final idActividad =
         int.tryParse(actividad['id_actividad']?.toString() ?? '') ?? 0;
     if (idActividad <= 0) return;
@@ -191,77 +191,142 @@ class _ObraDetailScreenState extends State<ObraDetailScreen> {
 
     final confirmado = await showDialog<bool>(
       context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Registrar avance'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            TextField(
-              controller: porcentajeController,
-              keyboardType:
-                  const TextInputType.numberWithOptions(decimal: true),
-              decoration: const InputDecoration(
-                  labelText: 'Avance (%)', hintText: '0 a 100'),
+      barrierDismissible: false,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setModal) {
+          bool guardando = false;
+          return Dialog(
+            insetPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+            backgroundColor: AppColors.grisfondo,
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 500),
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.all(24.0),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(8),
+                          decoration: BoxDecoration(color: AppColors.naranja, borderRadius: BorderRadius.circular(8)),
+                          child: const Icon(Icons.trending_up, color: Colors.white, size: 24),
+                        ),
+                        const SizedBox(width: 12),
+                        const Expanded(
+                          child: Text('Registrar avance', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                        ),
+                        IconButton(
+                          icon: const Icon(Icons.close),
+                          onPressed: guardando ? null : () => Navigator.pop(ctx, false),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 24),
+
+                    Text('Actividad: ${actividad['titulo']}', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+                    const SizedBox(height: 16),
+
+                    const Text('Avance (%) *', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.black87)),
+                    const SizedBox(height: 6),
+                    Container(
+                      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(8), border: Border.all(color: AppColors.naranja)),
+                      child: TextFormField(
+                        controller: porcentajeController,
+                        keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                        style: const TextStyle(fontSize: 13),
+                        decoration: const InputDecoration(hintText: 'Ej. 50', border: InputBorder.none, contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 14), isDense: true),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+
+                    const Text('Observaciones', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.black87)),
+                    const SizedBox(height: 6),
+                    Container(
+                      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(8), border: Border.all(color: AppColors.naranja)),
+                      child: TextFormField(
+                        controller: observacionesController,
+                        maxLines: 3,
+                        style: const TextStyle(fontSize: 13),
+                        decoration: const InputDecoration(hintText: 'Ej. Se terminó la cimentación', border: InputBorder.none, contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 14), isDense: true),
+                      ),
+                    ),
+                    const SizedBox(height: 32),
+
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.end,
+                      children: [
+                        OutlinedButton(
+                          onPressed: guardando ? null : () => Navigator.pop(ctx, false),
+                          style: OutlinedButton.styleFrom(
+                            foregroundColor: AppColors.gris,
+                            side: const BorderSide(color: AppColors.bordeSuave),
+                            padding: const EdgeInsets.symmetric(horizontal: 24),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                          ),
+                          child: const Text('CANCELAR', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
+                        ),
+                        const SizedBox(width: 12),
+                        ElevatedButton(
+                          onPressed: guardando ? null : () async {
+                            final porcentaje = double.tryParse(porcentajeController.text.trim());
+                            if (porcentaje == null || porcentaje < 0 || porcentaje > 100) {
+                              ScaffoldMessenger.of(ctx).showSnackBar(const SnackBar(content: Text('El avance debe ser un número entre 0 y 100.')));
+                              return;
+                            }
+
+                            setModal(() => guardando = true);
+
+                            try {
+                              final respuesta = await ApiService.post('actividad_avance.php', {
+                                'id_actividad': idActividad,
+                                'porcentaje_nuevo': porcentaje,
+                                'observaciones': observacionesController.text.trim(),
+                              });
+
+                              if (respuesta['estado'] != true) {
+                                throw Exception(respuesta['mensaje'] ?? 'No se pudo registrar el avance');
+                              }
+
+                              Navigator.pop(ctx, true);
+                            } catch (error) {
+                              setModal(() => guardando = false);
+                              ScaffoldMessenger.of(ctx).showSnackBar(SnackBar(content: Text('Error: $error'), backgroundColor: AppColors.estadoRojo));
+                            }
+                          },
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: AppColors.naranja,
+                            foregroundColor: Colors.white,
+                            padding: const EdgeInsets.symmetric(horizontal: 24),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                          ),
+                          child: guardando 
+                              ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+                              : const Text('GUARDAR', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
             ),
-            const SizedBox(height: 12),
-            TextField(
-              controller: observacionesController,
-              maxLines: 3,
-              decoration: const InputDecoration(labelText: 'Observaciones'),
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-              onPressed: () => Navigator.pop(ctx, false),
-              child: const Text('Cancelar')),
-          FilledButton(
-              onPressed: () => Navigator.pop(ctx, true),
-              child: const Text('Guardar')),
-        ],
+          );
+        }
       ),
     );
 
-    if (confirmado != true || !mounted) {
-      porcentajeController.dispose();
-      observacionesController.dispose();
-      return;
-    }
-
-    final porcentaje = double.tryParse(porcentajeController.text.trim());
     porcentajeController.dispose();
+    observacionesController.dispose();
 
-    if (porcentaje == null || porcentaje < 0 || porcentaje > 100) {
-      observacionesController.dispose();
-      _showError('El avance debe ser un número entre 0 y 100.');
-      return;
-    }
-
-    try {
-      final observaciones = observacionesController.text.trim();
-      observacionesController.dispose();
-
-      final respuesta = await ApiService.post('actividad_avance.php', {
-        'id_actividad': idActividad,
-        'porcentaje_nuevo': porcentaje,
-        'observaciones': observaciones,
-      });
-
-      if (respuesta['estado'] != true) {
-        throw Exception(
-            respuesta['mensaje'] ?? 'No se pudo registrar el avance');
-      }
-
+    if (confirmado == true && mounted) {
       await _cargarDetalle();
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-            content: Text('Avance registrado correctamente'),
-            backgroundColor: Colors.green),
-      );
-    } catch (error) {
-      if (!mounted) return;
-      _showError('No se pudo registrar el avance: $error');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Avance registrado correctamente'), backgroundColor: Colors.green),
+        );
+      }
     }
   }
 
@@ -351,7 +416,7 @@ class _ObraDetailScreenState extends State<ObraDetailScreen> {
     );
   }
 
-  // ─── Selector de tiempo (incluye "Personalizado" con showDateRangePicker) ───
+    // ─── Selector de tiempo ───
   Widget _buildSelectorTiempo() {
     final opciones = [
       'Diario',
@@ -361,153 +426,151 @@ class _ObraDetailScreenState extends State<ObraDetailScreen> {
       'Personalizado',
     ];
 
-    return Wrap(
-      spacing: 8,
-      runSpacing: 8,
-      children: opciones.map((opcion) {
-        final isSelected = _tipoReporte == opcion;
+    return SizedBox(
+      height: 42, // Altura fija para que el scroll no se desborde
+      child: ListView.separated(
+        scrollDirection: Axis.horizontal,
+        itemCount: opciones.length,
+        separatorBuilder: (_, __) => const SizedBox(width: 8), // Separación entre botones
+        itemBuilder: (context, index) {
+          final opcion = opciones[index];
+          final isSelected = _tipoReporte == opcion;
 
-        return GestureDetector(
-          onTap: () async {
-            if (opcion == 'Personalizado') {
-              final ThemeData originalTheme = Theme.of(context);
-
-              final DateTimeRange? picked = await showDateRangePicker(
-                context: context,
-                firstDate: DateTime(2020),
-                lastDate: DateTime.now(),
-                initialDateRange: _rangoPersonalizado,
-                initialEntryMode: DatePickerEntryMode.calendar,
-                helpText: 'Selecciona el rango de fechas',
-                cancelText: 'Cancelar',
-                confirmText: 'Aceptar',
-                fieldStartLabelText: 'Fecha inicio',
-                fieldEndLabelText: 'Fecha fin',
-                fieldStartHintText: 'dd/mm/aaaa',
-                fieldEndHintText: 'dd/mm/aaaa',
-                builder: (context, child) {
-                  return Theme(
-                    data: originalTheme.copyWith(
-                      colorScheme: originalTheme.colorScheme.copyWith(
-                        primary: AppColors.naranja,
-                        surface: Colors.white,
-                        onSurface: Colors.black87,
-                      ),
-                      dialogBackgroundColor: Colors.white,
-                      inputDecorationTheme: InputDecorationTheme(
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(8),
-                          borderSide: const BorderSide(color: AppColors.gris),
+          return GestureDetector(
+            onTap: () async {
+              if (opcion == 'Personalizado') {
+                final ThemeData originalTheme = Theme.of(context);
+                final DateTimeRange? picked = await showDateRangePicker(
+                  context: context,
+                  firstDate: DateTime(2020),
+                  lastDate: DateTime.now(),
+                  initialDateRange: _rangoPersonalizado,
+                  initialEntryMode: DatePickerEntryMode.calendar,
+                  helpText: 'Selecciona el rango de fechas',
+                  cancelText: 'Cancelar',
+                  confirmText: 'Aceptar',
+                  fieldStartLabelText: 'Fecha inicio',
+                  fieldEndLabelText: 'Fecha fin',
+                  fieldStartHintText: 'dd/mm/aaaa',
+                  fieldEndHintText: 'dd/mm/aaaa',
+                  builder: (context, child) {
+                    return Theme(
+                      data: originalTheme.copyWith(
+                        colorScheme: originalTheme.colorScheme.copyWith(
+                          primary: AppColors.naranja,
+                          surface: Colors.white,
+                          onSurface: Colors.black87,
                         ),
-                        focusedBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(8),
-                          borderSide: const BorderSide(
-                              color: AppColors.naranja, width: 2),
+                        dialogBackgroundColor: Colors.white,
+                        inputDecorationTheme: InputDecorationTheme(
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(8),
+                            borderSide: const BorderSide(color: AppColors.gris),
+                          ),
+                          focusedBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(8),
+                            borderSide: const BorderSide(color: AppColors.naranja, width: 2),
+                          ),
                         ),
-                        contentPadding: const EdgeInsets.symmetric(
-                            horizontal: 12, vertical: 12),
-                      ),
-                      datePickerTheme: DatePickerThemeData(
-                        backgroundColor: Colors.white,
-                        headerBackgroundColor: AppColors.naranja,
-                        headerForegroundColor: Colors.white,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(16),
-                        ),
-                        elevation: 8,
-                        rangeSelectionBackgroundColor:
-                            AppColors.naranja.withValues(alpha: 0.2),
-                        todayForegroundColor:
-                            WidgetStateProperty.all(AppColors.naranja),
-                        headerHeadlineStyle: const TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.white,
-                        ),
-                        headerHelpStyle: const TextStyle(
-                          fontSize: 12,
-                          color: Colors.white70,
-                          fontWeight: FontWeight.w500,
+                        datePickerTheme: DatePickerThemeData(
+                          backgroundColor: Colors.white,
+                          headerBackgroundColor: AppColors.naranja,
+                          headerForegroundColor: Colors.white,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(16),
+                          ),
+                          rangeSelectionBackgroundColor: AppColors.naranja.withValues(alpha: 0.2),
+                          todayForegroundColor: WidgetStateProperty.all(AppColors.naranja),
+                          headerHeadlineStyle: const TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.white,
+                          ),
+                          headerHelpStyle: const TextStyle(
+                            fontSize: 12,
+                            color: Colors.white70,
+                            fontWeight: FontWeight.w500,
+                          ),
                         ),
                       ),
-                    ),
-                    child: Center(
-                      child: ConstrainedBox(
-                        constraints: const BoxConstraints(
-                          maxWidth: 540,
-                          maxHeight: 640,
-                        ),
-                        child: ClipRRect(
-                          borderRadius: BorderRadius.circular(16),
-                          child: MediaQuery(
-                            data: MediaQuery.of(context).copyWith(
-                                textScaler: const TextScaler.linear(1.0)),
-                            child: Directionality(
-                              textDirection: TextDirection.ltr,
-                              child: Align(
-                                alignment: Alignment.center,
-                                child: child!,
+                      child: Center(
+                        child: ConstrainedBox(
+                          constraints: const BoxConstraints(
+                            maxWidth: 540,
+                            maxHeight: 640,
+                          ),
+                          child: ClipRRect(
+                            borderRadius: BorderRadius.circular(16),
+                            child: MediaQuery(
+                              data: MediaQuery.of(context).copyWith(
+                                  textScaler: const TextScaler.linear(1.0)),
+                              child: Directionality(
+                                textDirection: TextDirection.ltr,
+                                child: Align(
+                                  alignment: Alignment.center,
+                                  child: child!,
+                                ),
                               ),
                             ),
                           ),
                         ),
                       ),
-                    ),
-                  );
-                },
-              );
+                    );
+                  },
+                );
 
-              if (picked != null) {
+                if (picked != null) {
+                  setState(() {
+                    _rangoPersonalizado = picked;
+                    _tipoReporte = opcion;
+                  });
+                }
+              } else {
                 setState(() {
-                  _rangoPersonalizado = picked;
                   _tipoReporte = opcion;
+                  _rangoPersonalizado = null;
                 });
               }
-            } else {
-              setState(() {
-                _tipoReporte = opcion;
-                _rangoPersonalizado = null;
-              });
-            }
-          },
-          child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-            decoration: BoxDecoration(
-              color: isSelected ? AppColors.naranja : AppColors.blanco,
-              borderRadius: BorderRadius.circular(20),
-              border: Border.all(
-                color: isSelected ? AppColors.naranja : AppColors.gris,
-                width: 1.2,
+            },
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              alignment: Alignment.center,
+              decoration: BoxDecoration(
+                color: isSelected ? AppColors.naranja : AppColors.blanco,
+                borderRadius: BorderRadius.circular(21), // Totalmente redondeado
+                border: Border.all(
+                  color: isSelected ? AppColors.naranja : AppColors.gris,
+                  width: 1.2,
+                ),
               ),
-            ),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                if (opcion == 'Personalizado')
-                  Padding(
-                    padding: const EdgeInsets.only(right: 4),
-                    child: Icon(
-                      Icons.date_range,
-                      size: 14,
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  if (opcion == 'Personalizado')
+                    Padding(
+                      padding: const EdgeInsets.only(right: 6),
+                      child: Icon(
+                        Icons.date_range,
+                        size: 14,
+                        color: isSelected ? Colors.white : AppColors.textoGris,
+                      ),
+                    ),
+                  Text(
+                    opcion,
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.bold,
                       color: isSelected ? Colors.white : AppColors.textoGris,
                     ),
                   ),
-                Text(
-                  opcion,
-                  style: TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.bold,
-                    color: isSelected ? Colors.white : AppColors.textoGris,
-                  ),
-                ),
-              ],
+                ],
+              ),
             ),
-          ),
-        );
-      }).toList(),
+          );
+        },
+      ),
     );
   }
-
   // ─── Widgets de UI ───
   PreferredSizeWidget _buildAppBar() {
     return AppBar(
@@ -752,16 +815,23 @@ class _ObraDetailScreenState extends State<ObraDetailScreen> {
     );
   }
 
-  // ─── Action bar responsive (mejor del Archivo 1) ───
-  Widget _buildActionBar() {
+    Widget _buildActionBar() {
     return LayoutBuilder(
       builder: (context, constraints) {
         final compact = constraints.maxWidth < 560;
-        final controls = Wrap(
-          spacing: 8,
-          runSpacing: 8,
-          crossAxisAlignment: WrapCrossAlignment.center,
-          children: [_buildFaseDropdown(), _buildNuevaActividadButton()],
+        
+        // Alineamos el dropdown y el botón para que no dejen huecos
+        final controls = Row(
+          children: [
+            Expanded(
+              child: _buildFaseDropdown(),
+            ),
+            const SizedBox(width: 8),
+            if (_puedeCrearActividad)
+              Expanded(
+                child: _buildNuevaActividadButton(),
+              ),
+          ],
         );
 
         return Container(
@@ -778,8 +848,7 @@ class _ObraDetailScreenState extends State<ObraDetailScreen> {
                   children: [
                     const Text(
                       'Programa y control de actividades',
-                      style: TextStyle(
-                          fontSize: 14, fontWeight: FontWeight.bold),
+                      style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
                     ),
                     const SizedBox(height: 10),
                     controls,
@@ -791,11 +860,14 @@ class _ObraDetailScreenState extends State<ObraDetailScreen> {
                     const Expanded(
                       child: Text(
                         'Programa y control de actividades',
-                        style: TextStyle(
-                            fontSize: 14, fontWeight: FontWeight.bold),
+                        style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
                       ),
                     ),
-                    controls,
+                    const SizedBox(width: 16),
+                    SizedBox(
+                      width: 340, // Ancho fijo para escritorio
+                      child: controls,
+                    ),
                   ],
                 ),
         );
@@ -803,7 +875,7 @@ class _ObraDetailScreenState extends State<ObraDetailScreen> {
     );
   }
 
-  Widget _buildFaseDropdown() {
+    Widget _buildFaseDropdown() {
     final fasesNombres = [
       'Todas las fases',
       ..._fases.map((f) => f['nombre'].toString())
@@ -812,25 +884,27 @@ class _ObraDetailScreenState extends State<ObraDetailScreen> {
       _faseSeleccionada = 'Todas las fases';
     }
 
-    return SizedBox(
+    return Container(
       height: 40,
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 12),
-        decoration: BoxDecoration(
-            color: AppColors.noseleccionado,
-            borderRadius: BorderRadius.circular(8)),
-        child: DropdownButton<String>(
-          value: _faseSeleccionada,
-          underline: const SizedBox(),
-          icon: const Icon(Icons.keyboard_arrow_down,
-              size: 18, color: AppColors.gris),
-          style: const TextStyle(
-              fontSize: 12, color: AppColors.gris, fontWeight: FontWeight.bold),
-          items: fasesNombres
-              .map((fase) => DropdownMenuItem(value: fase, child: Text(fase)))
-              .toList(),
-          onChanged: (value) => setState(() => _faseSeleccionada = value!),
-        ),
+      padding: const EdgeInsets.symmetric(horizontal: 12),
+      decoration: BoxDecoration(
+          color: AppColors.noseleccionado,
+          borderRadius: BorderRadius.circular(8)),
+      child: DropdownButton<String>(
+        value: _faseSeleccionada,
+        isExpanded: true,
+        underline: const SizedBox(),
+        icon: const Icon(Icons.keyboard_arrow_down,
+            size: 18, color: AppColors.gris),
+        style: const TextStyle(
+            fontSize: 12, color: AppColors.gris, fontWeight: FontWeight.bold),
+        items: fasesNombres
+            .map((fase) => DropdownMenuItem(
+                  value: fase,
+                  child: Text(fase, overflow: TextOverflow.ellipsis),
+                ))
+            .toList(),
+        onChanged: (value) => setState(() => _faseSeleccionada = value!),
       ),
     );
   }
@@ -847,7 +921,7 @@ class _ObraDetailScreenState extends State<ObraDetailScreen> {
         style: ElevatedButton.styleFrom(
             backgroundColor: AppColors.naranja,
             foregroundColor: Colors.white,
-            padding: const EdgeInsets.symmetric(horizontal: 16),
+            padding: const EdgeInsets.symmetric(horizontal: 8),
             shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(8))),
       ),
@@ -882,7 +956,7 @@ class _ObraDetailScreenState extends State<ObraDetailScreen> {
     );
   }
 
-  Widget _buildFasesResumen() {
+    Widget _buildFasesResumen() {
     return LayoutBuilder(
       builder: (context, constraints) {
         if (_cargando) {
@@ -902,6 +976,8 @@ class _ObraDetailScreenState extends State<ObraDetailScreen> {
             ),
           );
         }
+
+        // En escritorio mantenemos un ancho fijo o fluido
         if (constraints.maxWidth > 900) {
           return Wrap(
             spacing: 12,
@@ -913,10 +989,11 @@ class _ObraDetailScreenState extends State<ObraDetailScreen> {
           );
         }
 
+        // En móvil forzamos 2 columnas exactas
         const spacing = 8.0;
-        final columns = constraints.maxWidth < 360 ? 1 : 2;
-        final cardWidth =
-            (constraints.maxWidth - spacing * (columns - 1)) / columns;
+        final columns = 2;
+        final cardWidth = (constraints.maxWidth - spacing) / columns;
+
         return Wrap(
           spacing: spacing,
           runSpacing: spacing,
@@ -928,7 +1005,6 @@ class _ObraDetailScreenState extends State<ObraDetailScreen> {
       },
     );
   }
-
   // ─── Fase card: usa campos precalculados (Archivo 1) con fallback local (Archivo 2) ───
   Widget _buildFaseCard(Map<String, dynamic> fase) {
     final int porcentaje;
@@ -1007,16 +1083,19 @@ class _ObraDetailScreenState extends State<ObraDetailScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
+          Wrap(
+            spacing: 8,
+            runSpacing: 6,
+            crossAxisAlignment: WrapCrossAlignment.center,
             children: [
-              _buildBadge(actividad['fase'], AppColors.naranja,
-                  isOutlined: true),
-              const SizedBox(width: 8),
+              ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 220),
+                child: _buildBadge(actividad['fase'], AppColors.naranja,
+                    isOutlined: true),
+              ),
               _buildBadge(estado, colorEstado, icon: iconoEstado),
-              const Spacer(),
               Text('Ponderación ${actividad['ponderacion']}',
-                  style: const TextStyle(
-                      fontSize: 10, color: AppColors.gris)),
+                  style: const TextStyle(fontSize: 10, color: AppColors.gris)),
             ],
           ),
           const SizedBox(height: 12),
@@ -1047,68 +1126,81 @@ class _ObraDetailScreenState extends State<ObraDetailScreen> {
                     fontStyle: FontStyle.italic)),
           ),
           const SizedBox(height: 16),
-          Row(
-            children: [
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text('Avance actual',
-                        style: TextStyle(
-                            fontSize: 10, color: AppColors.gris)),
-                    const SizedBox(height: 4),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: Container(
-                            decoration: BoxDecoration(
-                                border:
-                                    Border.all(color: Colors.grey.shade300),
-                                borderRadius: BorderRadius.circular(4)),
-                            child: ClipRRect(
-                              borderRadius: BorderRadius.circular(4),
-                              child: LinearProgressIndicator(
-                                value: actividad['avance'],
-                                backgroundColor: Colors.grey.shade100,
-                                valueColor: AlwaysStoppedAnimation<Color>(
-                                    actividad['isCompleted'] == true
-                                        ? Colors.green
-                                        : AppColors.naranja),
-                                minHeight: 10,
-                              ),
-                            ),
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        Text('${(actividad['avance'] * 100).toInt()}%',
-                            style: const TextStyle(
-                                fontWeight: FontWeight.bold, fontSize: 13)),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(width: 16),
-              ElevatedButton(
-                // Permisos del Archivo 1 + texto claro
-                onPressed: _puedeRegistrarAvance
-                    ? () => _registrarAvance(actividad)
-                    : null,
-                style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.naranja,
-                    foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 20, vertical: 8),
-                    shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(20))),
-                child: const Text('Registrar avance',
-                    style: TextStyle(
-                        fontSize: 12, fontWeight: FontWeight.bold)),
-              ),
-            ],
-          ),
+          _buildActividadAvance(actividad),
         ],
       ),
+    );
+  }
+
+  Widget _buildActividadAvance(Map<String, dynamic> actividad) {
+    final avance = (actividad['avance'] as num?)?.toDouble() ?? 0;
+    final indicador = Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text('Avance actual',
+            style: TextStyle(fontSize: 10, color: AppColors.gris)),
+        const SizedBox(height: 4),
+        Row(
+          children: [
+            Expanded(
+              child: Container(
+                decoration: BoxDecoration(
+                    border: Border.all(color: Colors.grey.shade300),
+                    borderRadius: BorderRadius.circular(4)),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(4),
+                  child: LinearProgressIndicator(
+                    value: avance,
+                    backgroundColor: Colors.grey.shade100,
+                    valueColor: AlwaysStoppedAnimation<Color>(
+                        actividad['isCompleted'] == true
+                            ? Colors.green
+                            : AppColors.naranja),
+                    minHeight: 10,
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(width: 8),
+            Text('${(avance * 100).toInt()}%',
+                style:
+                    const TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+          ],
+        ),
+      ],
+    );
+    final boton = ElevatedButton(
+      onPressed: _puedeRegistrarAvance ? () => _registrarAvance(actividad) : null,
+      style: ElevatedButton.styleFrom(
+          backgroundColor: AppColors.naranja,
+          foregroundColor: Colors.white,
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(20))),
+      child: const Text('Registrar avance',
+          style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+    );
+
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        if (constraints.maxWidth < 380) {
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              indicador,
+              const SizedBox(height: 12),
+              SizedBox(width: double.infinity, child: boton),
+            ],
+          );
+        }
+        return Row(
+          children: [
+            Expanded(child: indicador),
+            const SizedBox(width: 16),
+            boton,
+          ],
+        );
+      },
     );
   }
 
@@ -1188,6 +1280,8 @@ class _ObraDetailScreenState extends State<ObraDetailScreen> {
             const SizedBox(width: 4)
           ],
           Text(text,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
               style: TextStyle(
                   fontSize: 10, fontWeight: FontWeight.bold, color: color)),
         ],
