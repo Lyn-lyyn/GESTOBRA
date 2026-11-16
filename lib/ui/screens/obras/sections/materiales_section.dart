@@ -184,26 +184,44 @@ class _MaterialesSectionState extends State<MaterialesSection> {
             'Materiales, Entradas y Consumos',
             style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
           );
-          final actions = Wrap(
-            spacing: 8,
-            runSpacing: 8,
+
+          final actions = Row(
             children: [
-              _movementButton(
-                label: 'Entrada',
-                icon: Icons.south_west,
-                onPressed: () => _openMovementDialog(context, 'Entrada'),
+              Expanded(
+                child: _movementButton(
+                  label: 'Entrada',
+                  icon: Icons.south_west,
+                  onPressed: () => _openMovementDialog(context, 'Entrada'),
+                ),
               ),
-              _movementButton(
-                label: 'Salida',
-                icon: Icons.north_east,
-                onPressed: () => _openMovementDialog(context, 'Salida'),
+              const SizedBox(width: 8),
+              Expanded(
+                child: _movementButton(
+                  label: 'Salida',
+                  icon: Icons.north_east,
+                  onPressed: () => _openMovementDialog(context, 'Salida'),
+                ),
               ),
             ],
           );
+
           if (constraints.maxWidth < 480) {
-            return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [title, const SizedBox(height: 10), actions]);
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                title,
+                const SizedBox(height: 10),
+                actions,
+              ],
+            );
           }
-          return Row(children: [Expanded(child: title), actions]);
+          return Row(
+            children: [
+              Expanded(child: title),
+              const SizedBox(width: 12),
+              SizedBox(width: 240, child: actions),
+            ],
+          );
         },
       ),
     );
@@ -211,7 +229,8 @@ class _MaterialesSectionState extends State<MaterialesSection> {
 
   Widget _movementButton({required String label, required IconData icon, required VoidCallback onPressed}) {
     return SizedBox(
-      height: 38,
+      height: 40,
+      width: double.infinity,
       child: ElevatedButton.icon(
         onPressed: onPressed,
         icon: Icon(icon, size: 16),
@@ -300,9 +319,10 @@ class _MaterialesSectionState extends State<MaterialesSection> {
               onTap: () => setState(() => _vistaSeleccionada = vista),
               borderRadius: BorderRadius.circular(16),
               child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
                 child: Text(
                   vista,
+                  softWrap: false,
                   style: TextStyle(
                     color: selected ? AppColors.naranja : AppColors.textoGris,
                     fontSize: 11,
@@ -327,24 +347,11 @@ class _MaterialesSectionState extends State<MaterialesSection> {
 
     return Column(
       children: [
-        Container(
-          width: double.infinity,
-          margin: const EdgeInsets.only(bottom: 12),
-          padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(color: AppColors.blanco, borderRadius: BorderRadius.circular(12), border: Border.all(color: AppColors.bordeSuave)),
-          child: const Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text('Plan de Materiales', style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold)),
-              SizedBox(height: 4),
-              Text('Usa los botones de "Entrada" y "Salida" de arriba para registrar movimientos. Aquí ves el resumen.', style: TextStyle(fontSize: 11, color: AppColors.textoGris)),
-            ],
-          ),
-        ),
         ..._plan.map(_buildPlanCard),
       ],
     );
   }
+
   Widget _buildPlanCard(Map<String, dynamic> p) {
     final presupuestado = double.tryParse(p['cantidad_presupuestada']?.toString() ?? '0') ?? 0;
     final entrada = double.tryParse(p['cantidad_entrada']?.toString() ?? '0') ?? 0;
@@ -416,7 +423,6 @@ class _MaterialesSectionState extends State<MaterialesSection> {
           ClipRRect(
             borderRadius: BorderRadius.circular(6),
             child: LinearProgressIndicator(
-              // La barra de progreso ahora usa el consumo para pintarse (lo que se ha usado)
               value: presupuestado > 0 ? (consumido / presupuestado).clamp(0.0, 1.0) : 0,
               minHeight: 6,
               backgroundColor: AppColors.grisfondo,
@@ -789,9 +795,15 @@ class _MaterialesSectionState extends State<MaterialesSection> {
             children: [
               const Icon(Icons.history, color: AppColors.naranja, size: 20),
               const SizedBox(width: 8),
-              const Text('Bitácora de Movimientos y Kardex de Almacén', style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold)),
-              const Spacer(),
-              Text('${lista.length} movimientos registrados', style: const TextStyle(fontSize: 11, color: AppColors.textoGris)),
+              const Expanded(
+                child: Text(
+                  'Bitácora de Movimientos y Kardex de Almacén', 
+                  style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+              const SizedBox(width: 8),
+              Text('${lista.length} movimientos', style: const TextStyle(fontSize: 11, color: AppColors.textoGris)),
             ],
           ),
         ),
@@ -801,54 +813,61 @@ class _MaterialesSectionState extends State<MaterialesSection> {
           decoration: BoxDecoration(color: Colors.white, border: Border.all(color: AppColors.bordeSuave), borderRadius: BorderRadius.circular(12)),
           child: lista.isEmpty 
             ? const Padding(padding: EdgeInsets.all(24), child: Center(child: Text('No hay movimientos registrados', style: TextStyle(color: AppColors.textoGris))))
-            : SingleChildScrollView(
+            : Scrollbar(
                 controller: _kardexScrollController,
-                scrollDirection: Axis.horizontal,
-                child: DataTable(
-                  headingRowHeight: 44,
-                  dataRowMinHeight: 58,
-                  dataRowMaxHeight: 72,
-                  columnSpacing: 24,
-                  columns: const [
-                    DataColumn(label: Text('TIPO', style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: AppColors.textoGris))),
-                    DataColumn(label: Text('FECHA', style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: AppColors.textoGris))),
-                    DataColumn(label: Text('MATERIAL', style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: AppColors.textoGris))),
-                    DataColumn(label: Text('CANTIDAD', style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: AppColors.textoGris))),
-                    DataColumn(label: Text('PROVEEDOR / ACTIVIDAD', style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: AppColors.textoGris))),
-                    DataColumn(label: Text('OBSERVACIONES', style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: AppColors.textoGris))),
-                    DataColumn(label: Text('REGISTRADO POR', style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: AppColors.textoGris))),
-                  ],
-                  rows: lista.map((m) {
-                    final entrada = m['tipo_movimiento'] == 'ENTRADA';
-                    final esExtra = m['plan_es_extra'] == 1 || m['plan_es_extra'] == true;
-                    return DataRow(cells: [
-                      DataCell(
-                        Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                              decoration: BoxDecoration(color: entrada ? Colors.green.withValues(alpha: 0.1) : AppColors.naranja.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(6)),
-                              child: Text(
-                                m['tipo_movimiento'] == 'ENTRADA' ? 'ENTRADA' : 'SALIDA', 
-                                style: TextStyle(fontSize: 9, fontWeight: FontWeight.bold, color: entrada ? Colors.green : AppColors.naranja),
-                              ),
+                thumbVisibility: true,
+                child: SingleChildScrollView(
+                  controller: _kardexScrollController,
+                  scrollDirection: Axis.horizontal,
+                  child: ConstrainedBox(
+                    constraints: const BoxConstraints(minWidth: 900),
+                    child: DataTable(
+                      headingRowHeight: 44,
+                      dataRowMinHeight: 58,
+                      dataRowMaxHeight: 72,
+                      columnSpacing: 20,
+                      columns: const [
+                        DataColumn(label: Text('TIPO', style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: AppColors.textoGris))),
+                        DataColumn(label: Text('FECHA', style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: AppColors.textoGris))),
+                        DataColumn(label: Text('MATERIAL', style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: AppColors.textoGris))),
+                        DataColumn(label: Text('CANTIDAD', style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: AppColors.textoGris))),
+                        DataColumn(label: Text('PROVEEDOR / ACTIVIDAD', style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: AppColors.textoGris))),
+                        DataColumn(label: Text('OBSERVACIONES', style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: AppColors.textoGris))),
+                        DataColumn(label: Text('REGISTRADO POR', style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: AppColors.textoGris))),
+                      ],
+                      rows: lista.map((m) {
+                        final entrada = m['tipo_movimiento'] == 'ENTRADA';
+                        final esExtra = m['plan_es_extra'] == 1 || m['plan_es_extra'] == true;
+                        return DataRow(cells: [
+                          DataCell(
+                            Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                  decoration: BoxDecoration(color: entrada ? Colors.green.withValues(alpha: 0.1) : AppColors.naranja.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(6)),
+                                  child: Text(
+                                    m['tipo_movimiento'] == 'ENTRADA' ? 'ENTRADA' : 'SALIDA', 
+                                    style: TextStyle(fontSize: 9, fontWeight: FontWeight.bold, color: entrada ? Colors.green : AppColors.naranja),
+                                  ),
+                                ),
+                                if (esExtra) ...[
+                                  const SizedBox(width: 4),
+                                  const Icon(Icons.warning_amber_rounded, size: 14, color: AppColors.estadoRojo),
+                                ]
+                              ],
                             ),
-                            if (esExtra) ...[
-                              const SizedBox(width: 4),
-                              const Icon(Icons.warning_amber_rounded, size: 14, color: AppColors.estadoRojo),
-                            ]
-                          ],
-                        ),
-                      ),
-                      DataCell(Text((m['fecha_movimiento'] ?? '').toString().split(' ')[0], style: const TextStyle(fontSize: 11))),
-                      DataCell(SizedBox(width: 180, child: Text(m['material'].toString(), maxLines: 2, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold)))),
-                      DataCell(Text('${_formatQuantity(double.tryParse(m['cantidad']?.toString() ?? '0') ?? 0.0)} ${m['unidad_medida']}', style: const TextStyle(fontSize: 11))),
-                      DataCell(SizedBox(width: 150, child: Text('${m['proveedor'] ?? m['actividad_nombre'] ?? '-'}', maxLines: 2, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 10, color: AppColors.textoGris)))),
-                      DataCell(SizedBox(width: 150, child: Text(m['observaciones'] ?? '-', maxLines: 2, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 10, color: AppColors.textoGris)))),
-                      DataCell(Text(m['registrado_por_nombre'] ?? '-', style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold))),
-                    ]);
-                  }).toList(),
+                          ),
+                          DataCell(Text((m['fecha_movimiento'] ?? '').toString().split(' ')[0], style: const TextStyle(fontSize: 11))),
+                          DataCell(SizedBox(width: 180, child: Text(m['material'].toString(), maxLines: 2, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold)))),
+                          DataCell(Text('${_formatQuantity(double.tryParse(m['cantidad']?.toString() ?? '0') ?? 0.0)} ${m['unidad_medida']}', style: const TextStyle(fontSize: 11))),
+                          DataCell(SizedBox(width: 150, child: Text('${m['proveedor'] ?? m['actividad_nombre'] ?? '-'}', maxLines: 2, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 10, color: AppColors.textoGris)))),
+                          DataCell(SizedBox(width: 150, child: Text(m['observaciones'] ?? '-', maxLines: 2, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 10, color: AppColors.textoGris)))),
+                          DataCell(Text(m['registrado_por_nombre'] ?? '-', style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold))),
+                        ]);
+                      }).toList(),
+                    ),
+                  ),
                 ),
               ),
         ),
@@ -1218,7 +1237,7 @@ class _MaterialMovementDialogState extends State<_MaterialMovementDialog> {
       'cantidad': cantidad,
       'id_actividad': !_esEntrada ? _idActividadSel : null,
       'id_proveedor': _esEntrada ? _idProveedorSel : null,
-      'costo_unitario': null, // 👈 SE ELIMINA EL COSTO
+      'costo_unitario': null,
       'observaciones': _notasController.text.trim(),
     });
   }
@@ -1251,7 +1270,7 @@ class _MaterialMovementDialogState extends State<_MaterialMovementDialog> {
     return Dialog(
       insetPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-      backgroundColor: AppColors.grisfondo, // Fondo gris
+      backgroundColor: AppColors.grisfondo,
       child: ConstrainedBox(
         constraints: BoxConstraints(
           maxWidth: 500,
@@ -1394,19 +1413,19 @@ class _MaterialMovementDialogState extends State<_MaterialMovementDialog> {
                         overflow: TextOverflow.ellipsis
                       )
                     )).toList(),
-                   onChanged: (v) {
-  setState(() {
-    _idMaterialSel = v;
-    // Resolver la línea de plan del material para que la salida
-    // quede ligada y se refleje en la tarjeta del Plan.
-    final planMatch = widget.planLineas
-        .where((p) => p['id_material'] == v)
-        .toList();
-    _idPlanMaterialSel = planMatch.isNotEmpty
-        ? planMatch.first['id_plan_material'] as int
-        : null;
-  });
-},
+                    onChanged: (v) {
+                      setState(() {
+                        _idMaterialSel = v;
+                        // Resolver la línea de plan del material para que la salida
+                        // quede ligada y se refleje en la tarjeta del Plan.
+                        final planMatch = widget.planLineas
+                            .where((p) => p['id_material'] == v)
+                            .toList();
+                        _idPlanMaterialSel = planMatch.isNotEmpty
+                            ? planMatch.first['id_plan_material'] as int
+                            : null;
+                      });
+                    },
                   ),
                 ),
               ],
