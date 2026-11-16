@@ -23,12 +23,15 @@ class _BitacoraSectionState extends State<BitacoraSection> {
     _cargarBitacoras();
   }
 
-  Future<void> _cargarBitacoras() async {
+   Future<void> _cargarBitacoras() async {
     final idObra = widget.obra['id_obra'];
     if (idObra == null) return;
 
     setState(() => _cargando = true);
     final res = await ApiService.get('bitacoras.php?id_obra=$idObra');
+
+    // 👇 Verificamos que la pantalla siga montada antes de actualizar el estado
+    if (!mounted) return;
 
     if (res['estado'] == true) {
       setState(() {

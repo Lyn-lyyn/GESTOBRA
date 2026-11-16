@@ -14,11 +14,12 @@ class MaterialesSection extends StatefulWidget {
 class _MaterialesSectionState extends State<MaterialesSection> {
   final _busquedaController = TextEditingController();
   final _kardexScrollController = ScrollController();
-  String _vistaSeleccionada = 'Stock';
+  String _vistaSeleccionada = 'Plan';
   bool _cargando = true;
   String? _error;
 
   // Datos
+  List<Map<String, dynamic>> _plan = [];
   List<Map<String, dynamic>> _stock = [];
   List<Map<String, dynamic>> _consumo = [];
   List<Map<String, dynamic>> _kardex = [];
@@ -52,27 +53,29 @@ class _MaterialesSectionState extends State<MaterialesSection> {
 
     try {
       final results = await Future.wait([
-        ApiService.get('materiales_obra.php?id_obra=$_obraId&tipo=stock'),
-        ApiService.get('materiales_obra.php?id_obra=$_obraId&tipo=consumo'),
-        ApiService.get('materiales_obra.php?id_obra=$_obraId&tipo=kardex'),
-        ApiService.get('maquinaria_obra.php?id_obra=$_obraId'),
-        ApiService.get('materiales_admin.php'),
-        ApiService.get('proveedores.php'),
-        ApiService.get('maquinaria.php'),
-        ApiService.get('actividades_obra.php?id_obra=$_obraId'),
+        ApiService.get('materiales_plan_obra.php?id_obra=$_obraId'), // 0
+        ApiService.get('materiales_obra.php?id_obra=$_obraId&tipo=stock'), // 1
+        ApiService.get('materiales_obra.php?id_obra=$_obraId&tipo=consumo'), // 2
+        ApiService.get('materiales_obra.php?id_obra=$_obraId&tipo=kardex'), // 3
+        ApiService.get('maquinaria_obra.php?id_obra=$_obraId'), // 4
+        ApiService.get('materiales_admin.php'), // 5
+        ApiService.get('proveedores.php'), // 6
+        ApiService.get('maquinaria.php'), // 7
+        ApiService.get('actividades_obra.php?id_obra=$_obraId'), // 8
       ]);
 
-      if (results[0]['estado'] == true) _stock = List<Map<String, dynamic>>.from(results[0]['data']);
-      if (results[1]['estado'] == true) _consumo = List<Map<String, dynamic>>.from(results[1]['data']);
-      if (results[2]['estado'] == true) _kardex = List<Map<String, dynamic>>.from(results[2]['data']);
-      if (results[3]['estado'] == true) _maquinariaObra = List<Map<String, dynamic>>.from(results[3]['data']);
-      if (results[4]['estado'] == true) _catalogoMateriales = List<Map<String, dynamic>>.from(results[4]['data']);
-      if (results[5]['estado'] == true) _catalogoProveedores = List<Map<String, dynamic>>.from(results[5]['data']);
-      if (results[7]['estado'] == true) _listaActividadesObra = List<Map<String, dynamic>>.from(results[7]['data']);
+      if (results[0]['estado'] == true) _plan = List<Map<String, dynamic>>.from(results[0]['data']);
+      if (results[1]['estado'] == true) _stock = List<Map<String, dynamic>>.from(results[1]['data']);
+      if (results[2]['estado'] == true) _consumo = List<Map<String, dynamic>>.from(results[2]['data']);
+      if (results[3]['estado'] == true) _kardex = List<Map<String, dynamic>>.from(results[3]['data']);
+      if (results[4]['estado'] == true) _maquinariaObra = List<Map<String, dynamic>>.from(results[4]['data']);
+      if (results[5]['estado'] == true) _catalogoMateriales = List<Map<String, dynamic>>.from(results[5]['data']);
+      if (results[6]['estado'] == true) _catalogoProveedores = List<Map<String, dynamic>>.from(results[6]['data']);
+      if (results[8]['estado'] == true) _listaActividadesObra = List<Map<String, dynamic>>.from(results[8]['data']);
 
-      if (results[6]['estado'] == true) {
+      if (results[7]['estado'] == true) {
         final asignadas = _maquinariaObra.map((m) => m['id_maquinaria']).toSet();
-        _maquinariaDisponible = List<Map<String, dynamic>>.from(results[6]['data'])
+        _maquinariaDisponible = List<Map<String, dynamic>>.from(results[7]['data'])
             .where((m) => !asignadas.contains(m['id_maquinaria']))
             .toList();
       }
@@ -86,6 +89,9 @@ class _MaterialesSectionState extends State<MaterialesSection> {
     }
   }
 
+  // ────────────────────────────────────────────────────────
+  // FILTROS
+  // ────────────────────────────────────────────────────────
   List<Map<String, dynamic>> get _stockFiltrado {
     final q = _busquedaController.text.trim().toLowerCase();
     if (q.isEmpty) return _stock;
@@ -154,7 +160,8 @@ class _MaterialesSectionState extends State<MaterialesSection> {
           const SizedBox(height: 12),
           _buildSearchAndTabs(),
           const SizedBox(height: 12),
-          if (_vistaSeleccionada == 'Stock') _buildStockView()
+          if (_vistaSeleccionada == 'Plan') _buildPlanView()
+          else if (_vistaSeleccionada == 'Stock') _buildStockView()
           else if (_vistaSeleccionada == 'Consumo') _buildConsumoView()
           else if (_vistaSeleccionada == 'Kardex') _buildKardexView()
           else _buildMaquinariaView(),
@@ -287,7 +294,7 @@ class _MaterialesSectionState extends State<MaterialesSection> {
         scrollDirection: Axis.horizontal,
         child: Row(
           mainAxisSize: MainAxisSize.min,
-          children: ['Stock', 'Consumo', 'Kardex', 'Maquinaria'].map((vista) {
+          children: ['Plan', 'Stock', 'Consumo', 'Kardex', 'Maquinaria'].map((vista) {
             final selected = _vistaSeleccionada == vista;
             return InkWell(
               onTap: () => setState(() => _vistaSeleccionada = vista),
@@ -313,7 +320,291 @@ class _MaterialesSectionState extends State<MaterialesSection> {
   }
 
   // ────────────────────────────────────────────────────────
-  // VISTA: STOCK (Con el diseño de la captura)
+  // VISTA: PLAN (Lo presupuestado vs lo real)
+  // ────────────────────────────────────────────────────────
+  Widget _buildPlanView() {
+    if (_plan.isEmpty) return _emptyState('No hay materiales presupuestados en el plan de esta obra');
+
+    return Column(
+      children: [
+        Container(
+          width: double.infinity,
+          margin: const EdgeInsets.only(bottom: 12),
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(color: AppColors.blanco, borderRadius: BorderRadius.circular(12), border: Border.all(color: AppColors.bordeSuave)),
+          child: const Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('Plan de Materiales', style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold)),
+              SizedBox(height: 4),
+              Text('Usa los botones de "Entrada" y "Salida" de arriba para registrar movimientos. Aquí ves el resumen.', style: TextStyle(fontSize: 11, color: AppColors.textoGris)),
+            ],
+          ),
+        ),
+        ..._plan.map(_buildPlanCard),
+      ],
+    );
+  }
+  Widget _buildPlanCard(Map<String, dynamic> p) {
+    final presupuestado = double.tryParse(p['cantidad_presupuestada']?.toString() ?? '0') ?? 0;
+    final entrada = double.tryParse(p['cantidad_entrada']?.toString() ?? '0') ?? 0;
+    final consumido = double.tryParse(p['cantidad_consumida']?.toString() ?? '0') ?? 0;
+    final pendiente = double.tryParse(p['pendiente_por_llegar']?.toString() ?? '0') ?? 0;
+    final esExtra = (p['es_extra'] == 1 || p['es_extra'] == true);
+    final unidad = p['unidad_medida'] ?? '';
+
+    // Color basado en consumo vs presupuesto
+    Color colorConsumo = Colors.green;
+    if (presupuestado > 0) {
+      final ratio = consumido / presupuestado;
+      if (ratio >= 1.0) colorConsumo = AppColors.estadoRojo;
+      else if (ratio >= 0.8) colorConsumo = Colors.orange;
+    }
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 10),
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: AppColors.blanco,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: esExtra ? AppColors.estadoRojo.withValues(alpha: 0.4) : AppColors.bordeSuave, width: esExtra ? 1.2 : 1),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(children: [
+                      Flexible(child: Text(p['material'] ?? '', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14))),
+                      if (esExtra) ...[
+                        const SizedBox(width: 6),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                          decoration: BoxDecoration(color: AppColors.estadoRojo.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(4)),
+                          child: const Text('EXTRA', style: TextStyle(fontSize: 9, fontWeight: FontWeight.bold, color: AppColors.estadoRojo)),
+                        ),
+                      ],
+                    ]),
+                    Text('Unidad: $unidad', style: const TextStyle(fontSize: 11, color: AppColors.textoGris)),
+                  ],
+                ),
+              ),
+              IconButton(
+                icon: const Icon(Icons.edit, size: 18, color: AppColors.naranja),
+                tooltip: 'Editar información del plan',
+                onPressed: () => _abrirModalEditarPlan(p),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              _statChip('Presupuesto', '${_formatQuantity(presupuestado)} $unidad', AppColors.textoNegro),
+              const SizedBox(width: 6),
+              _statChip('Recibido', '${_formatQuantity(entrada)} $unidad', Colors.green),
+              const SizedBox(width: 6),
+              _statChip('Consumido', '${_formatQuantity(consumido)} $unidad', colorConsumo),
+              const SizedBox(width: 6),
+              _statChip('Pendiente', '${_formatQuantity(pendiente)} $unidad', AppColors.naranja),
+            ],
+          ),
+          const SizedBox(height: 10),
+          ClipRRect(
+            borderRadius: BorderRadius.circular(6),
+            child: LinearProgressIndicator(
+              // La barra de progreso ahora usa el consumo para pintarse (lo que se ha usado)
+              value: presupuestado > 0 ? (consumido / presupuestado).clamp(0.0, 1.0) : 0,
+              minHeight: 6,
+              backgroundColor: AppColors.grisfondo,
+              valueColor: AlwaysStoppedAnimation<Color>(colorConsumo),
+            ),
+          ),
+          if (esExtra && p['motivo_extra'] != null && p['motivo_extra'].toString().isNotEmpty) ...[
+            const SizedBox(height: 8),
+            Text('Motivo extra: ${p['motivo_extra']}', style: const TextStyle(fontSize: 11, color: AppColors.estadoRojo)),
+          ],
+        ],
+      ),
+    );
+  }
+
+  // ────────────────────────────────────────────────────────
+  // MODAL: EDITAR PLAN
+  // ────────────────────────────────────────────────────────
+  Future<void> _abrirModalEditarPlan(Map<String, dynamic> p) async {
+    final cantCtrl = TextEditingController(text: _formatQuantity(p['cantidad_presupuestada']));
+    final costoCtrl = TextEditingController(text: p['costo_unitario_presupuestado']?.toString() ?? '');
+    final motivoCtrl = TextEditingController();
+
+    final res = await showDialog<bool>(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setModal) {
+          bool guardando = false;
+          return Dialog(
+            insetPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+            backgroundColor: AppColors.grisfondo,
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 500),
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.all(24.0),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(8),
+                          decoration: BoxDecoration(color: AppColors.naranja, borderRadius: BorderRadius.circular(8)),
+                          child: const Icon(Icons.assignment, color: Colors.white, size: 24),
+                        ),
+                        const SizedBox(width: 12),
+                        const Expanded(
+                          child: Text('Editar material del plan', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                        ),
+                        IconButton(
+                          icon: const Icon(Icons.close),
+                          onPressed: guardando ? null : () => Navigator.pop(ctx, false),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 24),
+
+                    Text('Material: ${p['material']}', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+                    const SizedBox(height: 16),
+
+                    Text('Cantidad presupuestada *', style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.black87)),
+                    const SizedBox(height: 6),
+                    Container(
+                      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(8), border: Border.all(color: AppColors.naranja)),
+                      child: TextFormField(
+                        controller: cantCtrl,
+                        keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                        style: const TextStyle(fontSize: 13),
+                        decoration: const InputDecoration(hintText: 'Ej. 50', border: InputBorder.none, contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 14), isDense: true),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+
+                    Text('Costo unitario (\$)', style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.black87)),
+                    const SizedBox(height: 6),
+                    Container(
+                      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(8), border: Border.all(color: AppColors.naranja)),
+                      child: TextFormField(
+                        controller: costoCtrl,
+                        keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                        style: const TextStyle(fontSize: 13),
+                        decoration: const InputDecoration(hintText: 'Ej. 150.00', border: InputBorder.none, contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 14), isDense: true),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+
+                    Text('Motivo de la edición *', style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.black87)),
+                    const SizedBox(height: 6),
+                    Container(
+                      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(8), border: Border.all(color: AppColors.naranja)),
+                      child: TextFormField(
+                        controller: motivoCtrl,
+                        maxLines: 2,
+                        style: const TextStyle(fontSize: 13),
+                        decoration: const InputDecoration(hintText: 'Ej. Se actualizó la cotización', border: InputBorder.none, contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 14), isDense: true),
+                      ),
+                    ),
+                    const SizedBox(height: 32),
+
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.end,
+                      children: [
+                        OutlinedButton(
+                          onPressed: guardando ? null : () => Navigator.pop(ctx, false),
+                          style: OutlinedButton.styleFrom(
+                            foregroundColor: AppColors.gris,
+                            side: const BorderSide(color: AppColors.bordeSuave),
+                            padding: const EdgeInsets.symmetric(horizontal: 24),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                          ),
+                          child: const Text('CANCELAR', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
+                        ),
+                        const SizedBox(width: 12),
+                        ElevatedButton(
+                          onPressed: guardando ? null : () async {
+                            final nuevaCant = double.tryParse(cantCtrl.text.replaceAll(',', '.'));
+                            if (nuevaCant == null || nuevaCant <= 0) {
+                              ScaffoldMessenger.of(ctx).showSnackBar(const SnackBar(content: Text('Cantidad inválida')));
+                              return;
+                            }
+                            if (motivoCtrl.text.trim().isEmpty) {
+                              ScaffoldMessenger.of(ctx).showSnackBar(const SnackBar(content: Text('Escribe el motivo de la edición')));
+                              return;
+                            }
+                            
+                            setModal(() => guardando = true);
+                            
+                            String obsFinal = p['observaciones'] ?? '';
+                            obsFinal = "$obsFinal\n[Editado: ${motivoCtrl.text.trim()}]".trim();
+
+                            final apiRes = await ApiService.put('materiales_plan_obra.php', {
+                              'id_plan_material': p['id_plan_material'],
+                              'cantidad_presupuestada': nuevaCant,
+                              'costo_unitario_presupuestado': costoCtrl.text.trim(),
+                              'observaciones': obsFinal,
+                            });
+                            
+                            if (apiRes['estado'] == true) {
+                              Navigator.pop(ctx, true);
+                            } else {
+                              setModal(() => guardando = false);
+                              ScaffoldMessenger.of(ctx).showSnackBar(SnackBar(content: Text(apiRes['mensaje'] ?? 'Error'), backgroundColor: AppColors.estadoRojo));
+                            }
+                          },
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: AppColors.naranja,
+                            foregroundColor: Colors.white,
+                            padding: const EdgeInsets.symmetric(horizontal: 24),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                          ),
+                          child: guardando 
+                              ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+                              : const Text('GUARDAR', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          );
+        }
+      ),
+    );
+    if (res == true) _cargarTodo();
+  }
+
+  Widget _statChip(String label, String value, Color color) {
+    return Expanded(
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 4),
+        decoration: BoxDecoration(color: color.withValues(alpha: 0.07), borderRadius: BorderRadius.circular(6)),
+        child: Column(
+          children: [
+            Text(label, style: const TextStyle(fontSize: 9, color: AppColors.textoGris), overflow: TextOverflow.ellipsis),
+            const SizedBox(height: 2),
+            Text(value, style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: color), overflow: TextOverflow.ellipsis),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // ────────────────────────────────────────────────────────
+  // VISTA: STOCK
   // ────────────────────────────────────────────────────────
   Widget _buildStockView() {
     final lista = _stockFiltrado;
@@ -331,7 +622,7 @@ class _MaterialesSectionState extends State<MaterialesSection> {
             crossAxisCount: columns,
             crossAxisSpacing: 12,
             mainAxisSpacing: 12,
-            mainAxisExtent: 190, // Un poco más alto para que quepa todo
+            mainAxisExtent: 190,
           ),
           itemBuilder: (context, index) => _buildMaterialCard(lista[index]),
         );
@@ -342,7 +633,7 @@ class _MaterialesSectionState extends State<MaterialesSection> {
   Widget _buildMaterialCard(Map<String, dynamic> m) {
     final cantidad = double.tryParse(m['existencia']?.toString() ?? '0') ?? 0.0;
     final minimo = double.tryParse(m['stock_minimo']?.toString() ?? '0') ?? 0.0;
-    final costoRef = double.tryParse(m['costo_referencia']?.toString() ?? '0') ?? 0.0;
+    final pendiente = double.tryParse(m['pendiente_por_llegar']?.toString() ?? '0') ?? 0.0;
     
     final critico = cantidad < minimo;
     final maximo = cantidad > 0 ? cantidad * 1.5 : 100;
@@ -394,8 +685,8 @@ class _MaterialesSectionState extends State<MaterialesSection> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text('Alerta mínima: ${_formatQuantity(minimo)} ${m['unidad_medida']}', style: const TextStyle(fontSize: 9, color: AppColors.textoGris)),
-              Text('Ref: \$${costoRef.toStringAsFixed(2)}', style: const TextStyle(fontSize: 9, color: AppColors.textoGris)),
+              Text('Mín: ${_formatQuantity(minimo)}', style: const TextStyle(fontSize: 9, color: AppColors.textoGris)),
+              Text('Pendiente: ${_formatQuantity(pendiente)}', style: const TextStyle(fontSize: 9, color: AppColors.naranja, fontWeight: FontWeight.bold)),
             ],
           ),
         ],
@@ -404,7 +695,7 @@ class _MaterialesSectionState extends State<MaterialesSection> {
   }
 
   // ────────────────────────────────────────────────────────
-  // VISTA: CONSUMO (Con el diseño de la captura)
+  // VISTA: CONSUMO Y KARDEX
   // ────────────────────────────────────────────────────────
   Widget _buildConsumoView() {
     final lista = _consumoFiltrado;
@@ -485,9 +776,6 @@ class _MaterialesSectionState extends State<MaterialesSection> {
     );
   }
 
-  // ────────────────────────────────────────────────────────
-  // VISTA: KARDEX (Con el diseño de la captura)
-  // ────────────────────────────────────────────────────────
   Widget _buildKardexView() {
     final lista = _kardexFiltrado;
     
@@ -527,20 +815,30 @@ class _MaterialesSectionState extends State<MaterialesSection> {
                     DataColumn(label: Text('MATERIAL', style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: AppColors.textoGris))),
                     DataColumn(label: Text('CANTIDAD', style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: AppColors.textoGris))),
                     DataColumn(label: Text('PROVEEDOR / ACTIVIDAD', style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: AppColors.textoGris))),
-                    DataColumn(label: Text('REFERENCIA / NOTAS', style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: AppColors.textoGris))),
+                    DataColumn(label: Text('OBSERVACIONES', style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: AppColors.textoGris))),
                     DataColumn(label: Text('REGISTRADO POR', style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: AppColors.textoGris))),
                   ],
                   rows: lista.map((m) {
                     final entrada = m['tipo_movimiento'] == 'ENTRADA';
+                    final esExtra = m['plan_es_extra'] == 1 || m['plan_es_extra'] == true;
                     return DataRow(cells: [
                       DataCell(
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                          decoration: BoxDecoration(color: entrada ? Colors.green.withValues(alpha: 0.1) : AppColors.naranja.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(6)),
-                          child: Text(
-                            m['tipo_movimiento'] == 'ENTRADA' ? 'ENTRADA' : 'SALIDA', 
-                            style: TextStyle(fontSize: 9, fontWeight: FontWeight.bold, color: entrada ? Colors.green : AppColors.naranja),
-                          ),
+                        Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                              decoration: BoxDecoration(color: entrada ? Colors.green.withValues(alpha: 0.1) : AppColors.naranja.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(6)),
+                              child: Text(
+                                m['tipo_movimiento'] == 'ENTRADA' ? 'ENTRADA' : 'SALIDA', 
+                                style: TextStyle(fontSize: 9, fontWeight: FontWeight.bold, color: entrada ? Colors.green : AppColors.naranja),
+                              ),
+                            ),
+                            if (esExtra) ...[
+                              const SizedBox(width: 4),
+                              const Icon(Icons.warning_amber_rounded, size: 14, color: AppColors.estadoRojo),
+                            ]
+                          ],
                         ),
                       ),
                       DataCell(Text((m['fecha_movimiento'] ?? '').toString().split(' ')[0], style: const TextStyle(fontSize: 11))),
@@ -567,7 +865,7 @@ class _MaterialesSectionState extends State<MaterialesSection> {
   }
 
   // ────────────────────────────────────────────────────────
-  // VISTA: MAQUINARIA DE LA OBRA
+  // VISTA: MAQUINARIA
   // ────────────────────────────────────────────────────────
   Widget _buildMaquinariaView() {
     return Column(
@@ -666,9 +964,9 @@ class _MaterialesSectionState extends State<MaterialesSection> {
   }
 
   // ────────────────────────────────────────────────────────
-  // MODAL: MOVIMIENTO DE MATERIAL
+  // MODAL DE MOVIMIENTO
   // ────────────────────────────────────────────────────────
-  Future<void> _openMovementDialog(BuildContext context, String tipo) async {
+  Future<void> _openMovementDialog(BuildContext context, String tipo, {Map<String, dynamic>? planLinea}) async {
     if (_catalogoMateriales.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('No hay materiales en el catálogo')));
       return;
@@ -678,9 +976,12 @@ class _MaterialesSectionState extends State<MaterialesSection> {
       context: context,
       builder: (_) => _MaterialMovementDialog(
         materiales: _catalogoMateriales,
+        planLineas: _plan, 
+        stockObra: _stock,
         actividades: _listaActividadesObra,
         proveedores: _catalogoProveedores,
         tipo: tipo,
+        planLineaInicial: planLinea,
       ),
     );
 
@@ -691,10 +992,13 @@ class _MaterialesSectionState extends State<MaterialesSection> {
       'id_material': result['id_material'],
       'tipo': tipo.toUpperCase(),
       'cantidad': result['cantidad'],
+      'id_plan_material': result['id_plan_material'],
+      'crear_extra': result['crear_extra'],
+      'motivo_extra': result['motivo_extra'],
       'id_proveedor': result['id_proveedor'],
       'id_actividad': result['id_actividad'],
       'costo_unitario': result['costo_unitario'],
-      'referencia': result['referencia'],
+      'referencia': '',
       'observaciones': result['observaciones'],
     };
 
@@ -703,14 +1007,21 @@ class _MaterialesSectionState extends State<MaterialesSection> {
 
     if (res['estado'] == true) {
       _cargarTodo();
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('$tipo registrada correctamente'), backgroundColor: Colors.green));
+      
+      String msg = '$tipo registrada correctamente';
+      if (res['excede_presupuesto'] == true) msg += ' (¡Atención! Se superó el presupuesto)';
+      
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content: Text(msg), 
+        backgroundColor: res['excede_presupuesto'] == true ? Colors.orange : Colors.green
+      ));
     } else {
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(res['mensaje'] ?? 'Error'), backgroundColor: AppColors.estadoRojo));
     }
   }
 
   // ────────────────────────────────────────────────────────
-  // MODAL: ASIGNAR MAQUINARIA
+  // MODAL MAQUINARIA
   // ────────────────────────────────────────────────────────
   Future<void> _abrirModalAsignarMaquinaria() async {
     if (_maquinariaDisponible.isEmpty) {
@@ -819,16 +1130,24 @@ class _MaterialesSectionState extends State<MaterialesSection> {
   }
 }
 
-// ────────────────────────────────────────────────────────
-// DIÁLOGO: REGISTRAR MOVIMIENTO
-// ────────────────────────────────────────────────────────
 class _MaterialMovementDialog extends StatefulWidget {
   final List<Map<String, dynamic>> materiales;
+  final List<Map<String, dynamic>> planLineas;
+  final List<Map<String, dynamic>> stockObra;
   final List<Map<String, dynamic>> actividades;
   final List<Map<String, dynamic>> proveedores;
   final String tipo;
+  final Map<String, dynamic>? planLineaInicial;
 
-  const _MaterialMovementDialog({required this.materiales, required this.actividades, required this.proveedores, required this.tipo});
+  const _MaterialMovementDialog({
+    required this.materiales, 
+    required this.planLineas,
+    required this.stockObra,
+    required this.actividades, 
+    required this.proveedores, 
+    required this.tipo,
+    this.planLineaInicial,
+  });
 
   @override
   State<_MaterialMovementDialog> createState() => _MaterialMovementDialogState();
@@ -836,83 +1155,356 @@ class _MaterialMovementDialog extends StatefulWidget {
 
 class _MaterialMovementDialogState extends State<_MaterialMovementDialog> {
   final _cantidadController = TextEditingController();
-  final _costoController = TextEditingController();
   final _notasController = TextEditingController();
+  final _motivoExtraController = TextEditingController();
+  
   int? _idMaterialSel;
+  int? _idPlanMaterialSel;
   int? _idActividadSel;
   int? _idProveedorSel;
+  bool _esExtra = false;
+  double _maximoPermitido = 999999.0;
+
+  bool get _esEntrada => widget.tipo == 'Entrada';
+  bool get _vieneDelPlan => widget.planLineaInicial != null;
+
+  @override
+  void initState() {
+    super.initState();
+    if (_vieneDelPlan) {
+      final p = widget.planLineaInicial!;
+      _idMaterialSel = p['id_material'] as int;
+      _idPlanMaterialSel = p['id_plan_material'] as int;
+      _idProveedorSel = p['id_proveedor_sugerido'] as int?;
+      
+      final pendiente = double.tryParse(p['pendiente_por_llegar']?.toString() ?? '0') ?? 0.0;
+      _maximoPermitido = pendiente;
+      // Formateamos la cantidad inicial para que no muestre .0
+      if (pendiente > 0) _cantidadController.text = _formatQuantity(pendiente);
+    }
+  }
 
   @override
   void dispose() {
     _cantidadController.dispose();
-    _costoController.dispose();
     _notasController.dispose();
+    _motivoExtraController.dispose();
     super.dispose();
   }
 
   void _save() {
     final cantidad = double.tryParse(_cantidadController.text.trim().replaceAll(',', '.'));
+    
     if (_idMaterialSel == null || cantidad == null || cantidad <= 0) {
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Selecciona un material y una cantidad válida')));
       return;
     }
+
+    if (_esEntrada && !_esExtra && cantidad > _maximoPermitido) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('No puedes recibir más de lo pendiente ($_maximoPermitido). Si es material extra, selecciona la opción de extra.')));
+      return;
+    }
+
+    if (_esEntrada && _esExtra && _motivoExtraController.text.trim().isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Escribe el motivo del material extra')));
+      return;
+    }
+
     Navigator.of(context).pop({
       'id_material': _idMaterialSel,
+      'id_plan_material': _esExtra ? null : _idPlanMaterialSel,
+      'crear_extra': _esExtra,
+      'motivo_extra': _esExtra ? _motivoExtraController.text.trim() : null,
       'cantidad': cantidad,
-      'id_actividad': widget.tipo == 'Salida' ? _idActividadSel : null,
-      'id_proveedor': widget.tipo == 'Entrada' ? _idProveedorSel : null,
-      'costo_unitario': double.tryParse(_costoController.text.trim()),
-      'referencia': '',
+      'id_actividad': !_esEntrada ? _idActividadSel : null,
+      'id_proveedor': _esEntrada ? _idProveedorSel : null,
+      'costo_unitario': null, // 👈 SE ELIMINA EL COSTO
       'observaciones': _notasController.text.trim(),
     });
   }
 
+  Widget _buildInputWrapper({required Widget child}) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: AppColors.naranja),
+      ),
+      child: child,
+    );
+  }
+
+  String _formatQuantity(num? value) {
+    if (value == null) return '0';
+    final d = value.toDouble();
+    return d == d.roundToDouble() ? d.toInt().toString() : d.toStringAsFixed(1);
+  }
+
   @override
   Widget build(BuildContext context) {
-    final esEntrada = widget.tipo == 'Entrada';
-    return AlertDialog(
-      title: Row(children: [Icon(esEntrada ? Icons.south_west : Icons.north_east, color: AppColors.naranja), const SizedBox(width: 8), Expanded(child: Text('Registrar ${widget.tipo.toLowerCase()}'))]),
-      content: SingleChildScrollView(
-        child: SizedBox(
-          width: 480,
+    // FILTRO DE SEGURIDAD: Usamos double.tryParse para evitar el error de tipos
+    final materialesConStock = widget.stockObra.where((s) => 
+      (double.tryParse(s['existencia']?.toString() ?? '0') ?? 0) > 0
+    ).toList();
+
+    return Dialog(
+      insetPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      backgroundColor: AppColors.grisfondo, // Fondo gris
+      child: ConstrainedBox(
+        constraints: BoxConstraints(
+          maxWidth: 500,
+          maxHeight: MediaQuery.of(context).size.height * 0.88,
+        ),
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(24.0),
           child: Column(
             mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              DropdownButtonFormField<int>(
-                decoration: const InputDecoration(labelText: 'Material', border: OutlineInputBorder()),
-                items: widget.materiales.map((m) => DropdownMenuItem<int>(value: m['id_material'] as int, child: Text(m['nombre']))).toList(),
-                onChanged: (v) => setState(() => _idMaterialSel = v),
+              // Header
+              Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(color: AppColors.naranja, borderRadius: BorderRadius.circular(8)),
+                    child: Icon(_esEntrada ? Icons.south_west : Icons.north_east, color: Colors.white, size: 24),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Text('Registrar ${widget.tipo}', style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.close),
+                    onPressed: () => Navigator.pop(context),
+                  ),
+                ],
               ),
-              const SizedBox(height: 12),
-              TextField(controller: _cantidadController, keyboardType: const TextInputType.numberWithOptions(decimal: true), decoration: const InputDecoration(labelText: 'Cantidad', border: OutlineInputBorder())),
-              const SizedBox(height: 12),
-              if (esEntrada)
-                DropdownButtonFormField<int>(
-                  decoration: const InputDecoration(labelText: 'Proveedor', border: OutlineInputBorder()),
-                  items: widget.proveedores.map((p) => DropdownMenuItem<int>(value: p['id_proveedor'] as int, child: Text(p['nombre']))).toList(),
-                  onChanged: (v) => setState(() => _idProveedorSel = v),
-                )
-              else
-                DropdownButtonFormField<int>(
-                  decoration: const InputDecoration(labelText: 'Actividad relacionada', border: OutlineInputBorder()),
-                  items: widget.actividades.map((a) => DropdownMenuItem<int>(
-                    value: a['id_actividad'] as int, 
-                    child: Text('${a['fase']} - ${a['nombre']}', overflow: TextOverflow.ellipsis),
-                  )).toList(),
-                  onChanged: (v) => setState(() => _idActividadSel = v),
+              const SizedBox(height: 24),
+
+              // ENTRADAS
+              if (_esEntrada) ...[
+                if (!_vieneDelPlan) ...[
+                  const Text('Material a ingresar *', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.black87)),
+                  const SizedBox(height: 6),
+                  _buildInputWrapper(
+                    child: DropdownButtonFormField<int>(
+                      decoration: const InputDecoration(border: InputBorder.none, contentPadding: EdgeInsets.symmetric(horizontal: 12)),
+                      value: _esExtra ? null : _idPlanMaterialSel,
+                      hint: const Text('Selecciona material', style: TextStyle(fontSize: 13, color: Colors.grey)),
+                      icon: const Icon(Icons.arrow_drop_down, color: AppColors.naranja),
+                      style: const TextStyle(fontSize: 13, color: Colors.black87),
+                      isExpanded: true,
+                      menuMaxHeight: 250, 
+                      items: [
+                        ...widget.planLineas.map((p) => DropdownMenuItem<int>(
+                          value: p['id_plan_material'] as int, 
+                          child: Text(
+                            '${p['material']} (Pend: ${_formatQuantity(double.tryParse(p['pendiente_por_llegar']?.toString() ?? '0'))})', 
+                            overflow: TextOverflow.ellipsis
+                          ),
+                        )),
+                        const DropdownMenuItem<int>(
+                          value: -1, 
+                          child: Text('➕ Material no contemplado...', style: TextStyle(color: AppColors.estadoRojo, fontWeight: FontWeight.bold)),
+                        ),
+                      ],
+                      onChanged: (v) {
+                        setState(() {
+                          if (v == -1) {
+                            _esExtra = true;
+                            _idPlanMaterialSel = null;
+                            _idMaterialSel = null;
+                            _maximoPermitido = 999999.0;
+                          } else {
+                            _esExtra = false;
+                            _idPlanMaterialSel = v;
+                            final p = widget.planLineas.firstWhere((e) => e['id_plan_material'] == v);
+                            _idMaterialSel = p['id_material'] as int;
+                            _idProveedorSel = p['id_proveedor_sugerido'] as int?;
+                            
+                            final pendiente = double.tryParse(p['pendiente_por_llegar']?.toString() ?? '0') ?? 0.0;
+                            _maximoPermitido = pendiente;
+                            // Formateamos la cantidad al seleccionar para que no muestre ceros
+                            _cantidadController.text = pendiente > 0 ? _formatQuantity(pendiente) : '';
+                          }
+                        });
+                      },
+                    ),
+                  ),
+                ] else ...[
+                  const Text('Material (Desde Plan)', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.black87)),
+                  const SizedBox(height: 6),
+                  _buildInputWrapper(
+                    child: Padding(
+                      padding: const EdgeInsets.all(14),
+                      child: Text(widget.planLineaInicial!['material'] ?? '', style: const TextStyle(fontSize: 13)),
+                    ),
+                  ),
+                ],
+
+                if (_esExtra) ...[
+                  const Text('Selecciona el Material Extra *', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.black87)),
+                  const SizedBox(height: 6),
+                  _buildInputWrapper(
+                    child: DropdownButtonFormField<int>(
+                      decoration: const InputDecoration(border: InputBorder.none, contentPadding: EdgeInsets.symmetric(horizontal: 12)),
+                      value: _idMaterialSel,
+                      hint: const Text('Selecciona material', style: TextStyle(fontSize: 13, color: Colors.grey)),
+                      icon: const Icon(Icons.arrow_drop_down, color: AppColors.naranja),
+                      style: const TextStyle(fontSize: 13, color: Colors.black87),
+                      isExpanded: true,
+                      menuMaxHeight: 250,
+                      items: widget.materiales.map((m) => DropdownMenuItem<int>(
+                        value: m['id_material'] as int, 
+                        child: Text('${m['nombre']} (${m['unidad_medida']})', overflow: TextOverflow.ellipsis)
+                      )).toList(),
+                      onChanged: (v) => setState(() => _idMaterialSel = v),
+                    ),
+                  ),
+                  const Text('Motivo del material extra *', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.black87)),
+                  const SizedBox(height: 6),
+                  _buildInputWrapper(
+                    child: TextField(
+                      controller: _motivoExtraController, 
+                      maxLines: 2,
+                      style: const TextStyle(fontSize: 13),
+                      decoration: const InputDecoration(hintText: '¿Por qué se requiere?', border: InputBorder.none, contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 14)),
+                    ),
+                  ),
+                ],
+              ] else ...[
+                // SALIDAS
+                const Text('Material a consumir *', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.black87)),
+                const SizedBox(height: 6),
+                _buildInputWrapper(
+                  child: DropdownButtonFormField<int>(
+                    decoration: const InputDecoration(border: InputBorder.none, contentPadding: EdgeInsets.symmetric(horizontal: 12)),
+                    value: _idMaterialSel,
+                    hint: const Text('Selecciona material con stock', style: TextStyle(fontSize: 13, color: Colors.grey)),
+                    icon: const Icon(Icons.arrow_drop_down, color: AppColors.naranja),
+                    style: const TextStyle(fontSize: 13, color: Colors.black87),
+                    isExpanded: true,
+                    menuMaxHeight: 250,
+                    items: materialesConStock.map((m) => DropdownMenuItem<int>(
+                      value: m['id_material'] as int, 
+                      child: Text(
+                        '${m['material']} (Stock: ${_formatQuantity(double.tryParse(m['existencia']?.toString() ?? '0'))})', 
+                        overflow: TextOverflow.ellipsis
+                      )
+                    )).toList(),
+                   onChanged: (v) {
+  setState(() {
+    _idMaterialSel = v;
+    // Resolver la línea de plan del material para que la salida
+    // quede ligada y se refleje en la tarjeta del Plan.
+    final planMatch = widget.planLineas
+        .where((p) => p['id_material'] == v)
+        .toList();
+    _idPlanMaterialSel = planMatch.isNotEmpty
+        ? planMatch.first['id_plan_material'] as int
+        : null;
+  });
+},
+                  ),
                 ),
-              const SizedBox(height: 12),
-              if (esEntrada)
-                TextField(controller: _costoController, keyboardType: const TextInputType.numberWithOptions(decimal: true), decoration: const InputDecoration(labelText: 'Costo unitario (opcional)', border: OutlineInputBorder())),
-              TextField(controller: _notasController, maxLines: 2, decoration: const InputDecoration(labelText: 'Observaciones', border: OutlineInputBorder())),
+              ],
+
+              // CANTIDAD
+              const Text('Cantidad recibida / consumida *', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.black87)),
+              const SizedBox(height: 6),
+              _buildInputWrapper(
+                child: TextField(
+                  controller: _cantidadController, 
+                  keyboardType: const TextInputType.numberWithOptions(decimal: true), 
+                  style: const TextStyle(fontSize: 13),
+                  decoration: const InputDecoration(hintText: 'Ej. 50', border: InputBorder.none, contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 14)),
+                ),
+              ),
+              
+              // PROVEEDOR / ACTIVIDAD
+              if (_esEntrada) ...[
+                const Text('Proveedor', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.black87)),
+                const SizedBox(height: 6),
+                _buildInputWrapper(
+                  child: DropdownButtonFormField<int>(
+                    decoration: const InputDecoration(border: InputBorder.none, contentPadding: EdgeInsets.symmetric(horizontal: 12)),
+                    value: _idProveedorSel,
+                    hint: const Text('Selecciona proveedor', style: TextStyle(fontSize: 13, color: Colors.grey)),
+                    icon: const Icon(Icons.arrow_drop_down, color: AppColors.naranja),
+                    style: const TextStyle(fontSize: 13, color: Colors.black87),
+                    isExpanded: true,
+                    menuMaxHeight: 250,
+                    items: widget.proveedores.map((p) => DropdownMenuItem<int>(value: p['id_proveedor'] as int, child: Text(p['nombre'], overflow: TextOverflow.ellipsis))).toList(),
+                    onChanged: (v) => setState(() => _idProveedorSel = v),
+                  ),
+                ),
+              ] else ...[
+                const Text('Actividad relacionada (Destino) *', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.black87)),
+                const SizedBox(height: 6),
+                _buildInputWrapper(
+                  child: DropdownButtonFormField<int>(
+                    decoration: const InputDecoration(border: InputBorder.none, contentPadding: EdgeInsets.symmetric(horizontal: 12)),
+                    value: _idActividadSel,
+                    hint: const Text('Selecciona actividad', style: TextStyle(fontSize: 13, color: Colors.grey)),
+                    icon: const Icon(Icons.arrow_drop_down, color: AppColors.naranja),
+                    style: const TextStyle(fontSize: 13, color: Colors.black87),
+                    isExpanded: true,
+                    menuMaxHeight: 250,
+                    items: widget.actividades.map((a) => DropdownMenuItem<int>(
+                      value: a['id_actividad'] as int, 
+                      child: Text('${a['fase']} - ${a['nombre']}', overflow: TextOverflow.ellipsis),
+                    )).toList(),
+                    onChanged: (v) => setState(() => _idActividadSel = v),
+                  ),
+                ),
+              ],
+
+              // OBSERVACIONES
+              const Text('Observaciones', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.black87)),
+              const SizedBox(height: 6),
+              _buildInputWrapper(
+                child: TextField(
+                  controller: _notasController, 
+                  maxLines: 3, 
+                  style: const TextStyle(fontSize: 13),
+                  decoration: const InputDecoration(hintText: 'Notas (llegó dañado, etc.)', border: InputBorder.none, contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 14)),
+                ),
+              ),
+              const SizedBox(height: 16),
+
+              // BOTONES
+              Row(
+                mainAxisAlignment: MainAxisAlignment.end,
+                children: [
+                  OutlinedButton(
+                    onPressed: () => Navigator.pop(context),
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: AppColors.gris,
+                      side: const BorderSide(color: AppColors.bordeSuave),
+                      padding: const EdgeInsets.symmetric(horizontal: 24),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                    ),
+                    child: const Text('CANCELAR', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
+                  ),
+                  const SizedBox(width: 12),
+                  ElevatedButton(
+                    onPressed: _save, 
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.naranja, 
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(horizontal: 24),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                    ), 
+                    child: Text('REGISTRAR ${widget.tipo.toUpperCase()}', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
+                  ),
+                ],
+              ),
             ],
           ),
         ),
       ),
-      actions: [
-        TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancelar')),
-        ElevatedButton(onPressed: _save, style: ElevatedButton.styleFrom(backgroundColor: AppColors.naranja, foregroundColor: Colors.white), child: Text('REGISTRAR ${widget.tipo.toUpperCase()}')),
-      ],
     );
   }
 }
