@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:gestobra/ui/screens/admin/widgets/admin_modal_field_theme.dart';
 import 'package:gestobra/config/theme/app_colors.dart';
 import 'package:gestobra/servicios/api_service.dart';
 
@@ -213,7 +214,7 @@ class _AdminMaterialesScreenState extends State<AdminMaterialesScreen> {
     bool guardando = false;
     final formKey = GlobalKey<FormState>();
 
-    await showDialog(
+    await showAdminDialog(
       context: context,
       barrierDismissible: false,
       builder: (ctx) => StatefulBuilder(
@@ -366,7 +367,7 @@ class _AdminMaterialesScreenState extends State<AdminMaterialesScreen> {
   }
 
   Future<void> _eliminarMaterial(Map<String, dynamic> m) async {
-    final ok = await showDialog<bool>(
+    final ok = await showAdminDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
         title: const Text('¿Desactivar material?'),
@@ -423,7 +424,7 @@ class _AdminMaterialesScreenState extends State<AdminMaterialesScreen> {
         : _materiales.where((m) => !_planObra.any(
             (p) => p['id_material'].toString() == m['id_material'].toString())).toList();
 
-    await showDialog(
+    await showAdminDialog(
       context: context,
       barrierDismissible: false,
       builder: (ctx) => StatefulBuilder(
@@ -633,7 +634,7 @@ class _AdminMaterialesScreenState extends State<AdminMaterialesScreen> {
   }
 
   Future<void> _eliminarLineaPlan(int idObra, Map<String, dynamic> linea) async {
-    final ok = await showDialog<bool>(
+    final ok = await showAdminDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
         title: const Text('¿Desactivar línea del plan?'),
@@ -756,8 +757,8 @@ class _AdminMaterialesScreenState extends State<AdminMaterialesScreen> {
                           children: [
                             Text('\$${m['costo_referencia'] ?? 0}', style: const TextStyle(fontWeight: FontWeight.bold, color: AppColors.estadoVerde)),
                             PopupMenuButton<String>(
-                              icon: const Icon(Icons.more_vert, color: AppColors.textoGris),
-                              color: AppColors.blanco, // 👈 Fondo blanco
+                              icon: const Icon(Icons.more_vert, color: AppColors.naranja),
+                              color: AppColors.grisfondo,
                               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                               onSelected: (v) {
                                 if (v == 'editar') _abrirModalMaterial(material: m);
@@ -775,7 +776,7 @@ class _AdminMaterialesScreenState extends State<AdminMaterialesScreen> {
                                 PopupMenuItem(
                                   value: 'eliminar', 
                                   child: Row(children: [
-                                    Icon(Icons.delete, size: 18, color: AppColors.estadoRojo), 
+                                    Icon(Icons.delete, size: 18, color: AppColors.naranja),
                                     SizedBox(width: 8), 
                                     Text('Desactivar', style: TextStyle(color: AppColors.estadoRojo))
                                   ])
@@ -961,8 +962,8 @@ class _AdminMaterialesScreenState extends State<AdminMaterialesScreen> {
                   ),
                 ),
                 PopupMenuButton<String>(
-                  icon: const Icon(Icons.more_vert, color: AppColors.textoGris),
-                  color: AppColors.blanco, // 👈 Fondo del menú igual a las tarjetas
+                  icon: const Icon(Icons.more_vert, color: AppColors.naranja),
+                  color: AppColors.grisfondo,
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                   onSelected: (v) {
                     final idObra = _obraSeleccionada!['id_obra'] as int;
@@ -984,7 +985,7 @@ class _AdminMaterialesScreenState extends State<AdminMaterialesScreen> {
                     const PopupMenuItem(
                       value: 'eliminar', 
                       child: Row(children: [
-                        Icon(Icons.delete, size: 18, color: AppColors.estadoRojo), 
+                        Icon(Icons.delete, size: 18, color: AppColors.naranja),
                         SizedBox(width: 8), 
                         Text('Desactivar', style: TextStyle(color: AppColors.estadoRojo))
                       ])

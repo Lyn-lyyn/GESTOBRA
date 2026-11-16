@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:gestobra/ui/screens/admin/widgets/admin_modal_field_theme.dart';
 import 'package:gestobra/config/theme/app_colors.dart';
 import 'package:gestobra/servicios/api_service.dart';
 
@@ -58,7 +59,7 @@ class _AdminTrabajadoresScreenState extends State<AdminTrabajadoresScreen> {
     bool guardando = false;
     final formKey = GlobalKey<FormState>();
 
-    await showDialog(
+    await showAdminDialog(
       context: context,
       barrierDismissible: false,
       builder: (ctx) => StatefulBuilder(
@@ -212,7 +213,7 @@ class _AdminTrabajadoresScreenState extends State<AdminTrabajadoresScreen> {
   }
 
   Future<void> _eliminarTrabajador(Map<String, dynamic> trabajador) async {
-    final confirmar = await showDialog<bool>(
+    final confirmar = await showAdminDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
         title: const Text('Dar de baja a Trabajador'),
@@ -300,7 +301,7 @@ class _AdminTrabajadoresScreenState extends State<AdminTrabajadoresScreen> {
                                   ],
                                 ),
                                 trailing: PopupMenuButton<String>(
-                                  icon: const Icon(Icons.more_vert, color: AppColors.textoGris),
+                                  icon: const Icon(Icons.more_vert, color: AppColors.naranja),
                                   onSelected: (value) {
                                     if (value == 'editar') _abrirModalTrabajador(trabajador: t);
                                     if (value == 'eliminar') _eliminarTrabajador(t);
@@ -310,7 +311,7 @@ class _AdminTrabajadoresScreenState extends State<AdminTrabajadoresScreen> {
                                       value: 'editar',
                                       child: Row(
                                         children: [
-                                          Icon(Icons.edit, size: 20, color: Colors.blue),
+                                          Icon(Icons.edit, size: 20, color: AppColors.naranja),
                                           SizedBox(width: 8),
                                           Text('Editar'),
                                         ],
@@ -320,7 +321,7 @@ class _AdminTrabajadoresScreenState extends State<AdminTrabajadoresScreen> {
                                       value: 'eliminar',
                                       child: Row(
                                         children: [
-                                          Icon(Icons.person_off, size: 20, color: AppColors.estadoRojo),
+                                          Icon(Icons.person_off, size: 20, color: AppColors.naranja),
                                           SizedBox(width: 8),
                                           Text('Dar de baja', style: TextStyle(color: AppColors.estadoRojo)),
                                         ],

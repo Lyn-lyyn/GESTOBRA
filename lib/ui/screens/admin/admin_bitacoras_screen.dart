@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:gestobra/ui/screens/admin/widgets/admin_modal_field_theme.dart';
 import 'package:gestobra/config/theme/app_colors.dart';
 import 'package:gestobra/servicios/api_service.dart';
 
@@ -41,12 +42,41 @@ class _AdminBitacorasScreenState extends State<AdminBitacorasScreen> {
 
     if (!mounted) return;
 
-    showDialog(
+    showAdminDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: Text('Bitácora del ${bitacora['fecha']}'),
+        backgroundColor: AppColors.grisfondo,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: Row(
+  children: [
+    Container(
+      padding: const EdgeInsets.all(8),
+      decoration: BoxDecoration(
+        color: AppColors.naranja,
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: const Icon(
+        Icons.edit_note,
+        color: Colors.white,
+        size: 22,
+      ),
+    ),
+    const SizedBox(width: 12),
+    Expanded(
+      child: Text(
+        'Bitácora del ${bitacora['fecha']}',
+        style: const TextStyle(
+          fontSize: 16,
+          fontWeight: FontWeight.bold,
+        ),
+      ),
+    ),
+  ],
+),
         content: SizedBox(
-          width: 500,
+          width: (MediaQuery.sizeOf(ctx).width - 128)
+            .clamp(0.0, 500.0)
+            .toDouble(),
           child: SingleChildScrollView(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,

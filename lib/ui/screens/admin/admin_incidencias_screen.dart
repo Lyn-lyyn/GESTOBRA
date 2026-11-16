@@ -156,7 +156,7 @@ class _AdminIncidenciasScreenState extends State<AdminIncidenciasScreen> {
                                           const Spacer(),
                                           // Menú para cambiar estado
                                           PopupMenuButton<String>(
-                                            icon: const Icon(Icons.more_horiz, size: 20),
+                                            icon: const Icon(Icons.more_horiz, size: 20, color: AppColors.naranja),
                                             onSelected: (val) => _cambiarEstado(inc, val),
                                             itemBuilder: (ctx) => ['ABIERTA', 'EN_REVISION', 'EN_ATENCION', 'RESUELTA', 'CERRADA'].map((e) => PopupMenuItem(value: e, child: Text('Marcar como $e'))).toList(),
                                           )

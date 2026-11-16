@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:gestobra/ui/screens/admin/widgets/admin_modal_field_theme.dart';
 import 'package:gestobra/config/theme/app_colors.dart';
 import 'package:gestobra/servicios/api_service.dart';
 
@@ -55,7 +56,7 @@ class _AdminUsuariosScreenState extends State<AdminUsuariosScreen> {
     bool guardando = false;
     final formKey = GlobalKey<FormState>();
 
-    await showDialog(
+    await showAdminDialog(
       context: context,
       barrierDismissible: false,
       builder: (dialogCtx) => StatefulBuilder(
@@ -160,7 +161,7 @@ class _AdminUsuariosScreenState extends State<AdminUsuariosScreen> {
     final bool estaActivo = (u['activo'] == 1 || u['activo'] == true);
     final accion = estaActivo ? 'desactivar' : 'activar';
 
-    final confirmar = await showDialog<bool>(
+    final confirmar = await showAdminDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
         title: Text('${estaActivo ? 'Desactivar' : 'Activar'} usuario'),
@@ -255,13 +256,13 @@ class _AdminUsuariosScreenState extends State<AdminUsuariosScreen> {
             ),
           ),
           PopupMenuButton<String>(
-            icon: const Icon(Icons.more_vert, color: AppColors.textoGris),
+            icon: const Icon(Icons.more_vert, color: AppColors.naranja),
             onSelected: (value) {
               if (value == 'editar') _abrirModalUsuario(usuario: u);
               if (value == 'estado') _cambiarEstadoUsuario(u);
             },
             itemBuilder: (BuildContext context) => <PopupMenuEntry<String>>[
-              const PopupMenuItem<String>(value: 'editar', child: Row(children: [Icon(Icons.edit_outlined, size: 20, color: Colors.blue), SizedBox(width: 8), Text('Editar')])),
+              const PopupMenuItem<String>(value: 'editar', child: Row(children: [Icon(Icons.edit_outlined, size: 20, color: AppColors.naranja), SizedBox(width: 8), Text('Editar')])),
               PopupMenuItem<String>(
                 value: 'estado',
                 child: Row(

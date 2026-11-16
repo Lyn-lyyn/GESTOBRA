@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:gestobra/ui/screens/admin/widgets/admin_modal_field_theme.dart';
 import 'package:gestobra/config/theme/app_colors.dart';
 import 'package:gestobra/servicios/api_service.dart';
 
@@ -75,7 +76,7 @@ class _AdminCatalogosScreenState extends State<AdminCatalogosScreen> {
     bool guardando = false;
     final formKey = GlobalKey<FormState>();
 
-    await showDialog(
+    await showAdminDialog(
       context: context,
       barrierDismissible: false,
       builder: (ctx) => StatefulBuilder(
@@ -245,11 +246,11 @@ class _AdminCatalogosScreenState extends State<AdminCatalogosScreen> {
                                               child: Text('Nivel ${item['nivel']}', style: const TextStyle(color: Colors.blue, fontSize: 12)),
                                             ),
                                           IconButton(
-                                            icon: const Icon(Icons.edit, color: Colors.blue),
+                                            icon: const Icon(Icons.edit, color: AppColors.naranja),
                                             onPressed: () => _abrirModal(item: item),
                                           ),
                                           IconButton(
-                                            icon: const Icon(Icons.delete, color: AppColors.estadoRojo),
+                                            icon: const Icon(Icons.delete, color: AppColors.naranja),
                                             onPressed: () => _eliminar(item),
                                           ),
                                         ],

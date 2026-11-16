@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:gestobra/ui/screens/admin/widgets/admin_modal_field_theme.dart';
 import 'package:gestobra/config/theme/app_colors.dart';
 import 'package:gestobra/servicios/api_service.dart';
 
@@ -63,7 +64,7 @@ class _AdminMaquinariaScreenState extends State<AdminMaquinariaScreen> {
     bool guardando = false;
     final formKey = GlobalKey<FormState>();
 
-    await showDialog(
+    await showAdminDialog(
       context: context,
       barrierDismissible: false,
       builder: (ctx) => StatefulBuilder(
@@ -177,7 +178,7 @@ class _AdminMaquinariaScreenState extends State<AdminMaquinariaScreen> {
     // Filtramos para que solo muestre máquinas operativas disponibles
     final maquinasDisponibles = _maquinaria.where((m) => m['estado_equipo'] == 'OPERATIVA').toList();
 
-    await showDialog(
+    await showAdminDialog(
       context: context,
       barrierDismissible: false,
       builder: (ctx) => StatefulBuilder(
@@ -246,7 +247,7 @@ class _AdminMaquinariaScreenState extends State<AdminMaquinariaScreen> {
     final costoCtrl = TextEditingController();
     bool guardando = false;
 
-    await showDialog(
+    await showAdminDialog(
       context: context,
       barrierDismissible: false,
       builder: (ctx) => StatefulBuilder(
@@ -339,7 +340,7 @@ class _AdminMaquinariaScreenState extends State<AdminMaquinariaScreen> {
   // MODAL: ELIMINAR MAQUINARIA
   // ────────────────────────────────────────────────────────
   Future<void> _confirmarEliminarMaquinaria(Map<String, dynamic> maquina) async {
-    final confirmar = await showDialog<bool>(
+    final confirmar = await showAdminDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
         title: const Text('¿Eliminar Equipo?'),
@@ -480,7 +481,7 @@ class _AdminMaquinariaScreenState extends State<AdminMaquinariaScreen> {
                   
                   // 👇 MENÚ DE ACCIONES 👇
                   PopupMenuButton<String>(
-                    icon: const Icon(Icons.more_vert, color: AppColors.textoGris),
+                    icon: const Icon(Icons.more_vert, color: AppColors.naranja),
                     onSelected: (value) {
                       if (value == 'editar') {
                         _abrirModalMaquinaria(maquina: m);
@@ -493,15 +494,15 @@ class _AdminMaquinariaScreenState extends State<AdminMaquinariaScreen> {
                     itemBuilder: (context) => [
                       const PopupMenuItem(
                         value: 'editar',
-                        child: Row(children: [Icon(Icons.edit, size: 18, color: Colors.blue), SizedBox(width: 8), Text('Editar Datos')]),
+                        child: Row(children: [Icon(Icons.edit, size: 18, color: AppColors.naranja), SizedBox(width: 8), Text('Editar Datos')]),
                       ),
                       const PopupMenuItem(
                         value: 'mantenimiento',
-                        child: Row(children: [Icon(Icons.build, size: 18, color: Colors.orange), SizedBox(width: 8), Text('A Mantenimiento')]),
+                        child: Row(children: [Icon(Icons.build, size: 18, color: AppColors.naranja), SizedBox(width: 8), Text('A Mantenimiento')]),
                       ),
                       const PopupMenuItem(
                         value: 'eliminar',
-                        child: Row(children: [Icon(Icons.delete, size: 18, color: AppColors.estadoRojo), SizedBox(width: 8), Text('Eliminar Equipo')]),
+                        child: Row(children: [Icon(Icons.delete, size: 18, color: AppColors.naranja), SizedBox(width: 8), Text('Eliminar Equipo')]),
                       ),
                     ],
                   ),
@@ -578,7 +579,7 @@ class _AdminMaquinariaScreenState extends State<AdminMaquinariaScreen> {
                                   icon: const Icon(Icons.remove_circle_outline, color: AppColors.estadoRojo),
                                   tooltip: 'Retirar asignación',
                                   onPressed: () async {
-                                    final confirm = await showDialog<bool>(
+                                    final confirm = await showAdminDialog<bool>(
                                       context: context,
                                       builder: (ctx) => AlertDialog(
                                         title: const Text('¿Retirar máquina?'),

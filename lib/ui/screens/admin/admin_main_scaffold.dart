@@ -65,6 +65,13 @@ class _AdminMainScaffoldState extends State<AdminMainScaffold> {
   @override
   Widget build(BuildContext context) {
     final isDesktop = MediaQuery.of(context).size.width >= 900;
+    final adminTheme = Theme.of(context).copyWith(
+      popupMenuTheme: Theme.of(context).popupMenuTheme.copyWith(
+        color: AppColors.grisfondo,
+        surfaceTintColor: Colors.transparent,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      ),
+    );
 
     if (isDesktop) {
       return Scaffold(
@@ -72,7 +79,9 @@ class _AdminMainScaffoldState extends State<AdminMainScaffold> {
         body: Row(
           children: [
             _buildDesktopSidebar(),
-            Expanded(child: _screens[_currentIndex]),
+            Expanded(
+              child: Theme(data: adminTheme, child: _screens[_currentIndex]),
+            ),
           ],
         ),
       );
@@ -80,7 +89,7 @@ class _AdminMainScaffoldState extends State<AdminMainScaffold> {
 
     // ============ VISTA MÓVIL (Optimizada) ============
     return Scaffold(
-      body: _screens[_currentIndex],
+      body: Theme(data: adminTheme, child: _screens[_currentIndex]),
       bottomNavigationBar: BottomNavigationBar(
         currentIndex: _currentMobileNavIndex,
         onTap: (index) {
