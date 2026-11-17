@@ -1,26 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:gestobra/config/theme/app_colors.dart';
 import 'package:gestobra/servicios/api_service.dart';
-import 'package:gestobra/servicios/auth_service.dart';
-import 'sections/bitacora_section.dart';
-import 'sections/materiales_section.dart';
-import 'sections/evidencias_section.dart';
-import 'sections/reportes_section.dart';
-import 'widgets/nueva_actividad_modal.dart';
-import 'sections/pipeline_actividades_section.dart';
+import 'package:gestobra/ui/screens/obras/obra_detail_screen.dart';
 
-class ObraDetailScreen extends StatefulWidget {
-  final Map<String, dynamic> obra;
-
-  const ObraDetailScreen({super.key, required this.obra});
-import 'sections/reportes_section.dart';
-import 'widgets/nueva_actividad_modal.dart';
-import 'sections/pipeline_actividades_section.dart';
-
-class ObraDetailScreen extends StatefulWidget {
-  final Map<String, dynamic> obra;
-
-  const ObraDetailScreen({super.key, required this.obra});
+class AdminObrasScreen extends StatefulWidget {
+  const AdminObrasScreen({super.key});
 
   @override
   State<AdminObrasScreen> createState() => _AdminObrasScreenState();
@@ -49,8 +33,8 @@ class _AdminObrasScreenState extends State<AdminObrasScreen> {
       if (resObras['estado'] != true) {
         setState(() => _cargando = false);
         _showError(resObras['mensaje'] ?? 'Error al cargar obras');
-      return;
-    }
+        return;
+      }
 
       final Map<String, List<String>> asignacionesPorObra = {};
       if (resAsignaciones['estado'] == true) {
@@ -72,7 +56,7 @@ class _AdminObrasScreenState extends State<AdminObrasScreen> {
         _obras = List<Map<String, dynamic>>.from(resObras['obras']).map((o) {
           final codigo = o['codigo']?.toString() ?? '';
           final asignados = asignacionesPorObra[codigo] ?? [];
-        return <String, dynamic>{
+          return <String, dynamic>{
             'id_obra': o['id_obra'],
             'codigo': codigo,
             'titulo': o['nombre'] ?? 'Sin nombre',
@@ -86,8 +70,8 @@ class _AdminObrasScreenState extends State<AdminObrasScreen> {
                 asignados.isNotEmpty ? asignados.join(', ') : 'Sin asignar',
             'sinAsignar': asignados.isEmpty,
             'estado_real': o['estado_nombre'] ?? 'PLANIFICADA',
-        };
-      }).toList();
+          };
+        }).toList();
         _cargando = false;
       });
     } catch (e) {
@@ -160,10 +144,10 @@ class _AdminObrasScreenState extends State<AdminObrasScreen> {
               title: const Text('Asignar Personal a Obra'),
               content: SizedBox(
                 width: 400,
-              child: SingleChildScrollView(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
+                child: SingleChildScrollView(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
                       DropdownButtonFormField<int>(
                         decoration: const InputDecoration(
                           labelText: 'Selecciona un empleado',
@@ -181,7 +165,7 @@ class _AdminObrasScreenState extends State<AdminObrasScreen> {
                             ? null
                             : (val) =>
                                 setModalState(() => usuarioSeleccionado = val),
-                        ),
+                      ),
                       const SizedBox(height: 12),
                       DropdownButtonFormField<String>(
                         value: rolSeleccionado,
@@ -200,17 +184,17 @@ class _AdminObrasScreenState extends State<AdminObrasScreen> {
                             ? null
                             : (val) => setModalState(
                                 () => rolSeleccionado = val ?? 'SUPERVISOR'),
-                        ),
-                      ],
-                    ),
+                      ),
+                    ],
+                  ),
                 ),
               ),
               actions: [
                 TextButton(
                   onPressed: guardando ? null : () => Navigator.pop(ctx),
                   child: const Text('Cancelar'),
-                        ),
-                        ElevatedButton(
+                ),
+                ElevatedButton(
                   onPressed: guardando
                       ? null
                       : () async {
@@ -220,7 +204,7 @@ class _AdminObrasScreenState extends State<AdminObrasScreen> {
                             'id_obra': _obras[index]['id_obra'],
                             'id_usuario': usuarioSeleccionado,
                             'tipo_asignacion': rolSeleccionado,
-                              });
+                          });
                           if (!ctx.mounted) return;
                           if (res['estado'] == true) {
                             Navigator.pop(ctx);
@@ -235,11 +219,11 @@ class _AdminObrasScreenState extends State<AdminObrasScreen> {
                           } else {
                             setModalState(() => guardando = false);
                             _showError(res['mensaje'] ?? 'Error al asignar');
-                            }
-                          },
-                          style: ElevatedButton.styleFrom(
+                          }
+                        },
+                  style: ElevatedButton.styleFrom(
                       backgroundColor: AppColors.naranja),
-                          child: guardando 
+                  child: guardando
                       ? const SizedBox(
                           width: 20,
                           height: 20,
@@ -247,14 +231,14 @@ class _AdminObrasScreenState extends State<AdminObrasScreen> {
                               color: Colors.white, strokeWidth: 2),
                         )
                       : const Text('Asignar'),
-                        ),
-                      ],
+                ),
+              ],
             );
           },
         );
       },
-          );
-        }
+    );
+  }
 
   // ────────────────────────────────────────────────────────
   // MODAL: NUEVA OBRA (responsive + guardando + validaciones)
@@ -268,7 +252,7 @@ class _AdminObrasScreenState extends State<AdminObrasScreen> {
     if (resClientes['estado'] != true || resFases['estado'] != true) {
       _showError('No se pudieron cargar los datos necesarios');
       return;
-      }
+    }
 
     final clientes =
         List<Map<String, dynamic>>.from(resClientes['data'] ?? []);
@@ -332,10 +316,10 @@ class _AdminObrasScreenState extends State<AdminObrasScreen> {
                 child: Form(
                   key: formKey,
                   child: SingleChildScrollView(
-                        child: Column(
+                    child: Column(
                       mainAxisSize: MainAxisSize.min,
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
                         TextFormField(
                           controller: tituloCtrl,
                           decoration: const InputDecoration(
@@ -347,12 +331,12 @@ class _AdminObrasScreenState extends State<AdminObrasScreen> {
                                   ? 'Requerido'
                                   : null,
                         ),
-                            const SizedBox(height: 12),
+                        const SizedBox(height: 12),
                         DropdownButtonFormField<int>(
                           decoration: const InputDecoration(
                             labelText: 'Cliente *',
                             border: OutlineInputBorder(),
-                  ),
+                          ),
                           items: clientes
                               .map((c) => DropdownMenuItem<int>(
                                     value: c['id_cliente'] as int,
@@ -364,7 +348,7 @@ class _AdminObrasScreenState extends State<AdminObrasScreen> {
                           validator: (v) =>
                               v == null ? 'Selecciona un cliente' : null,
                         ),
-                      const SizedBox(height: 12),
+                        const SizedBox(height: 12),
                         TextFormField(
                           controller: ubicacionCtrl,
                           decoration: const InputDecoration(
@@ -388,7 +372,7 @@ class _AdminObrasScreenState extends State<AdminObrasScreen> {
                         ),
                         const SizedBox(height: 12),
                         Row(
-                    children: [
+                          children: [
                             Expanded(
                               child: TextFormField(
                                 controller: fechaInicioCtrl,
@@ -404,8 +388,8 @@ class _AdminObrasScreenState extends State<AdminObrasScreen> {
                                     (v == null || v.isEmpty)
                                         ? 'Requerido'
                                         : null,
-                          ),
-                        ),
+                              ),
+                            ),
                             const SizedBox(width: 10),
                             Expanded(
                               child: TextFormField(
@@ -422,10 +406,10 @@ class _AdminObrasScreenState extends State<AdminObrasScreen> {
                                     (v == null || v.isEmpty)
                                         ? 'Requerido'
                                         : null,
+                              ),
+                            ),
+                          ],
                         ),
-                      ),
-                    ],
-                  ),
                         const SizedBox(height: 16),
                         const Text(
                           'Fases que abarcará la obra *',
@@ -449,8 +433,8 @@ class _AdminObrasScreenState extends State<AdminObrasScreen> {
                                       fontSize: 12),
                                 )
                               : Wrap(
-          spacing: 8,
-          runSpacing: 8,
+                                  spacing: 8,
+                                  runSpacing: 8,
                                   children: catalogoFases.map((fase) {
                                     final nombreFase =
                                         fase['nombre']?.toString() ?? '';
@@ -549,7 +533,7 @@ class _AdminObrasScreenState extends State<AdminObrasScreen> {
                                 content: Text(
                                     'Obra registrada correctamente'),
                                 backgroundColor: Colors.green,
-                      ),
+                              ),
                             );
                           } else {
                             setModalState(() => guardando = false);
@@ -566,8 +550,8 @@ class _AdminObrasScreenState extends State<AdminObrasScreen> {
                               color: Colors.white, strokeWidth: 2),
                         )
                       : const Text('Guardar'),
-                    ),
-                  ],
+                ),
+              ],
             );
           },
         );
@@ -635,7 +619,7 @@ class _AdminObrasScreenState extends State<AdminObrasScreen> {
     bool guardando = false;
 
     await showDialog(
-        context: context,
+      context: context,
       barrierDismissible: false,
       builder: (ctx) {
         return StatefulBuilder(
@@ -647,7 +631,7 @@ class _AdminObrasScreenState extends State<AdminObrasScreen> {
               final fecha = await showDatePicker(
                 context: ctx,
                 initialDate: inicial,
-        firstDate: DateTime(2020),
+                firstDate: DateTime(2020),
                 lastDate: DateTime(2100),
                 helpText: esInicio ? 'Fecha de inicio' : 'Fecha de término',
               );
@@ -708,14 +692,14 @@ class _AdminObrasScreenState extends State<AdminObrasScreen> {
                               setModalState(() => clienteSeleccionado = v),
                           validator: (v) =>
                               v == null ? 'Selecciona un cliente' : null,
-              ),
+                        ),
                         const SizedBox(height: 12),
                         TextFormField(
                           controller: ubicacionCtrl,
                           decoration: const InputDecoration(
                             labelText: 'Ubicación *',
                             border: OutlineInputBorder(),
-                ),
+                          ),
                           validator: (v) =>
                               (v == null || v.trim().isEmpty)
                                   ? 'Requerido'
@@ -728,7 +712,7 @@ class _AdminObrasScreenState extends State<AdminObrasScreen> {
                           decoration: const InputDecoration(
                             labelText: 'Descripción',
                             border: OutlineInputBorder(),
-                ),
+                          ),
                         ),
                         const SizedBox(height: 12),
                         Row(
@@ -753,30 +737,30 @@ class _AdminObrasScreenState extends State<AdminObrasScreen> {
                                 decoration: const InputDecoration(
                                   labelText: 'Término *',
                                   border: OutlineInputBorder(),
-                  ),
-                ),
-              ),
-        ],
-      ),
-          const SizedBox(height: 16),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 16),
                         const Text(
                           'Fases de la Obra *',
                           style: TextStyle(
                               fontWeight: FontWeight.bold, fontSize: 14),
-          ),
+                        ),
                         const SizedBox(height: 8),
-          Container(
+                        Container(
                           width: double.infinity,
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(8),
-              border: Border.all(color: AppColors.bordeSuave),
-            ),
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(color: AppColors.bordeSuave),
+                          ),
                           child: catalogoFases.isEmpty
                               ? const Text(
                                   'No hay fases en el catálogo.',
-                        style: TextStyle(
+                                  style: TextStyle(
                                       color: AppColors.estadoRojo,
                                       fontSize: 12),
                                 )
@@ -839,7 +823,7 @@ class _AdminObrasScreenState extends State<AdminObrasScreen> {
                                       Text('Selecciona al menos una fase')),
                             );
                             return;
-  }
+                          }
                           setModalState(() => guardando = true);
 
                           final res = await ApiService.put('obras.php', {
@@ -862,8 +846,8 @@ class _AdminObrasScreenState extends State<AdminObrasScreen> {
                               const SnackBar(
                                 content: Text('Obra actualizada'),
                                 backgroundColor: Colors.green,
-        ),
-      );
+                              ),
+                            );
                           } else {
                             setModalState(() => guardando = false);
                             _showError(res['mensaje'] ?? 'Error');
@@ -938,8 +922,8 @@ class _AdminObrasScreenState extends State<AdminObrasScreen> {
                                 setModalState(() => nuevoEstadoId = val),
                       );
                     }).toList(),
-                      ),
-                    ),
+                  ),
+                ),
               ),
               actions: [
                 TextButton(
@@ -976,7 +960,7 @@ class _AdminObrasScreenState extends State<AdminObrasScreen> {
                               setModalState(() => guardando = false);
                               _showError(res?['mensaje'] ??
                                   'El servidor rechazó la solicitud');
-  }
+                            }
                           } catch (e) {
                             if (!ctx.mounted) return;
                             setModalState(() => guardando = false);
@@ -984,10 +968,10 @@ class _AdminObrasScreenState extends State<AdminObrasScreen> {
                             debugPrint('❌ Error en _cambiarEstado: $e');
                           }
                         },
-        style: ElevatedButton.styleFrom(
-            backgroundColor: AppColors.naranja,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.naranja,
                     minimumSize: const Size(120, 40),
-      ),
+                  ),
                   child: guardando
                       ? const SizedBox(
                           width: 20,
@@ -1039,8 +1023,8 @@ class _AdminObrasScreenState extends State<AdminObrasScreen> {
                     const SnackBar(
                       content: Text('Obra cancelada correctamente'),
                       backgroundColor: Colors.green,
-            ),
-          );
+                    ),
+                  );
                 } else {
                   _showError(res?['mensaje'] ?? 'No se pudo cancelar');
                 }
@@ -1118,18 +1102,18 @@ class _AdminObrasScreenState extends State<AdminObrasScreen> {
                         }
                         if (estado == 'SUSPENDIDA') {
                           colorEstado = Colors.purple;
-    }
+                        }
 
-    return Container(
-      decoration: BoxDecoration(
-          color: AppColors.blanco,
+                        return Container(
+                          decoration: BoxDecoration(
+                            color: AppColors.blanco,
                             borderRadius: BorderRadius.circular(16),
                             border: Border.all(
                                 color: AppColors.bordeSuave, width: 1),
                           ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
                               // ─── Cabecera ───
                               Container(
                                 padding: const EdgeInsets.symmetric(
@@ -1144,23 +1128,23 @@ class _AdminObrasScreenState extends State<AdminObrasScreen> {
                                 child: Row(
                                   mainAxisAlignment:
                                       MainAxisAlignment.spaceBetween,
-                children: [
+                                  children: [
                                     Text(
                                       obra['codigo']?.toString() ?? '',
-                  style: const TextStyle(
+                                      style: const TextStyle(
                                           fontWeight: FontWeight.bold,
                                           fontSize: 12,
                                           color: AppColors.naranja),
                                     ),
-              Container(
+                                    Container(
                                       padding: const EdgeInsets.symmetric(
                                           horizontal: 8, vertical: 3),
-                decoration: BoxDecoration(
+                                      decoration: BoxDecoration(
                                         color: colorEstado
                                             .withValues(alpha: 0.15),
                                         borderRadius:
                                             BorderRadius.circular(20),
-                    border: Border.all(
+                                        border: Border.all(
                                             color: colorEstado, width: 0.5),
                                       ),
                                       child: Text(
@@ -1184,7 +1168,7 @@ class _AdminObrasScreenState extends State<AdminObrasScreen> {
                                     children: [
                                       Text(
                                         obra['titulo']?.toString() ?? '',
-                    style: const TextStyle(
+                                        style: const TextStyle(
                                             fontWeight: FontWeight.bold,
                                             fontSize: 16),
                                         maxLines: 1,
@@ -1200,7 +1184,7 @@ class _AdminObrasScreenState extends State<AdminObrasScreen> {
                                             color: AppColors.textoGris),
                                         maxLines: 1,
                                         overflow: TextOverflow.ellipsis,
-              ),
+                                      ),
                                       const SizedBox(height: 10),
                                       _buildIconRow(
                                           Icons.location_on_outlined,
@@ -1223,8 +1207,8 @@ class _AdminObrasScreenState extends State<AdminObrasScreen> {
                                         '${_formatearFecha(obra['fechaTermino'])}',
                                       ),
                                       const Spacer(),
-                Row(
-                  children: [
+                                      Row(
+                                        children: [
                                           Icon(
                                             Icons.person_outline,
                                             size: 14,
@@ -1251,10 +1235,10 @@ class _AdminObrasScreenState extends State<AdminObrasScreen> {
                                               ),
                                             ),
                                           ),
-                  ],
-                ),
-            ],
-          ),
+                                        ],
+                                      ),
+                                    ],
+                                  ),
                                 ),
                               ),
                               // ─── Acciones ───
@@ -1263,7 +1247,7 @@ class _AdminObrasScreenState extends State<AdminObrasScreen> {
                               SizedBox(
                                 height: 48,
                                 child: Row(
-      children: [
+                                  children: [
                                     Expanded(
                                       child: InkWell(
                                         onTap: () =>
@@ -1271,7 +1255,7 @@ class _AdminObrasScreenState extends State<AdminObrasScreen> {
                                         child: const Row(
                                           mainAxisAlignment:
                                               MainAxisAlignment.center,
-          children: [
+                                          children: [
                                             Icon(Icons.person_add,
                                                 size: 16,
                                                 color: AppColors.naranja),
@@ -1284,9 +1268,9 @@ class _AdminObrasScreenState extends State<AdminObrasScreen> {
                                                         FontWeight.bold,
                                                     fontSize: 12)),
                                           ],
-                  ),
-                ),
-              ),
+                                        ),
+                                      ),
+                                    ),
                                     Container(
                                         width: 1,
                                         height: 24,
@@ -1344,7 +1328,7 @@ class _AdminObrasScreenState extends State<AdminObrasScreen> {
                                             SizedBox(width: 8),
                                             Text('Editar Datos'),
                                           ]),
-      ),
+                                        ),
                                         PopupMenuItem<String>(
                                           value: 'estado',
                                           child: Row(children: [
@@ -1364,9 +1348,9 @@ class _AdminObrasScreenState extends State<AdminObrasScreen> {
                                             SizedBox(width: 8),
                                             Text('Cancelar Obra'),
                                           ]),
-            ),
-          ],
-        ),
+                                        ),
+                                      ],
+                                    ),
                                   ],
                                 ),
                               ),
