@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:gestobra/ui/screens/admin/widgets/admin_modal_field_theme.dart';
 import 'package:gestobra/config/theme/app_colors.dart';
 import 'package:gestobra/servicios/api_service.dart';
 
@@ -49,97 +50,225 @@ class _AdminClientesScreenState extends State<AdminClientesScreen> {
     bool guardando = false;
     final formKey = GlobalKey<FormState>();
 
-    await showDialog(
+    await showAdminDialog(
       context: context,
       barrierDismissible: false,
       builder: (ctx) => StatefulBuilder(
-        builder: (ctx, setModal) => AlertDialog(
-          title: Text(esEdicion ? 'Editar Cliente' : 'Nuevo Cliente'),
-          content: SizedBox(
-            width: 450,
-            child: Form(
-              key: formKey,
-              child: SingleChildScrollView(
+        builder: (ctx, setModal) => Dialog(
+          insetPadding: const EdgeInsets.symmetric(
+            horizontal: 16,
+            vertical: 24,
+          ),
+          backgroundColor: AppColors.grisfondo,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
+          child: ConstrainedBox(
+            constraints: BoxConstraints(
+              maxWidth: 500,
+              maxHeight: MediaQuery.sizeOf(ctx).height * 0.88,
+            ),
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.all(24),
+              child: Form(
+                key: formKey,
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
+                    Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(8),
+                          decoration: BoxDecoration(
+                            color: AppColors.naranja,
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: const Icon(
+                            Icons.person_outline,
+                            color: Colors.white,
+                            size: 22,
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Text(
+                            esEdicion ? 'Editar cliente' : 'Nuevo cliente',
+                            style: const TextStyle(
+                              fontSize: 17,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                        IconButton(
+                          tooltip: 'Cerrar',
+                          onPressed: guardando
+                              ? null
+                              : () => Navigator.pop(ctx),
+                          icon: const Icon(Icons.close),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 20),
                     TextFormField(
                       controller: nombreCtrl,
-                      decoration: const InputDecoration(labelText: 'Nombre o Empresa *', border: OutlineInputBorder()),
-                      validator: (v) => v == null || v.isEmpty ? 'Requerido' : null,
+                      decoration: _decoracionCampoCliente(
+                        'Nombre o Empresa *',
+                      ),
+                      validator: (v) =>
+                          v == null || v.isEmpty ? 'Requerido' : null,
                     ),
                     const SizedBox(height: 12),
                     TextFormField(
                       controller: telCtrl,
                       keyboardType: TextInputType.phone,
-                      decoration: const InputDecoration(labelText: 'Teléfono', border: OutlineInputBorder()),
+                      decoration: _decoracionCampoCliente('Teléfono'),
                     ),
                     const SizedBox(height: 12),
                     TextFormField(
                       controller: correoCtrl,
                       keyboardType: TextInputType.emailAddress,
-                      decoration: const InputDecoration(labelText: 'Correo Electrónico', border: OutlineInputBorder()),
+                      decoration: _decoracionCampoCliente(
+                        'Correo electrónico',
+                      ),
                     ),
                     const SizedBox(height: 12),
                     TextFormField(
                       controller: dirCtrl,
-                      decoration: const InputDecoration(labelText: 'Dirección', border: OutlineInputBorder()),
+                      decoration: _decoracionCampoCliente('Dirección'),
                     ),
                     const SizedBox(height: 12),
                     TextFormField(
                       controller: obsCtrl,
                       maxLines: 2,
-                      decoration: const InputDecoration(labelText: 'Observaciones', border: OutlineInputBorder()),
+                      decoration: _decoracionCampoCliente('Observaciones'),
+                    ),
+                    const SizedBox(height: 24),
+                    OverflowBar(
+                      alignment: MainAxisAlignment.end,
+                      spacing: 10,
+                      overflowSpacing: 8,
+                      children: [
+                        OutlinedButton(
+                          onPressed: guardando
+                              ? null
+                              : () => Navigator.pop(ctx),
+                          style: OutlinedButton.styleFrom(
+                            foregroundColor: AppColors.textoGris,
+                            side: const BorderSide(
+                              color: AppColors.bordeSuave,
+                            ),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                          ),
+                          child: const Text('Cancelar'),
+                        ),
+                        ElevatedButton(
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: AppColors.naranja,
+                            foregroundColor: Colors.white,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                          ),
+                          onPressed: guardando
+                              ? null
+                              : () async {
+                                  if (!formKey.currentState!.validate()) return;
+                                  setModal(() => guardando = true);
+
+                                  final body = {
+                                    if (esEdicion)
+                                      'id_cliente': cliente['id_cliente'],
+                                    'nombre': nombreCtrl.text.trim(),
+                                    'telefono': telCtrl.text.trim(),
+                                    'correo': correoCtrl.text.trim(),
+                                    'direccion': dirCtrl.text.trim(),
+                                    'observaciones': obsCtrl.text.trim(),
+                                  };
+
+                                  final res = await ApiService.post(
+                                    'clientes.php',
+                                    body,
+                                  );
+                                  if (!mounted) return;
+
+                                  if (res['estado'] == true) {
+                                    Navigator.pop(ctx);
+                                    _cargarClientes();
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      SnackBar(content: Text(res['mensaje'])),
+                                    );
+                                  } else {
+                                    setModal(() => guardando = false);
+                                    ScaffoldMessenger.of(ctx).showSnackBar(
+                                      SnackBar(
+                                        content: Text(res['mensaje'] ?? 'Error'),
+                                        backgroundColor: AppColors.estadoRojo,
+                                      ),
+                                    );
+                                  }
+                                },
+                          child: guardando
+                              ? const SizedBox(
+                                  width: 18,
+                                  height: 18,
+                                  child: CircularProgressIndicator(
+                                    color: Colors.white,
+                                    strokeWidth: 2,
+                                  ),
+                                )
+                              : Text(
+                                  esEdicion
+                                      ? 'Guardar cambios'
+                                      : 'Crear cliente',
+                                ),
+                        ),
+                      ],
                     ),
                   ],
                 ),
               ),
             ),
           ),
-          actions: [
-            TextButton(
-              onPressed: guardando ? null : () => Navigator.pop(ctx),
-              child: const Text('Cancelar', style: TextStyle(color: AppColors.textoGris)),
-            ),
-            ElevatedButton(
-              style: ElevatedButton.styleFrom(backgroundColor: AppColors.naranja),
-              onPressed: guardando ? null : () async {
-                if (!formKey.currentState!.validate()) return;
-                setModal(() => guardando = true);
-
-                final body = {
-                  if (esEdicion) 'id_cliente': cliente['id_cliente'],
-                  'nombre': nombreCtrl.text.trim(),
-                  'telefono': telCtrl.text.trim(),
-                  'correo': correoCtrl.text.trim(),
-                  'direccion': dirCtrl.text.trim(),
-                  'observaciones': obsCtrl.text.trim(),
-                };
-
-                final res = await ApiService.post('clientes.php', body);
-                if (!mounted) return;
-
-                if (res['estado'] == true) {
-                  Navigator.pop(ctx);
-                  _cargarClientes();
-                  ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(res['mensaje'])));
-                } else {
-                  setModal(() => guardando = false);
-                  ScaffoldMessenger.of(ctx).showSnackBar(SnackBar(content: Text(res['mensaje'] ?? 'Error'), backgroundColor: AppColors.estadoRojo));
-                }
-              },
-              child: guardando
-                  ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
-                  : Text(esEdicion ? 'Guardar Cambios' : 'Crear Cliente'),
-            ),
-          ],
         ),
       ),
     );
   }
 
+  InputDecoration _decoracionCampoCliente(String etiqueta) {
+    final borde = OutlineInputBorder(
+      borderRadius: BorderRadius.circular(8),
+      borderSide: const BorderSide(color: AppColors.naranja),
+    );
+    return InputDecoration(
+      labelText: etiqueta,
+      labelStyle: const TextStyle(color: AppColors.textoGris, fontSize: 13),
+      floatingLabelStyle: const TextStyle(color: AppColors.naranja),
+      filled: true,
+      fillColor: AppColors.blanco,
+      isDense: true,
+      contentPadding: const EdgeInsets.symmetric(
+        horizontal: 14,
+        vertical: 14,
+      ),
+      border: borde,
+      enabledBorder: borde,
+      focusedBorder: borde.copyWith(
+        borderSide: const BorderSide(color: AppColors.naranja, width: 1.5),
+      ),
+      errorBorder: borde.copyWith(
+        borderSide: const BorderSide(color: AppColors.estadoRojo),
+      ),
+      focusedErrorBorder: borde.copyWith(
+        borderSide: const BorderSide(color: AppColors.estadoRojo, width: 1.5),
+      ),
+    );
+  }
+
   Future<void> _eliminarCliente(Map<String, dynamic> cliente) async {
-    final confirmar = await showDialog<bool>(
+    final confirmar = await showAdminDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
         title: const Text('Eliminar Cliente'),
@@ -227,7 +356,7 @@ class _AdminClientesScreenState extends State<AdminClientesScreen> {
                                   ],
                                 ),
                                 trailing: PopupMenuButton<String>(
-                                  icon: const Icon(Icons.more_vert, color: AppColors.textoGris),
+                                  icon: const Icon(Icons.more_vert, color: AppColors.naranja),
                                   onSelected: (value) {
                                     if (value == 'editar') _abrirModalCliente(cliente: c);
                                     if (value == 'eliminar') _eliminarCliente(c);
@@ -237,7 +366,7 @@ class _AdminClientesScreenState extends State<AdminClientesScreen> {
                                       value: 'editar',
                                       child: Row(
                                         children: [
-                                          Icon(Icons.edit, size: 20, color: Colors.blue),
+                                          Icon(Icons.edit, size: 20, color: AppColors.naranja),
                                           SizedBox(width: 8),
                                           Text('Editar'),
                                         ],
@@ -247,7 +376,7 @@ class _AdminClientesScreenState extends State<AdminClientesScreen> {
                                       value: 'eliminar',
                                       child: Row(
                                         children: [
-                                          Icon(Icons.delete, size: 20, color: AppColors.estadoRojo),
+                                          Icon(Icons.delete, size: 20, color: AppColors.naranja),
                                           SizedBox(width: 8),
                                           Text('Eliminar', style: TextStyle(color: AppColors.estadoRojo)),
                                         ],

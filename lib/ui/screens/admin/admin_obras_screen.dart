@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:gestobra/ui/screens/admin/widgets/admin_modal_field_theme.dart';
 import 'package:gestobra/config/theme/app_colors.dart';
 import 'package:gestobra/servicios/api_service.dart';
 import 'package:gestobra/ui/screens/obras/obra_detail_screen.dart';
@@ -135,7 +136,7 @@ class _AdminObrasScreenState extends State<AdminObrasScreen> {
     String rolSeleccionado = 'SUPERVISOR';
     bool guardando = false;
 
-    await showDialog(
+    await showAdminDialog(
       context: context,
       builder: (ctx) {
         return StatefulBuilder(
@@ -270,7 +271,7 @@ class _AdminObrasScreenState extends State<AdminObrasScreen> {
     bool guardando = false;
     final Set<String> fasesSeleccionadas = {};
 
-    await showDialog(
+    await showAdminDialog(
       context: context,
       barrierDismissible: false,
       builder: (ctx) {
@@ -618,7 +619,7 @@ class _AdminObrasScreenState extends State<AdminObrasScreen> {
 
     bool guardando = false;
 
-    await showDialog(
+    await showAdminDialog(
       context: context,
       barrierDismissible: false,
       builder: (ctx) {
@@ -898,7 +899,7 @@ class _AdminObrasScreenState extends State<AdminObrasScreen> {
     // ⚠️ `guardando` FUERA del builder para que no se reinicie en cada rebuild
     bool guardando = false;
 
-    await showDialog(
+    await showAdminDialog(
       context: context,
       barrierDismissible: false,
       builder: (ctx) {
@@ -994,7 +995,7 @@ class _AdminObrasScreenState extends State<AdminObrasScreen> {
   // ────────────────────────────────────────────────────────
   Future<void> _cancelarObra(int index) async {
     final obra = _obras[index];
-    await showDialog(
+    await showAdminDialog(
       context: context,
       builder: (ctx) => AlertDialog(
         title: const Text('¿Cancelar Obra?'),
@@ -1305,7 +1306,7 @@ class _AdminObrasScreenState extends State<AdminObrasScreen> {
                                     ),
                                     PopupMenuButton<String>(
                                       icon: const Icon(Icons.more_vert,
-                                          color: AppColors.textoGris,
+                                          color: AppColors.naranja,
                                           size: 18),
                                       onSelected: (value) {
                                         if (value == 'editar') {
@@ -1324,7 +1325,7 @@ class _AdminObrasScreenState extends State<AdminObrasScreen> {
                                           value: 'editar',
                                           child: Row(children: [
                                             Icon(Icons.edit,
-                                                size: 18, color: Colors.blue),
+                                                size: 18, color: AppColors.naranja),
                                             SizedBox(width: 8),
                                             Text('Editar Datos'),
                                           ]),
@@ -1344,7 +1345,7 @@ class _AdminObrasScreenState extends State<AdminObrasScreen> {
                                           child: Row(children: [
                                             Icon(Icons.cancel,
                                                 size: 18,
-                                                color: AppColors.estadoRojo),
+                                                color: AppColors.naranja),
                                             SizedBox(width: 8),
                                             Text('Cancelar Obra'),
                                           ]),

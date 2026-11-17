@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:gestobra/ui/screens/admin/widgets/admin_modal_field_theme.dart';
 import 'package:gestobra/config/theme/app_colors.dart';
 import 'package:gestobra/servicios/api_service.dart';
 
@@ -56,7 +57,7 @@ class _AdminAsignacionesScreenState extends State<AdminAsignacionesScreen> {
     String tipoAsignacionSel = 'SUPERVISOR';
     bool guardando = false;
 
-    await showDialog(
+    await showAdminDialog(
       context: context,
       barrierDismissible: false,
       builder: (ctx) => StatefulBuilder(

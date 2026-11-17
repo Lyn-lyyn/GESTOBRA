@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:gestobra/ui/screens/admin/widgets/admin_modal_field_theme.dart';
 import 'package:gestobra/config/theme/app_colors.dart';
 import 'package:gestobra/servicios/api_service.dart';
 
@@ -49,7 +50,7 @@ class _AdminProveedoresScreenState extends State<AdminProveedoresScreen> {
     bool guardando = false;
     final formKey = GlobalKey<FormState>();
 
-    await showDialog(
+    await showAdminDialog(
       context: context,
       barrierDismissible: false,
       builder: (ctx) => StatefulBuilder(
@@ -139,7 +140,7 @@ class _AdminProveedoresScreenState extends State<AdminProveedoresScreen> {
   }
 
   Future<void> _eliminarProveedor(Map<String, dynamic> proveedor) async {
-    final confirmar = await showDialog<bool>(
+    final confirmar = await showAdminDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
         title: const Text('Eliminar Proveedor'),
@@ -210,8 +211,8 @@ class _AdminProveedoresScreenState extends State<AdminProveedoresScreen> {
                               child: ListTile(
                                 contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
                                 leading: CircleAvatar(
-                                  backgroundColor: Colors.blue.withValues(alpha: 0.15),
-                                  child: const Icon(Icons.local_shipping, color: Colors.blue),
+                                  backgroundColor: AppColors.naranja.withValues(alpha: 0.15),
+                                  child: const Icon(Icons.local_shipping, color: AppColors.naranja),
                                 ),
                                 title: Text(p['nombre'] ?? '', style: const TextStyle(fontWeight: FontWeight.bold)),
                                 subtitle: Column(
@@ -227,7 +228,7 @@ class _AdminProveedoresScreenState extends State<AdminProveedoresScreen> {
                                   ],
                                 ),
                                 trailing: PopupMenuButton<String>(
-                                  icon: const Icon(Icons.more_vert, color: AppColors.textoGris),
+                                  icon: const Icon(Icons.more_vert, color: AppColors.naranja),
                                   onSelected: (value) {
                                     if (value == 'editar') _abrirModalProveedor(proveedor: p);
                                     if (value == 'eliminar') _eliminarProveedor(p);
@@ -237,7 +238,7 @@ class _AdminProveedoresScreenState extends State<AdminProveedoresScreen> {
                                       value: 'editar',
                                       child: Row(
                                         children: [
-                                          Icon(Icons.edit, size: 20, color: Colors.blue),
+                                          Icon(Icons.edit, size: 20, color: AppColors.naranja),
                                           SizedBox(width: 8),
                                           Text('Editar'),
                                         ],
@@ -247,7 +248,7 @@ class _AdminProveedoresScreenState extends State<AdminProveedoresScreen> {
                                       value: 'eliminar',
                                       child: Row(
                                         children: [
-                                          Icon(Icons.delete, size: 20, color: AppColors.estadoRojo),
+                                          Icon(Icons.delete, size: 20, color: AppColors.naranja),
                                           SizedBox(width: 8),
                                           Text('Eliminar', style: TextStyle(color: AppColors.estadoRojo)),
                                         ],

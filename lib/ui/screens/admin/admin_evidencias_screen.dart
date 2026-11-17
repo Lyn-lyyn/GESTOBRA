@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:gestobra/ui/screens/admin/widgets/admin_modal_field_theme.dart';
 import 'package:gestobra/config/theme/app_colors.dart';
 import 'package:gestobra/servicios/api_service.dart';
 
@@ -32,7 +33,7 @@ class _AdminEvidenciasScreenState extends State<AdminEvidenciasScreen> {
   }
 
   void _verFotoGrande(Map<String, dynamic> ev) {
-    showDialog(
+    showAdminDialog(
       context: context,
       builder: (ctx) => Dialog(
         backgroundColor: Colors.black,
