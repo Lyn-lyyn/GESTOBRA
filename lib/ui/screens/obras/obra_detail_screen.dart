@@ -96,8 +96,7 @@ class _ObraDetailScreenState extends State<ObraDetailScreen> {
 
       final actividades = actividadesBase.map((actividad) {
         final porcentaje = (double.tryParse(
-                    actividad['porcentaje_avance']?.toString() ?? '') ??
-                0)
+                    actividad['porcentaje_avance']?.toString() ?? '') ?? 0)
             .clamp(0, 100)
             .toDouble();
         final inicio = DateTime.tryParse(
@@ -108,6 +107,10 @@ class _ObraDetailScreenState extends State<ObraDetailScreen> {
             inicio;
         final fase = fasesPorId[actividad['id_fase'].toString()];
         final estado = (actividad['estado_nombre'] ?? 'PENDIENTE').toString();
+
+        // El reporte ahora viene del backend (último avance)
+        final String reporte =
+            (actividad['ultimo_reporte']?.toString() ?? '').trim();
 
         return <String, dynamic>{
           ...actividad,
@@ -120,11 +123,8 @@ class _ObraDetailScreenState extends State<ObraDetailScreen> {
           'fechaFin': fin,
           'programado':
               'Programado ${_formatoFecha(inicio)} al ${_formatoFecha(fin)}',
-          'reporte': actividad['ultimo_reporte']?.toString().isNotEmpty == true
-              ? actividad['ultimo_reporte'].toString()
-              : 'Sin reportes de avance',
+          'reporte': reporte.isNotEmpty ? reporte : 'Sin reportes de avance',
           'avance': porcentaje / 100,
-          'ponderacion': '—',
           'isCompleted':
               porcentaje >= 100 || estado.toUpperCase().contains('COMPLET'),
         };
@@ -178,15 +178,11 @@ class _ObraDetailScreenState extends State<ObraDetailScreen> {
     }
   }
 
-  // ─── Registrar Avance ───
-    Future<void> _registrarAvance(Map<String, dynamic> actividad) async {
+  Future<void> _registrarAvance(Map<String, dynamic> actividad) async {
     final idActividad =
         int.tryParse(actividad['id_actividad']?.toString() ?? '') ?? 0;
     if (idActividad <= 0) return;
 
-    final avanceActual = ((actividad['avance'] as num?)?.toDouble() ?? 0) * 100;
-    final porcentajeController =
-        TextEditingController(text: avanceActual.toStringAsFixed(0));
     final observacionesController = TextEditingController();
 
     final confirmado = await showDialog<bool>(
@@ -196,8 +192,10 @@ class _ObraDetailScreenState extends State<ObraDetailScreen> {
         builder: (ctx, setModal) {
           bool guardando = false;
           return Dialog(
-            insetPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+            insetPadding:
+                const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
+            shape:
+                RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
             backgroundColor: AppColors.grisfondo,
             child: ConstrainedBox(
               constraints: const BoxConstraints(maxWidth: 500),
@@ -211,100 +209,121 @@ class _ObraDetailScreenState extends State<ObraDetailScreen> {
                       children: [
                         Container(
                           padding: const EdgeInsets.all(8),
-                          decoration: BoxDecoration(color: AppColors.naranja, borderRadius: BorderRadius.circular(8)),
-                          child: const Icon(Icons.trending_up, color: Colors.white, size: 24),
+                          decoration: BoxDecoration(
+                              color: Colors.green.shade700,
+                              borderRadius: BorderRadius.circular(8)),
+                          child: const Icon(Icons.check_circle,
+                              color: Colors.white, size: 24),
                         ),
                         const SizedBox(width: 12),
                         const Expanded(
-                          child: Text('Registrar avance', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                          child: Text('Completar actividad',
+                              style: TextStyle(
+                                  fontSize: 16, fontWeight: FontWeight.bold)),
                         ),
                         IconButton(
                           icon: const Icon(Icons.close),
-                          onPressed: guardando ? null : () => Navigator.pop(ctx, false),
+                          onPressed:
+                              guardando ? null : () => Navigator.pop(ctx, false),
                         ),
                       ],
                     ),
                     const SizedBox(height: 24),
-
-                    Text('Actividad: ${actividad['titulo']}', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+                    Text('Actividad: ${actividad['titulo']}',
+                        style: const TextStyle(
+                            fontWeight: FontWeight.bold, fontSize: 14)),
                     const SizedBox(height: 16),
-
-                    const Text('Avance (%) *', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.black87)),
+                    const Text('Observaciones (opcional)',
+                        style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.black87)),
                     const SizedBox(height: 6),
                     Container(
-                      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(8), border: Border.all(color: AppColors.naranja)),
-                      child: TextFormField(
-                        controller: porcentajeController,
-                        keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                        style: const TextStyle(fontSize: 13),
-                        decoration: const InputDecoration(hintText: 'Ej. 50', border: InputBorder.none, contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 14), isDense: true),
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-
-                    const Text('Observaciones', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.black87)),
-                    const SizedBox(height: 6),
-                    Container(
-                      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(8), border: Border.all(color: AppColors.naranja)),
+                      decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(color: AppColors.naranja)),
                       child: TextFormField(
                         controller: observacionesController,
                         maxLines: 3,
                         style: const TextStyle(fontSize: 13),
-                        decoration: const InputDecoration(hintText: 'Ej. Se terminó la cimentación', border: InputBorder.none, contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 14), isDense: true),
+                        decoration: const InputDecoration(
+                          hintText:
+                              'Ej. Se terminó la cimbra y se retiró el material',
+                          border: InputBorder.none,
+                          contentPadding:
+                              EdgeInsets.symmetric(horizontal: 12, vertical: 14),
+                          isDense: true,
+                        ),
                       ),
                     ),
                     const SizedBox(height: 32),
-
                     Row(
                       mainAxisAlignment: MainAxisAlignment.end,
                       children: [
                         OutlinedButton(
-                          onPressed: guardando ? null : () => Navigator.pop(ctx, false),
+                          onPressed: guardando
+                              ? null
+                              : () => Navigator.pop(ctx, false),
                           style: OutlinedButton.styleFrom(
                             foregroundColor: AppColors.gris,
                             side: const BorderSide(color: AppColors.bordeSuave),
                             padding: const EdgeInsets.symmetric(horizontal: 24),
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                            shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(8)),
                           ),
-                          child: const Text('CANCELAR', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
+                          child: const Text('CANCELAR',
+                              style: TextStyle(
+                                  fontWeight: FontWeight.bold, fontSize: 12)),
                         ),
                         const SizedBox(width: 12),
                         ElevatedButton(
-                          onPressed: guardando ? null : () async {
-                            final porcentaje = double.tryParse(porcentajeController.text.trim());
-                            if (porcentaje == null || porcentaje < 0 || porcentaje > 100) {
-                              ScaffoldMessenger.of(ctx).showSnackBar(const SnackBar(content: Text('El avance debe ser un número entre 0 y 100.')));
-                              return;
-                            }
+                          onPressed: guardando
+                              ? null
+                              : () async {
+                                  setModal(() => guardando = true);
+                                  try {
+                                    final respuesta = await ApiService.post(
+                                      'actividad_avance.php',
+                                      {
+                                        'id_actividad': idActividad,
+                                        'observaciones':
+                                            observacionesController.text.trim(),
+                                      },
+                                    );
 
-                            setModal(() => guardando = true);
-
-                            try {
-                              final respuesta = await ApiService.post('actividad_avance.php', {
-                                'id_actividad': idActividad,
-                                'porcentaje_nuevo': porcentaje,
-                                'observaciones': observacionesController.text.trim(),
-                              });
-
-                              if (respuesta['estado'] != true) {
-                                throw Exception(respuesta['mensaje'] ?? 'No se pudo registrar el avance');
-                              }
-
-                              Navigator.pop(ctx, true);
-                            } catch (error) {
-                              setModal(() => guardando = false);
-                              ScaffoldMessenger.of(ctx).showSnackBar(SnackBar(content: Text('Error: $error'), backgroundColor: AppColors.estadoRojo));
-                            }
-                          },
+                                    if (respuesta['estado'] != true) {
+                                      throw Exception(respuesta['mensaje'] ??
+                                          'No se pudo completar la actividad');
+                                    }
+                                    Navigator.pop(ctx, true);
+                                  } catch (error) {
+                                    setModal(() => guardando = false);
+                                    ScaffoldMessenger.of(ctx).showSnackBar(
+                                        SnackBar(
+                                            content: Text('Error: $error'),
+                                            backgroundColor:
+                                                AppColors.estadoRojo));
+                                  }
+                                },
                           style: ElevatedButton.styleFrom(
-                            backgroundColor: AppColors.naranja,
+                            backgroundColor: Colors.green.shade700,
                             foregroundColor: Colors.white,
                             padding: const EdgeInsets.symmetric(horizontal: 24),
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                            shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(8)),
                           ),
-                          child: guardando 
-                              ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
-                              : const Text('GUARDAR', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
+                          child: guardando
+                              ? const SizedBox(
+                                  width: 18,
+                                  height: 18,
+                                  child: CircularProgressIndicator(
+                                      color: Colors.white, strokeWidth: 2))
+                              : const Text('MARCAR COMO COMPLETADA',
+                                  style: TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 12)),
                         ),
                       ],
                     ),
@@ -313,18 +332,19 @@ class _ObraDetailScreenState extends State<ObraDetailScreen> {
               ),
             ),
           );
-        }
+        },
       ),
     );
 
-    porcentajeController.dispose();
     observacionesController.dispose();
 
     if (confirmado == true && mounted) {
       await _cargarDetalle();
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Avance registrado correctamente'), backgroundColor: Colors.green),
+          const SnackBar(
+              content: Text('Actividad completada correctamente'),
+              backgroundColor: Colors.green),
         );
       }
     }
@@ -350,12 +370,6 @@ class _ObraDetailScreenState extends State<ObraDetailScreen> {
     } catch (_) {
       return fechaStr;
     }
-  }
-
-  void _showError(String msg) {
-    if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(msg), backgroundColor: AppColors.estadoRojo));
   }
 
   // ─── Build Principal ───
@@ -416,7 +430,7 @@ class _ObraDetailScreenState extends State<ObraDetailScreen> {
     );
   }
 
-    // ─── Selector de tiempo ───
+  // ─── Selector de tiempo ───
   Widget _buildSelectorTiempo() {
     final opciones = [
       'Diario',
@@ -427,11 +441,11 @@ class _ObraDetailScreenState extends State<ObraDetailScreen> {
     ];
 
     return SizedBox(
-      height: 42, // Altura fija para que el scroll no se desborde
+      height: 42,
       child: ListView.separated(
         scrollDirection: Axis.horizontal,
         itemCount: opciones.length,
-        separatorBuilder: (_, __) => const SizedBox(width: 8), // Separación entre botones
+        separatorBuilder: (_, __) => const SizedBox(width: 8),
         itemBuilder: (context, index) {
           final opcion = opciones[index];
           final isSelected = _tipoReporte == opcion;
@@ -469,7 +483,8 @@ class _ObraDetailScreenState extends State<ObraDetailScreen> {
                           ),
                           focusedBorder: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(8),
-                            borderSide: const BorderSide(color: AppColors.naranja, width: 2),
+                            borderSide:
+                                const BorderSide(color: AppColors.naranja, width: 2),
                           ),
                         ),
                         datePickerTheme: DatePickerThemeData(
@@ -479,8 +494,10 @@ class _ObraDetailScreenState extends State<ObraDetailScreen> {
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(16),
                           ),
-                          rangeSelectionBackgroundColor: AppColors.naranja.withValues(alpha: 0.2),
-                          todayForegroundColor: WidgetStateProperty.all(AppColors.naranja),
+                          rangeSelectionBackgroundColor:
+                              AppColors.naranja.withValues(alpha: 0.2),
+                          todayForegroundColor:
+                              WidgetStateProperty.all(AppColors.naranja),
                           headerHeadlineStyle: const TextStyle(
                             fontSize: 16,
                             fontWeight: FontWeight.bold,
@@ -502,8 +519,8 @@ class _ObraDetailScreenState extends State<ObraDetailScreen> {
                           child: ClipRRect(
                             borderRadius: BorderRadius.circular(16),
                             child: MediaQuery(
-                              data: MediaQuery.of(context).copyWith(
-                                  textScaler: const TextScaler.linear(1.0)),
+                              data: MediaQuery.of(context)
+                                  .copyWith(textScaler: const TextScaler.linear(1.0)),
                               child: Directionality(
                                 textDirection: TextDirection.ltr,
                                 child: Align(
@@ -537,7 +554,7 @@ class _ObraDetailScreenState extends State<ObraDetailScreen> {
               alignment: Alignment.center,
               decoration: BoxDecoration(
                 color: isSelected ? AppColors.naranja : AppColors.blanco,
-                borderRadius: BorderRadius.circular(21), // Totalmente redondeado
+                borderRadius: BorderRadius.circular(21),
                 border: Border.all(
                   color: isSelected ? AppColors.naranja : AppColors.gris,
                   width: 1.2,
@@ -571,6 +588,7 @@ class _ObraDetailScreenState extends State<ObraDetailScreen> {
       ),
     );
   }
+
   // ─── Widgets de UI ───
   PreferredSizeWidget _buildAppBar() {
     return AppBar(
@@ -696,8 +714,7 @@ class _ObraDetailScreenState extends State<ObraDetailScreen> {
                       children: [
                         Container(
                           decoration: BoxDecoration(
-                              border:
-                                  Border.all(color: Colors.grey.shade300),
+                              border: Border.all(color: Colors.grey.shade300),
                               borderRadius: BorderRadius.circular(4)),
                           child: ClipRRect(
                             borderRadius: BorderRadius.circular(4),
@@ -815,12 +832,11 @@ class _ObraDetailScreenState extends State<ObraDetailScreen> {
     );
   }
 
-    Widget _buildActionBar() {
+  Widget _buildActionBar() {
     return LayoutBuilder(
       builder: (context, constraints) {
         final compact = constraints.maxWidth < 560;
-        
-        // Alineamos el dropdown y el botón para que no dejen huecos
+
         final controls = Row(
           children: [
             Expanded(
@@ -848,7 +864,8 @@ class _ObraDetailScreenState extends State<ObraDetailScreen> {
                   children: [
                     const Text(
                       'Programa y control de actividades',
-                      style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
+                      style:
+                          TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
                     ),
                     const SizedBox(height: 10),
                     controls,
@@ -860,12 +877,13 @@ class _ObraDetailScreenState extends State<ObraDetailScreen> {
                     const Expanded(
                       child: Text(
                         'Programa y control de actividades',
-                        style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
+                        style: TextStyle(
+                            fontSize: 14, fontWeight: FontWeight.bold),
                       ),
                     ),
                     const SizedBox(width: 16),
                     SizedBox(
-                      width: 340, // Ancho fijo para escritorio
+                      width: 340,
                       child: controls,
                     ),
                   ],
@@ -875,7 +893,7 @@ class _ObraDetailScreenState extends State<ObraDetailScreen> {
     );
   }
 
-    Widget _buildFaseDropdown() {
+  Widget _buildFaseDropdown() {
     final fasesNombres = [
       'Todas las fases',
       ..._fases.map((f) => f['nombre'].toString())
@@ -935,9 +953,6 @@ class _ObraDetailScreenState extends State<ObraDetailScreen> {
               'Se requiere una obra y sus fases cargadas para crear actividades.')));
       return;
     }
-    // ⚠️ Verifica el contrato real de NuevaActividadModal:
-    // Archivo 1 usaba `obraId:` + `onCrear: ()`
-    // Archivo 2 usaba `idObra:` + `onCrear: (nuevaActividad)`
     await showDialog<bool>(
       context: context,
       barrierDismissible: true,
@@ -956,7 +971,7 @@ class _ObraDetailScreenState extends State<ObraDetailScreen> {
     );
   }
 
-    Widget _buildFasesResumen() {
+  Widget _buildFasesResumen() {
     return LayoutBuilder(
       builder: (context, constraints) {
         if (_cargando) {
@@ -977,35 +992,33 @@ class _ObraDetailScreenState extends State<ObraDetailScreen> {
           );
         }
 
-        // En escritorio mantenemos un ancho fijo o fluido
+        int columns;
         if (constraints.maxWidth > 900) {
-          return Wrap(
-            spacing: 12,
-            runSpacing: 12,
-            children: _fases
-                .map((fase) =>
-                    SizedBox(width: 200, child: _buildFaseCard(fase)))
-                .toList(),
-          );
+          columns = 4;
+        } else if (constraints.maxWidth > 600) {
+          columns = 4;
+        } else {
+          columns = 2;
         }
 
-        // En móvil forzamos 2 columnas exactas
-        const spacing = 8.0;
-        final columns = 2;
-        final cardWidth = (constraints.maxWidth - spacing) / columns;
+        const spacing = 12.0;
+        final cardWidth =
+            (constraints.maxWidth - (spacing * (columns - 1))) / columns;
 
         return Wrap(
           spacing: spacing,
           runSpacing: spacing,
           children: _fases
-              .map((fase) =>
-                  SizedBox(width: cardWidth, child: _buildFaseCard(fase)))
+              .map((fase) => SizedBox(
+                    width: cardWidth,
+                    child: _buildFaseCard(fase),
+                  ))
               .toList(),
         );
       },
     );
   }
-  // ─── Fase card: usa campos precalculados (Archivo 1) con fallback local (Archivo 2) ───
+
   Widget _buildFaseCard(Map<String, dynamic> fase) {
     final int porcentaje;
     final int concluidas;
@@ -1083,19 +1096,41 @@ class _ObraDetailScreenState extends State<ObraDetailScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Wrap(
-            spacing: 8,
-            runSpacing: 6,
-            crossAxisAlignment: WrapCrossAlignment.center,
+          // ─── FILA SUPERIOR: FASE, ESTADO y BOTÓN ALINEADO A LA DERECHA ───
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              ConstrainedBox(
-                constraints: const BoxConstraints(maxWidth: 220),
-                child: _buildBadge(actividad['fase'], AppColors.naranja,
-                    isOutlined: true),
+              Expanded(
+                child: Wrap(
+                  spacing: 8,
+                  runSpacing: 6,
+                  crossAxisAlignment: WrapCrossAlignment.center,
+                  children: [
+                    ConstrainedBox(
+                      constraints: const BoxConstraints(maxWidth: 220),
+                      child: _buildBadge(actividad['fase'], AppColors.naranja,
+                          isOutlined: true),
+                    ),
+                    _buildBadge(estado, colorEstado, icon: iconoEstado),
+                  ],
+                ),
               ),
-              _buildBadge(estado, colorEstado, icon: iconoEstado),
-              Text('Ponderación ${actividad['ponderacion']}',
-                  style: const TextStyle(fontSize: 10, color: AppColors.gris)),
+              if (!completada && _puedeRegistrarAvance)
+                Padding(
+                  padding: const EdgeInsets.only(left: 8.0),
+                  child: ElevatedButton.icon(
+                    onPressed: () => _registrarAvance(actividad),
+                    icon: const Icon(Icons.check, size: 16),
+                    label: const Text('Marcar como completada',
+                        style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+                    style: ElevatedButton.styleFrom(
+                        backgroundColor: AppColors.naranja,
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                        shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(20))),
+                  ),
+                ),
             ],
           ),
           const SizedBox(height: 12),
@@ -1119,93 +1154,18 @@ class _ObraDetailScreenState extends State<ObraDetailScreen> {
                 borderRadius: BorderRadius.circular(8),
                 border: Border.all(
                     color: AppColors.naranja.withValues(alpha: 0.3))),
-            child: Text('Último reporte: "${actividad['reporte']}"',
+            child: Text('Detalles: "${actividad['reporte']}"',
                 style: const TextStyle(
                     fontSize: 11,
                     color: AppColors.naranja,
                     fontStyle: FontStyle.italic)),
           ),
-          const SizedBox(height: 16),
-          _buildActividadAvance(actividad),
         ],
       ),
     );
   }
 
-  Widget _buildActividadAvance(Map<String, dynamic> actividad) {
-    final avance = (actividad['avance'] as num?)?.toDouble() ?? 0;
-    final indicador = Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const Text('Avance actual',
-            style: TextStyle(fontSize: 10, color: AppColors.gris)),
-        const SizedBox(height: 4),
-        Row(
-          children: [
-            Expanded(
-              child: Container(
-                decoration: BoxDecoration(
-                    border: Border.all(color: Colors.grey.shade300),
-                    borderRadius: BorderRadius.circular(4)),
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(4),
-                  child: LinearProgressIndicator(
-                    value: avance,
-                    backgroundColor: Colors.grey.shade100,
-                    valueColor: AlwaysStoppedAnimation<Color>(
-                        actividad['isCompleted'] == true
-                            ? Colors.green
-                            : AppColors.naranja),
-                    minHeight: 10,
-                  ),
-                ),
-              ),
-            ),
-            const SizedBox(width: 8),
-            Text('${(avance * 100).toInt()}%',
-                style:
-                    const TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
-          ],
-        ),
-      ],
-    );
-    final boton = ElevatedButton(
-      onPressed: _puedeRegistrarAvance ? () => _registrarAvance(actividad) : null,
-      style: ElevatedButton.styleFrom(
-          backgroundColor: AppColors.naranja,
-          foregroundColor: Colors.white,
-          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
-          shape:
-              RoundedRectangleBorder(borderRadius: BorderRadius.circular(20))),
-      child: const Text('Registrar avance',
-          style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
-    );
-
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        if (constraints.maxWidth < 380) {
-          return Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              indicador,
-              const SizedBox(height: 12),
-              SizedBox(width: double.infinity, child: boton),
-            ],
-          );
-        }
-        return Row(
-          children: [
-            Expanded(child: indicador),
-            const SizedBox(width: 16),
-            boton,
-          ],
-        );
-      },
-    );
-  }
-
   Widget _buildActividadesSection() {
-    // Fix del Archivo 2: filtro por fase + manejo de loading/error/vacío
     final actsFiltradas = _faseSeleccionada == 'Todas las fases'
         ? _actividades
         : _actividades
@@ -1348,35 +1308,6 @@ class _ObraDetailScreenState extends State<ObraDetailScreen> {
           rangoPersonalizado: _rangoPersonalizado,
         ),
       ],
-    );
-  }
-}
-
-// ============================================================================
-// --- CLASE PARA EL AUTO-FORMATO DE FECHAS CON "/" ---
-// ============================================================================
-class DateInputFormatter extends TextInputFormatter {
-  @override
-  TextEditingValue formatEditUpdate(
-      TextEditingValue oldValue, TextEditingValue newValue) {
-    var text = newValue.text;
-
-    if (newValue.selection.baseOffset == 0) return newValue;
-
-    text = text.replaceAll(RegExp(r'[^0-9]'), '');
-    if (text.length > 8) text = text.substring(0, 8);
-
-    String formatted = '';
-    for (int i = 0; i < text.length; i++) {
-      formatted += text[i];
-      if ((i == 1 || i == 3) && i != text.length - 1) {
-        formatted += '/';
-      }
-    }
-
-    return TextEditingValue(
-      text: formatted,
-      selection: TextSelection.collapsed(offset: formatted.length),
     );
   }
 }

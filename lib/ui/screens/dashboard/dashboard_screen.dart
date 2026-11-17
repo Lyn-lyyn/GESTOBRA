@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:gestobra/config/theme/app_colors.dart';
 import 'package:gestobra/servicios/api_service.dart';
+import 'package:gestobra/servicios/auth_service.dart';
 import '../obras/obra_detail_screen.dart';
 
 class DashboardScreen extends StatefulWidget {
@@ -15,6 +16,13 @@ class _DashboardScreenState extends State<DashboardScreen> {
   String? _error;
   List<Map<String, dynamic>> _obras = [];
   String _busqueda = '';
+
+  // 👇 Controlador para el buscador
+  final _busquedaController = TextEditingController();
+
+  // 👇 Variables para el usuario logueado
+  String _nombreUsuario = 'Usuario';
+  String _inicialUsuario = 'U';
 
   // ─── Estadísticas dinámicas ───
   List<Map<String, dynamic>> get _stats {
@@ -41,16 +49,44 @@ class _DashboardScreenState extends State<DashboardScreen> {
   @override
   void initState() {
     super.initState();
-    _cargarObras();
+    _cargarDatosIniciales();
   }
 
-  Future<void> _cargarObras() async {
+  // 👇 Liberamos el controlador al cerrar la pantalla
+  @override
+  void dispose() {
+    _busquedaController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _cargarDatosIniciales() async {
     if (!mounted) return;
     setState(() {
       _cargando = true;
       _error = null;
     });
 
+    try {
+      final usuario = await AuthService.obtenerUsuario();
+      
+      if (usuario != null)  {
+        String nombreCompleto = usuario['nombre']?.toString() ?? 'Usuario';
+        _nombreUsuario = nombreCompleto.split(' ').first;
+        _inicialUsuario = _nombreUsuario.isNotEmpty ? _nombreUsuario[0].toUpperCase() : 'U';
+      }
+
+      await _cargarObras();
+
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _cargando = false;
+        _error = 'Error al inicializar: $e';
+      });
+    }
+  }
+
+  Future<void> _cargarObras() async {
     try {
       final res = await ApiService.get('obras.php');
 
@@ -143,16 +179,26 @@ class _DashboardScreenState extends State<DashboardScreen> {
         elevation: 1,
         automaticallyImplyLeading: false,
         title: Container(
-          width: 400,
+          width: 900, // 👈 Ajustado a 400
           height: 40,
           decoration: BoxDecoration(color: const Color(0xFFF0F0F0), borderRadius: BorderRadius.circular(20)),
           child: TextField(
-            decoration: const InputDecoration(
+            controller: _busquedaController,
+            decoration: InputDecoration(
               hintText: 'Buscar obra, cliente o reporte...',
-              hintStyle: TextStyle(fontSize: 13, color: Colors.grey),
-              prefixIcon: Icon(Icons.search, size: 20, color: Colors.grey),
+              hintStyle: const TextStyle(fontSize: 13, color: Colors.grey),
+              prefixIcon: const Icon(Icons.search, size: 20, color: Colors.grey),
+              suffixIcon: _busqueda.isEmpty
+                  ? null
+                  : IconButton(
+                      icon: const Icon(Icons.clear, size: 18, color: Colors.grey),
+                      onPressed: () {
+                        _busquedaController.clear();
+                        setState(() => _busqueda = '');
+                      },
+                    ),
               border: InputBorder.none,
-              contentPadding: EdgeInsets.symmetric(vertical: 10),
+              contentPadding: const EdgeInsets.symmetric(vertical: 10),
             ),
             onChanged: (val) => setState(() => _busqueda = val),
           ),
@@ -160,14 +206,26 @@ class _DashboardScreenState extends State<DashboardScreen> {
         actions: [
           IconButton(icon: const Icon(Icons.notifications_none, color: Colors.grey), onPressed: () {}),
           const SizedBox(width: 16),
-          const CircleAvatar(backgroundColor: AppColors.naranja, radius: 18, child: Text('M', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold))),
+          
+          // 👇 Avatar y Nombre dinámicos
+          CircleAvatar(
+            backgroundColor: AppColors.naranja, 
+            radius: 18, 
+            child: Text(
+              _inicialUsuario, 
+              style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)
+            )
+          ),
           const SizedBox(width: 12),
-          const Text('Marcos', style: TextStyle(color: Colors.black87, fontWeight: FontWeight.bold)),
+          Text(
+            _nombreUsuario, 
+            style: const TextStyle(color: Colors.black87, fontWeight: FontWeight.bold)
+          ),
           const SizedBox(width: 32),
         ],
       ),
       body: RefreshIndicator(
-        onRefresh: _cargarObras,
+        onRefresh: _cargarDatosIniciales,
         child: SingleChildScrollView(
           physics: const AlwaysScrollableScrollPhysics(),
           padding: const EdgeInsets.all(32.0),
@@ -175,19 +233,35 @@ class _DashboardScreenState extends State<DashboardScreen> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               // ─── Tarjetas de estadísticas ───
+                            // ─── Tarjetas de estadísticas (KPI) ───
               Row(
-                children: _stats.map((stat) {
+                children: _stats.asMap().entries.map((entry) {
+                  final index = entry.key;
+                  final stat = entry.value;
+                  final isLast = index == _stats.length - 1;
+
                   return Expanded(
                     child: Container(
-                      margin: const EdgeInsets.only(right: 16),
+                      // 👇 Solo le damos margen a la derecha a los que NO son el último
+                      margin: EdgeInsets.only(right: isLast ? 0 : 16),
                       padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 24),
-                      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(12), border: Border.all(color: Colors.grey.shade300)),
+                      decoration: BoxDecoration(
+                        color: Colors.white, 
+                        borderRadius: BorderRadius.circular(12), 
+                        border: Border.all(color: Colors.grey.shade300)
+                      ),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text(stat['titulo'], style: const TextStyle(fontSize: 13, color: Colors.grey, fontWeight: FontWeight.bold)),
+                          Text(
+                            stat['titulo'], 
+                            style: const TextStyle(fontSize: 13, color: Colors.grey, fontWeight: FontWeight.bold)
+                          ),
                           const SizedBox(height: 8),
-                          Text(stat['valor'], style: TextStyle(fontSize: 32, fontWeight: FontWeight.bold, color: stat['color'])),
+                          Text(
+                            stat['valor'], 
+                            style: TextStyle(fontSize: 32, fontWeight: FontWeight.bold, color: stat['color'])
+                          ),
                         ],
                       ),
                     ),
@@ -233,14 +307,18 @@ class _DashboardScreenState extends State<DashboardScreen> {
         ],
       ),
       body: RefreshIndicator(
-        onRefresh: _cargarObras,
+        onRefresh: _cargarDatosIniciales,
         child: SingleChildScrollView(
           physics: const AlwaysScrollableScrollPhysics(),
           padding: const EdgeInsets.all(16.0),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text('Bienvenido Marcos', style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: Colors.black)),
+              // 👇 Saludo dinámico
+              Text(
+                'Bienvenido $_nombreUsuario', 
+                style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: Colors.black)
+              ),
               const SizedBox(height: 16),
               _buildMainStatsContainer(),
               const SizedBox(height: 20),
@@ -282,12 +360,22 @@ class _DashboardScreenState extends State<DashboardScreen> {
             height: 42,
             decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(21), border: Border.all(color: Colors.grey.shade300)),
             child: TextField(
-              decoration: const InputDecoration(
+              controller: _busquedaController,
+              decoration: InputDecoration(
                 hintText: 'Buscar proyecto...',
-                hintStyle: TextStyle(fontSize: 13, color: AppColors.gris),
-                prefixIcon: Padding(padding: EdgeInsets.only(left: 8.0, right: 4.0), child: Icon(Icons.search, size: 20, color: AppColors.gris)),
+                hintStyle: const TextStyle(fontSize: 13, color: AppColors.gris),
+                prefixIcon: const Padding(padding: EdgeInsets.only(left: 8.0, right: 4.0), child: Icon(Icons.search, size: 20, color: AppColors.gris)),
+                suffixIcon: _busqueda.isEmpty
+                    ? null
+                    : IconButton(
+                        icon: const Icon(Icons.clear, size: 18, color: AppColors.gris),
+                        onPressed: () {
+                          _busquedaController.clear();
+                          setState(() => _busqueda = '');
+                        },
+                      ),
                 border: InputBorder.none,
-                contentPadding: EdgeInsets.symmetric(vertical: 12, horizontal: 0),
+                contentPadding: const EdgeInsets.symmetric(vertical: 12, horizontal: 0),
                 isDense: true,
               ),
               onChanged: (val) => setState(() => _busqueda = val),
@@ -372,7 +460,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
             const SizedBox(height: 8),
             Text(_error!, textAlign: TextAlign.center),
             const SizedBox(height: 12),
-            TextButton.icon(onPressed: _cargarObras, icon: const Icon(Icons.refresh), label: const Text('Reintentar')),
+            TextButton.icon(onPressed: _cargarDatosIniciales, icon: const Icon(Icons.refresh), label: const Text('Reintentar')),
           ],
         ),
       );

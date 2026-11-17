@@ -290,15 +290,44 @@ class _NuevaBitacoraDialogState extends State<_NuevaBitacoraDialog> {
                 suffixIcon: IconButton(icon: const Icon(Icons.calendar_month_outlined, color: AppColors.naranja), onPressed: _seleccionarFecha),
               ),
               const SizedBox(height: 14),
+                          // FILA 1: CLIMA Y TEMPERATURA
               Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Expanded(flex: 5, child: CustomDropdownField(label: 'Clima', hint: 'Selecciona', icon: Icons.wb_sunny_outlined, value: _climaSeleccionado, items: const ['Soleado', 'Nublado', 'Lluvioso', 'Tormenta', 'Viento fuerte'], onChanged: (value) => setState(() => _climaSeleccionado = value))),
+                  Expanded(
+                    flex: 5, 
+                    child: CustomDropdownField(
+                      label: 'Clima', 
+                      hint: 'Selecciona', 
+                      icon: Icons.wb_sunny_outlined, 
+                      value: _climaSeleccionado, 
+                      // 👇 Opciones acortadas para que no desborden en móvil
+                      items: const ['Soleado', 'Nublado', 'Lluvioso', 'Tormenta', 'Viento'], 
+                      onChanged: (value) => setState(() => _climaSeleccionado = value)
+                    ),
+                  ),
                   const SizedBox(width: 12),
-                  Expanded(flex: 4, child: CustomTextField(label: 'Temperatura', hint: '28', icon: Icons.thermostat_outlined, controller: _temperaturaController, keyboardType: const TextInputType.numberWithOptions(decimal: true))),
-                  const SizedBox(width: 12),
-                  Expanded(flex: 4, child: CustomTextField(label: 'Personal', hint: '8', icon: Icons.groups_outlined, controller: _personalController, keyboardType: TextInputType.number)),
+                  Expanded(
+                    flex: 4, 
+                    child: CustomTextField(
+                      label: 'Temp. °C', 
+                      hint: '28', 
+                      icon: Icons.thermostat_outlined, 
+                      controller: _temperaturaController, 
+                      keyboardType: const TextInputType.numberWithOptions(decimal: true)
+                    ),
+                  ),
                 ],
+              ),
+              const SizedBox(height: 14),
+              
+              // FILA 2: PERSONAL (Ocupa todo el ancho)
+              CustomTextField(
+                label: 'Personal en obra', 
+                hint: 'Ej. 8', 
+                icon: Icons.groups_outlined, 
+                controller: _personalController, 
+                keyboardType: TextInputType.number
               ),
               const SizedBox(height: 14),
               CustomTextField(label: 'Descripción de la jornada *', hint: 'Describe las actividades', icon: Icons.description_outlined, controller: _descripcionController),
@@ -320,12 +349,20 @@ class _NuevaBitacoraDialogState extends State<_NuevaBitacoraDialog> {
                     ),
                     if (_huboRetraso) ...[
                       const SizedBox(height: 8),
-                      Row(
-                        children: [
-                          Expanded(flex: 1, child: CustomTextField(label: 'Horas', hint: '0', icon: Icons.timer_outlined, controller: _horasRetrasoController, keyboardType: TextInputType.number)),
-                          const SizedBox(width: 10),
-                          Expanded(flex: 2, child: CustomTextField(label: 'Causa', hint: 'Describe', icon: Icons.warning_amber_outlined, controller: _causaRetrasoController)),
-                        ],
+                      // 👇 APILADOS VERTICALMENTE PARA QUE NO SE APLASTEN
+                      CustomTextField(
+                        label: 'Horas de retraso', 
+                        hint: '0', 
+                        icon: Icons.timer_outlined, 
+                        controller: _horasRetrasoController, 
+                        keyboardType: TextInputType.number
+                      ),
+                      const SizedBox(height: 10),
+                      CustomTextField(
+                        label: 'Causa del retraso', 
+                        hint: 'Describe la causa', 
+                        icon: Icons.warning_amber_outlined, 
+                        controller: _causaRetrasoController
                       ),
                     ],
                   ],

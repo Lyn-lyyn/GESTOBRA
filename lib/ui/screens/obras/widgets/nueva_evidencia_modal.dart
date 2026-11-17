@@ -348,7 +348,8 @@ class _NuevaEvidenciaModalState extends State<NuevaEvidenciaModal> {
                         Row(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Expanded(flex: 2, child: activity),
+                            // 👇 Ambos comparten el 50% del ancho
+                            Expanded(child: activity),
                             const SizedBox(width: 12),
                             Expanded(child: label),
                           ],

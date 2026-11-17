@@ -23,6 +23,9 @@ class CustomDropdownField extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Validación de seguridad: Si el valor actual no está en los items (ej. se cambió la lista), lo ponemos en null
+    final String? safeValue = items.contains(value) ? value : null;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -38,8 +41,9 @@ class CustomDropdownField extends StatelessWidget {
           const SizedBox(height: 8),
         ],
         DropdownButtonFormField<String>(
-          value: value,
-          hint: Text(hint),
+          value: safeValue, // Usamos el valor validado
+          isExpanded: true, // 👈 CRUCIAL: Obliga al dropdown a no salirse del contenedor
+          hint: Text(hint, overflow: TextOverflow.ellipsis), // Corta el hint si es muy largo
           icon: const Icon(
             Icons.keyboard_arrow_down,
             color: AppColors.naranja,
@@ -51,6 +55,7 @@ class CustomDropdownField extends StatelessWidget {
             ),
             filled: true,
             fillColor: AppColors.blanco,
+            contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14), // Ajuste de padding
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
               borderSide: const BorderSide(
@@ -74,7 +79,12 @@ class CustomDropdownField extends StatelessWidget {
           items: items.map((item) {
             return DropdownMenuItem<String>(
               value: item,
-              child: Text(item),
+              child: Text(
+                item,
+                overflow: TextOverflow.ellipsis, // Corta el texto de las opciones si es muy largo
+                maxLines: 1,
+                softWrap: false,
+              ),
             );
           }).toList(),
           onChanged: onChanged,

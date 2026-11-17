@@ -44,7 +44,7 @@ class _MaterialesSectionState extends State<MaterialesSection> {
     super.dispose();
   }
 
-  Future<void> _cargarTodo() async {
+   Future<void> _cargarTodo() async {
     if (_obraId <= 0) return;
     setState(() {
       _cargando = true;
@@ -64,6 +64,9 @@ class _MaterialesSectionState extends State<MaterialesSection> {
         ApiService.get('actividades_obra.php?id_obra=$_obraId'), // 8
       ]);
 
+      // 👇 VERIFICAMOS QUE LA PANTALLA SIGA ABIERTA ANTES DE ACTUALIZAR
+      if (!mounted) return;
+
       if (results[0]['estado'] == true) _plan = List<Map<String, dynamic>>.from(results[0]['data']);
       if (results[1]['estado'] == true) _stock = List<Map<String, dynamic>>.from(results[1]['data']);
       if (results[2]['estado'] == true) _consumo = List<Map<String, dynamic>>.from(results[2]['data']);
@@ -82,6 +85,9 @@ class _MaterialesSectionState extends State<MaterialesSection> {
 
       setState(() => _cargando = false);
     } catch (e) {
+      // 👇 VERIFICAMOS TAMBIÉN EN EL CATCH
+      if (!mounted) return;
+      
       setState(() {
         _cargando = false;
         _error = 'Error al cargar datos: $e';
@@ -1039,10 +1045,7 @@ class _MaterialesSectionState extends State<MaterialesSection> {
     }
   }
 
-  // ────────────────────────────────────────────────────────
-  // MODAL MAQUINARIA
-  // ────────────────────────────────────────────────────────
-  Future<void> _abrirModalAsignarMaquinaria() async {
+    Future<void> _abrirModalAsignarMaquinaria() async {
     if (_maquinariaDisponible.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('No hay maquinaria disponible')));
       return;
@@ -1051,33 +1054,117 @@ class _MaterialesSectionState extends State<MaterialesSection> {
     int? idSeleccionado;
     final confirm = await showDialog<bool>(
       context: context,
+      barrierDismissible: false,
       builder: (ctx) => StatefulBuilder(
-        builder: (ctx, setModal) => AlertDialog(
-          title: const Text('Asignar Maquinaria'),
-          content: SizedBox(
-            width: 400,
-            child: DropdownButtonFormField<int>(
-              decoration: const InputDecoration(labelText: 'Selecciona el equipo', border: OutlineInputBorder()),
-              items: _maquinariaDisponible.map((m) => DropdownMenuItem<int>(
-                value: m['id_maquinaria'] as int,
-                child: Text('${m['codigo']} - ${m['nombre']}'),
-              )).toList(),
-              onChanged: (v) => setModal(() => idSeleccionado = v),
+        builder: (ctx, setModal) {
+          bool guardando = false;
+          return Dialog(
+            insetPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+            backgroundColor: AppColors.grisfondo, // Fondo gris claro igual al resto
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 500),
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.all(24.0),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Header
+                    Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(8),
+                          decoration: BoxDecoration(color: AppColors.naranja, borderRadius: BorderRadius.circular(8)),
+                          child: const Icon(Icons.precision_manufacturing, color: Colors.white, size: 24),
+                        ),
+                        const SizedBox(width: 12),
+                        const Expanded(
+                          child: Text('Asignar Maquinaria', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                        ),
+                        IconButton(
+                          icon: const Icon(Icons.close),
+                          onPressed: guardando ? null : () => Navigator.pop(ctx, false),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 24),
+
+                    // Dropdown con el estilo correcto
+                    const Text('Selecciona el equipo *', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.black87)),
+                    const SizedBox(height: 6),
+                    Container(
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(color: AppColors.naranja),
+                      ),
+                      child: DropdownButtonFormField<int>(
+                        decoration: const InputDecoration(
+                          border: InputBorder.none, 
+                          contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                          isDense: true,
+                        ),
+                        value: idSeleccionado,
+                        hint: const Text('Selecciona el equipo', style: TextStyle(fontSize: 13, color: Colors.grey)),
+                        icon: const Icon(Icons.arrow_drop_down, color: AppColors.naranja),
+                        style: const TextStyle(fontSize: 13, color: Colors.black87),
+                        isExpanded: true, // Esto evita que el texto se desborde
+                        menuMaxHeight: 250,
+                        items: _maquinariaDisponible.map((m) => DropdownMenuItem<int>(
+                          value: m['id_maquinaria'] as int,
+                          child: Text('${m['codigo']} - ${m['nombre']}', overflow: TextOverflow.ellipsis),
+                        )).toList(),
+                        onChanged: (v) => setModal(() => idSeleccionado = v),
+                      ),
+                    ),
+                    const SizedBox(height: 32),
+
+                    // Botones
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.end,
+                      children: [
+                        OutlinedButton(
+                          onPressed: guardando ? null : () => Navigator.pop(ctx, false),
+                          style: OutlinedButton.styleFrom(
+                            foregroundColor: AppColors.gris,
+                            side: const BorderSide(color: AppColors.bordeSuave),
+                            padding: const EdgeInsets.symmetric(horizontal: 24),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                          ),
+                          child: const Text('CANCELAR', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
+                        ),
+                        const SizedBox(width: 12),
+                        ElevatedButton(
+                          onPressed: guardando || idSeleccionado == null ? null : () async {
+                            setModal(() => guardando = true);
+                            Navigator.pop(ctx, true);
+                          },
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: AppColors.naranja,
+                            foregroundColor: Colors.white,
+                            padding: const EdgeInsets.symmetric(horizontal: 24),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                          ),
+                          child: const Text('ASIGNAR', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
             ),
-          ),
-          actions: [
-            TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancelar')),
-            ElevatedButton(
-              onPressed: idSeleccionado == null ? null : () => Navigator.pop(ctx, true),
-              style: ElevatedButton.styleFrom(backgroundColor: AppColors.naranja),
-              child: const Text('Asignar'),
-            ),
-          ],
-        ),
+          );
+        }
       ),
     );
 
     if (confirm != true || idSeleccionado == null) return;
+
+    // Mostrar un indicador de carga mientras se hace la petición (opcional)
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Asignando maquinaria...'), duration: Duration(seconds: 1)));
+    }
 
     final res = await ApiService.post('maquinaria_obra.php', {
       'id_obra': _obraId,
@@ -1093,20 +1180,80 @@ class _MaterialesSectionState extends State<MaterialesSection> {
     }
   }
 
-  Future<void> _retirarMaquinaria(Map<String, dynamic> m) async {
+   Future<void> _retirarMaquinaria(Map<String, dynamic> m) async {
     final confirm = await showDialog<bool>(
       context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('¿Retirar maquinaria?'),
-        content: Text('¿Estás seguro de retirar "${m['nombre_maquinaria']}" de esta obra?'),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancelar')),
-          ElevatedButton(
-            onPressed: () => Navigator.pop(ctx, true),
-            style: ElevatedButton.styleFrom(backgroundColor: AppColors.estadoRojo),
-            child: const Text('Retirar'),
+      barrierDismissible: false,
+      builder: (ctx) => Dialog(
+        insetPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        backgroundColor: AppColors.grisfondo, // 👈 Fondo gris claro
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 450),
+          child: Padding(
+            padding: const EdgeInsets.all(24.0),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Header
+                Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(color: AppColors.estadoRojo, borderRadius: BorderRadius.circular(8)),
+                      child: const Icon(Icons.warning_amber_rounded, color: Colors.white, size: 24),
+                    ),
+                    const SizedBox(width: 12),
+                    const Expanded(
+                      child: Text('Retirar maquinaria', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.close),
+                      onPressed: () => Navigator.pop(ctx, false),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 24),
+
+                // Contenido
+                Text(
+                  '¿Estás seguro de que deseas retirar "${m['nombre_maquinaria']}" de esta obra?',
+                  style: const TextStyle(fontSize: 14, color: Colors.black87, height: 1.4),
+                ),
+                const SizedBox(height: 32),
+
+                // Botones
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  children: [
+                    OutlinedButton(
+                      onPressed: () => Navigator.pop(ctx, false),
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: AppColors.gris,
+                        side: const BorderSide(color: AppColors.bordeSuave),
+                        padding: const EdgeInsets.symmetric(horizontal: 24),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                      ),
+                      child: const Text('CANCELAR', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
+                    ),
+                    const SizedBox(width: 12),
+                    ElevatedButton(
+                      onPressed: () => Navigator.pop(ctx, true),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppColors.estadoRojo, // Botón de acción en rojo
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(horizontal: 24),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                      ),
+                      child: const Text('RETIRAR', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
+                    ),
+                  ],
+                ),
+              ],
+            ),
           ),
-        ],
+        ),
       ),
     );
 
@@ -1116,7 +1263,9 @@ class _MaterialesSectionState extends State<MaterialesSection> {
     if (!mounted) return;
     if (res['estado'] == true) {
       _cargarTodo();
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Maquinaria retirada')));
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Maquinaria retirada'), backgroundColor: Colors.green));
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(res['mensaje'] ?? 'Error al retirar'), backgroundColor: AppColors.estadoRojo));
     }
   }
 
