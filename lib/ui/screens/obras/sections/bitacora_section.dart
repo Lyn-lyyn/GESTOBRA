@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart'; // 👈 Necesario para los formateadores
 import '../../../../config/theme/app_colors.dart';
-import '../../../widgets/custom_textfield.dart';
-import '../../../widgets/custom_dropdown_field.dart';
 import 'package:gestobra/servicios/api_service.dart';
 
 class BitacoraSection extends StatefulWidget {
@@ -23,14 +22,13 @@ class _BitacoraSectionState extends State<BitacoraSection> {
     _cargarBitacoras();
   }
 
-   Future<void> _cargarBitacoras() async {
+  Future<void> _cargarBitacoras() async {
     final idObra = widget.obra['id_obra'];
     if (idObra == null) return;
 
     setState(() => _cargando = true);
     final res = await ApiService.get('bitacoras.php?id_obra=$idObra');
 
-    // 👇 Verificamos que la pantalla siga montada antes de actualizar el estado
     if (!mounted) return;
 
     if (res['estado'] == true) {
@@ -44,7 +42,7 @@ class _BitacoraSectionState extends State<BitacoraSection> {
             'observaciones': b['observaciones'] ?? '',
             'incidencias': b['incidencias'] ?? '',
             'materiales': [],
-            'actividades': [], 
+            'actividades': [],
             'fotografias': [],
             'hubo_retraso': false,
           };
@@ -64,7 +62,9 @@ class _BitacoraSectionState extends State<BitacoraSection> {
           idObra: widget.obra['id_obra'],
           onGuardar: (bitacora) {
             _cargarBitacoras();
-            ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Bitácora guardada correctamente')));
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('Bitácora guardada correctamente')),
+            );
           },
         );
       },
@@ -76,18 +76,30 @@ class _BitacoraSectionState extends State<BitacoraSection> {
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(color: AppColors.blanco, borderRadius: BorderRadius.circular(12), border: Border.all(color: AppColors.bordeSuave)),
+      decoration: BoxDecoration(
+        color: AppColors.blanco,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: AppColors.bordeSuave),
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
-              const Expanded(child: Text('Bitácora de obra', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold))),
+              const Expanded(
+                child: Text(
+                  'Bitácora de obra',
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                ),
+              ),
               ElevatedButton.icon(
                 onPressed: _abrirNuevaBitacora,
                 icon: const Icon(Icons.add, size: 16),
                 label: const Text('Nueva bitácora'),
-                style: ElevatedButton.styleFrom(backgroundColor: AppColors.naranja, foregroundColor: AppColors.blanco),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.naranja,
+                  foregroundColor: AppColors.blanco,
+                ),
               ),
             ],
           ),
@@ -98,20 +110,36 @@ class _BitacoraSectionState extends State<BitacoraSection> {
             Container(
               width: double.infinity,
               padding: const EdgeInsets.all(24),
-              decoration: BoxDecoration(color: AppColors.blanco, borderRadius: BorderRadius.circular(12), border: Border.all(color: AppColors.bordeSuave)),
+              decoration: BoxDecoration(
+                color: AppColors.blanco,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: AppColors.bordeSuave),
+              ),
               child: const Column(
                 children: [
                   Icon(Icons.book_outlined, size: 48, color: AppColors.gris),
                   SizedBox(height: 12),
-                  Text('No hay bitácoras registradas', style: TextStyle(fontWeight: FontWeight.bold, color: AppColors.textoNegro)),
+                  Text(
+                    'No hay bitácoras registradas',
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      color: AppColors.textoNegro,
+                    ),
+                  ),
                   SizedBox(height: 4),
-                  Text('Registra la primera jornada de esta obra.', textAlign: TextAlign.center, style: TextStyle(color: AppColors.textoGris)),
+                  Text(
+                    'Registra la primera jornada de esta obra.',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(color: AppColors.textoGris),
+                  ),
                 ],
               ),
             )
           else
             Column(
-              children: _bitacoras.map((bitacora) => _buildBitacoraCard(bitacora)).toList(),
+              children: _bitacoras
+                  .map((bitacora) => _buildBitacoraCard(bitacora))
+                  .toList(),
             ),
         ],
       ),
@@ -123,31 +151,53 @@ class _BitacoraSectionState extends State<BitacoraSection> {
       width: double.infinity,
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(color: AppColors.blanco, borderRadius: BorderRadius.circular(12), border: Border.all(color: AppColors.bordeSuave)),
+      decoration: BoxDecoration(
+        color: AppColors.blanco,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: AppColors.bordeSuave),
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
-              const Icon(Icons.calendar_today_outlined, size: 18, color: AppColors.naranja),
+              const Icon(Icons.calendar_today_outlined,
+                  size: 18, color: AppColors.naranja),
               const SizedBox(width: 8),
-              Expanded(child: Text(bitacora['fecha'], style: const TextStyle(fontWeight: FontWeight.bold, color: AppColors.textoNegro))),
-              Text('${bitacora['personal']} personas', style: const TextStyle(color: AppColors.textoGris, fontSize: 12)),
+              Expanded(
+                child: Text(
+                  bitacora['fecha'],
+                  style: const TextStyle(
+                    fontWeight: FontWeight.bold,
+                    color: AppColors.textoNegro,
+                  ),
+                ),
+              ),
+              Text(
+                '${bitacora['personal']} personas',
+                style: const TextStyle(
+                    color: AppColors.textoGris, fontSize: 12),
+              ),
             ],
           ),
           const Divider(height: 24),
-          Text(bitacora['descripcion'], style: const TextStyle(color: AppColors.textoNegro, height: 1.4)),
+          Text(
+            bitacora['descripcion'],
+            style: const TextStyle(color: AppColors.textoNegro, height: 1.4),
+          ),
           if (bitacora['clima'].toString().isNotEmpty) ...[
             const SizedBox(height: 12),
             _buildInfoRow(Icons.wb_sunny_outlined, 'Clima', bitacora['clima']),
           ],
           if (bitacora['observaciones'].toString().isNotEmpty) ...[
             const SizedBox(height: 8),
-            _buildInfoRow(Icons.notes_outlined, 'Observaciones', bitacora['observaciones']),
+            _buildInfoRow(
+                Icons.notes_outlined, 'Observaciones', bitacora['observaciones']),
           ],
           if (bitacora['incidencias'].toString().isNotEmpty) ...[
             const SizedBox(height: 8),
-            _buildInfoRow(Icons.warning_amber_outlined, 'Incidencias', bitacora['incidencias']),
+            _buildInfoRow(
+                Icons.warning_amber_outlined, 'Incidencias', bitacora['incidencias']),
           ],
         ],
       ),
@@ -165,7 +215,10 @@ class _BitacoraSectionState extends State<BitacoraSection> {
             text: TextSpan(
               style: const TextStyle(color: AppColors.textoNegro, fontSize: 13),
               children: [
-                TextSpan(text: '$titulo: ', style: const TextStyle(fontWeight: FontWeight.bold)),
+                TextSpan(
+                  text: '$titulo: ',
+                  style: const TextStyle(fontWeight: FontWeight.bold),
+                ),
                 TextSpan(text: contenido),
               ],
             ),
@@ -192,7 +245,7 @@ class _NuevaBitacoraDialogState extends State<_NuevaBitacoraDialog> {
   DateTime? _fechaSeleccionada;
   String? _climaSeleccionado;
   bool _guardando = false;
-  
+
   bool _huboRetraso = false;
   final _horasRetrasoController = TextEditingController();
   final _causaRetrasoController = TextEditingController();
@@ -201,30 +254,50 @@ class _NuevaBitacoraDialogState extends State<_NuevaBitacoraDialog> {
   final _observacionesController = TextEditingController();
   final _incidenciasController = TextEditingController();
 
+  // ─── Calendario con estilo naranja (idéntico a NuevaActividadModal) ───
   Future<void> _seleccionarFecha() async {
-    final fecha = await showDatePicker(
+    final DateTime? picked = await showDatePicker(
       context: context,
-      initialDate: _fechaSeleccionada ?? DateTime.now(),
+      initialDate: DateTime.now(),
       firstDate: DateTime(2020),
-      lastDate: DateTime(2100),
-      helpText: 'Selecciona la fecha',
+      lastDate: DateTime(2030),
+      builder: (context, child) {
+        return Theme(
+          data: Theme.of(context).copyWith(
+            colorScheme: const ColorScheme.light(
+              primary: AppColors.naranja,
+              onPrimary: Colors.white,
+              onSurface: Colors.black,
+            ),
+          ),
+          child: child!,
+        );
+      },
     );
-    if (fecha == null) return;
-
-    setState(() {
-      _fechaSeleccionada = fecha;
-      _fechaController.text = '${fecha.year}-${fecha.month.toString().padLeft(2, '0')}-${fecha.day.toString().padLeft(2, '0')}'; // Formato MySQL
-    });
+    if (picked != null) {
+      setState(() {
+        _fechaSeleccionada = picked;
+        _fechaController.text =
+            '${picked.year}-${picked.month.toString().padLeft(2, '0')}-${picked.day.toString().padLeft(2, '0')}';
+      });
+    }
   }
 
   void _guardar() async {
-    if (_fechaController.text.trim().isEmpty || _descripcionController.text.trim().isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('La fecha y la descripción son obligatorias')));
+    if (_fechaController.text.trim().isEmpty ||
+        _descripcionController.text.trim().isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('La fecha y la descripción son obligatorias')),
+      );
       return;
     }
 
     setState(() => _guardando = true);
-    showDialog(context: context, barrierDismissible: false, builder: (_) => const Center(child: CircularProgressIndicator()));
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (_) => const Center(child: CircularProgressIndicator()),
+    );
 
     final body = {
       'id_obra': widget.idObra,
@@ -239,14 +312,19 @@ class _NuevaBitacoraDialogState extends State<_NuevaBitacoraDialog> {
     final res = await ApiService.post('bitacoras.php', body);
 
     if (!mounted) return;
-    Navigator.pop(context); // Quita el loading
+    Navigator.pop(context);
     setState(() => _guardando = false);
 
     if (res['estado'] == true) {
       widget.onGuardar({});
-      Navigator.pop(context); // Cierra el dialog
+      Navigator.pop(context);
     } else {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(res['mensaje'] ?? 'Error'), backgroundColor: Colors.red));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(res['mensaje'] ?? 'Error'),
+          backgroundColor: Colors.red,
+        ),
+      );
     }
   }
 
@@ -278,53 +356,161 @@ class _NuevaBitacoraDialogState extends State<_NuevaBitacoraDialog> {
             children: [
               const Padding(
                 padding: EdgeInsets.only(bottom: 16),
-                child: Text('Nueva bitácora', style: TextStyle(fontSize: 20, fontWeight: FontWeight.w600)),
+                child: Text('Nueva bitácora',
+                    style: TextStyle(fontSize: 20, fontWeight: FontWeight.w600)),
               ),
-              CustomTextField(
-                label: 'Fecha de bitácora *',
+
+              // ─── Fecha ───
+              _buildLabel('Fecha de bitácora *'),
+              _buildCustomTextField(
                 hint: 'Selecciona una fecha',
                 icon: Icons.calendar_today_outlined,
                 controller: _fechaController,
                 readOnly: true,
                 onTap: _seleccionarFecha,
-                suffixIcon: IconButton(icon: const Icon(Icons.calendar_month_outlined, color: AppColors.naranja), onPressed: _seleccionarFecha),
+                suffixIcon: IconButton(
+                  icon: const Icon(Icons.calendar_month_outlined, color: AppColors.naranja),
+                  onPressed: _seleccionarFecha,
+                ),
               ),
               const SizedBox(height: 14),
+
               Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Expanded(flex: 5, child: CustomDropdownField(label: 'Clima', hint: 'Selecciona', icon: Icons.wb_sunny_outlined, value: _climaSeleccionado, items: const ['Soleado', 'Nublado', 'Lluvioso', 'Tormenta', 'Viento fuerte'], onChanged: (value) => setState(() => _climaSeleccionado = value))),
+                  Expanded(
+                    flex: 5,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        _buildLabel('Clima'),
+                        _buildCustomDropdownField(
+                          hint: 'Selecciona',
+                          icon: Icons.wb_sunny_outlined,
+                          value: _climaSeleccionado,
+                          items: const ['Soleado', 'Nublado', 'Lluvioso', 'Tormenta', 'Viento fuerte'],
+                          onChanged: (value) => setState(() => _climaSeleccionado = value),
+                        ),
+                      ],
+                    ),
+                  ),
                   const SizedBox(width: 12),
-                  Expanded(flex: 4, child: CustomTextField(label: 'Temperatura', hint: '28', icon: Icons.thermostat_outlined, controller: _temperaturaController, keyboardType: const TextInputType.numberWithOptions(decimal: true))),
+                  Expanded(
+                    flex: 4,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        _buildLabel('Temperatura'),
+                        _buildCustomTextField(
+                          hint: '28',
+                          icon: Icons.thermostat_outlined,
+                          controller: _temperaturaController,
+                          keyboardType: TextInputType.number,
+                          // 👇 Solo permite números enteros
+                          inputFormatters: [
+                            FilteringTextInputFormatter.digitsOnly,
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
                   const SizedBox(width: 12),
-                  Expanded(flex: 4, child: CustomTextField(label: 'Personal', hint: '8', icon: Icons.groups_outlined, controller: _personalController, keyboardType: TextInputType.number)),
+                  Expanded(
+                    flex: 4,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        _buildLabel('Personal'),
+                        _buildCustomTextField(
+                          hint: '8',
+                          icon: Icons.groups_outlined,
+                          controller: _personalController,
+                          keyboardType: TextInputType.number,
+                          // 👇 Solo permite números enteros
+                          inputFormatters: [
+                            FilteringTextInputFormatter.digitsOnly,
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
                 ],
               ),
               const SizedBox(height: 14),
-              CustomTextField(label: 'Descripción de la jornada *', hint: 'Describe las actividades', icon: Icons.description_outlined, controller: _descripcionController),
+
+              _buildLabel('Descripción de la jornada *'),
+              _buildCustomTextField(
+                hint: 'Describe las actividades',
+                icon: Icons.description_outlined,
+                controller: _descripcionController,
+              ),
               const SizedBox(height: 14),
+
               Container(
-                width: double.infinity, padding: const EdgeInsets.all(14),
-                decoration: BoxDecoration(color: AppColors.blanco, borderRadius: BorderRadius.circular(12), border: Border.all(color: AppColors.bordeSuave)),
+                width: double.infinity,
+                padding: const EdgeInsets.all(14),
+                decoration: BoxDecoration(
+                  color: AppColors.blanco,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: AppColors.bordeSuave),
+                ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    CustomTextField(label: 'Observaciones', hint: 'Escribe las observaciones', icon: Icons.notes_outlined, controller: _observacionesController),
+                    _buildLabel('Observaciones'),
+                    _buildCustomTextField(
+                      hint: 'Escribe las observaciones',
+                      icon: Icons.notes_outlined,
+                      controller: _observacionesController,
+                    ),
                     const SizedBox(height: 10),
                     CheckboxListTile(
                       contentPadding: EdgeInsets.zero,
-                      title: const Text('Hubo retrasos o paro', style: TextStyle(fontSize: 13)),
+                      title: const Text('Hubo retrasos o paro',
+                          style: TextStyle(fontSize: 13)),
                       value: _huboRetraso,
                       activeColor: AppColors.naranja,
-                      onChanged: (value) => setState(() => _huboRetraso = value ?? false),
+                      onChanged: (value) =>
+                          setState(() => _huboRetraso = value ?? false),
                     ),
                     if (_huboRetraso) ...[
                       const SizedBox(height: 8),
                       Row(
                         children: [
-                          Expanded(flex: 1, child: CustomTextField(label: 'Horas', hint: '0', icon: Icons.timer_outlined, controller: _horasRetrasoController, keyboardType: TextInputType.number)),
+                          Expanded(
+                            flex: 1,
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                _buildLabel('Horas'),
+                                _buildCustomTextField(
+                                  hint: '0',
+                                  icon: Icons.timer_outlined,
+                                  controller: _horasRetrasoController,
+                                  keyboardType: TextInputType.number,
+                                  // 👇 Solo permite números enteros
+                                  inputFormatters: [
+                                    FilteringTextInputFormatter.digitsOnly,
+                                  ],
+                                ),
+                              ],
+                            ),
+                          ),
                           const SizedBox(width: 10),
-                          Expanded(flex: 2, child: CustomTextField(label: 'Causa', hint: 'Describe', icon: Icons.warning_amber_outlined, controller: _causaRetrasoController)),
+                          Expanded(
+                            flex: 2,
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                _buildLabel('Causa'),
+                                _buildCustomTextField(
+                                  hint: 'Describe',
+                                  icon: Icons.warning_amber_outlined,
+                                  controller: _causaRetrasoController,
+                                ),
+                              ],
+                            ),
+                          ),
                         ],
                       ),
                     ],
@@ -332,17 +518,38 @@ class _NuevaBitacoraDialogState extends State<_NuevaBitacoraDialog> {
                 ),
               ),
               const SizedBox(height: 14),
-              CustomTextField(label: 'Incidencias', hint: 'Describe cualquier incidencia', icon: Icons.warning_amber_outlined, controller: _incidenciasController),
+
+              _buildLabel('Incidencias'),
+              _buildCustomTextField(
+                hint: 'Describe cualquier incidencia',
+                icon: Icons.warning_amber_outlined,
+                controller: _incidenciasController,
+              ),
               const SizedBox(height: 20),
+
               Row(
                 mainAxisAlignment: MainAxisAlignment.end,
                 children: [
-                  TextButton(onPressed: _guardando ? null : () => Navigator.pop(context), child: const Text('Cancelar', style: TextStyle(color: AppColors.textoGris))),
+                  TextButton(
+                    onPressed: _guardando ? null : () => Navigator.pop(context),
+                    child: const Text('Cancelar',
+                        style: TextStyle(color: AppColors.textoGris)),
+                  ),
                   const SizedBox(width: 8),
                   ElevatedButton(
                     onPressed: _guardando ? null : _guardar,
-                    style: ElevatedButton.styleFrom(backgroundColor: AppColors.naranja, foregroundColor: AppColors.blanco),
-                    child: _guardando ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2)) : const Text('Guardar'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.naranja,
+                      foregroundColor: AppColors.blanco,
+                    ),
+                    child: _guardando
+                        ? const SizedBox(
+                            width: 18,
+                            height: 18,
+                            child: CircularProgressIndicator(
+                                color: Colors.white, strokeWidth: 2),
+                          )
+                        : const Text('Guardar'),
                   ),
                 ],
               ),
@@ -350,6 +557,101 @@ class _NuevaBitacoraDialogState extends State<_NuevaBitacoraDialog> {
           ),
         ),
       ),
+    );
+  }
+
+  // ─── Widgets auxiliares con los MISMOS iconos de tu diseño original ───
+
+  Widget _buildLabel(String text) => Padding(
+        padding: const EdgeInsets.only(bottom: 6.0),
+        child: Text(
+          text,
+          style: const TextStyle(
+            fontSize: 12,
+            fontWeight: FontWeight.bold,
+            color: Colors.black87,
+          ),
+        ),
+      );
+
+  Widget _buildCustomTextField({
+    required String hint,
+    required IconData icon,
+    required TextEditingController controller,
+    bool readOnly = false,
+    VoidCallback? onTap,
+    Widget? suffixIcon,
+    int maxLines = 1,
+    TextInputType? keyboardType,
+    List<TextInputFormatter>? inputFormatters,
+  }) {
+    return TextField(
+      controller: controller,
+      readOnly: readOnly,
+      onTap: onTap,
+      maxLines: maxLines,
+      keyboardType: keyboardType,
+      inputFormatters: inputFormatters,
+      style: const TextStyle(fontSize: 13),
+      decoration: InputDecoration(
+        hintText: hint,
+        hintStyle: TextStyle(fontSize: 12, color: Colors.grey.shade400),
+        prefixIcon: Icon(icon, color: Colors.grey.shade600, size: 20),
+        suffixIcon: suffixIcon,
+        filled: true,
+        fillColor: Colors.white,
+        contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
+        isDense: true,
+        // Borde naranja perfecto (sin doble caja)
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(8),
+          borderSide: const BorderSide(color: AppColors.naranja),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(8),
+          borderSide: const BorderSide(color: AppColors.naranja, width: 2),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildCustomDropdownField({
+    required String hint,
+    required IconData icon,
+    required String? value,
+    required List<String> items,
+    required void Function(String?) onChanged,
+  }) {
+    return DropdownButtonFormField<String>(
+      value: value,
+      isExpanded: true,
+      hint: Text(hint,
+          style: TextStyle(fontSize: 12, color: Colors.grey.shade400)),
+      icon: const Icon(Icons.keyboard_arrow_down, color: Colors.grey),
+      style: const TextStyle(fontSize: 13, color: Colors.black87),
+      decoration: InputDecoration(
+        prefixIcon: Icon(icon, color: Colors.grey.shade600, size: 20),
+        filled: true,
+        fillColor: Colors.white,
+        contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
+        isDense: true,
+        // Borde naranja perfecto
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(8),
+          borderSide: const BorderSide(color: AppColors.naranja),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(8),
+          borderSide: const BorderSide(color: AppColors.naranja, width: 2),
+        ),
+      ),
+      items: items
+          .map((item) => DropdownMenuItem<String>(
+                value: item,
+                child: Text(item),
+              ))
+          .toList(),
+      onChanged: onChanged,
     );
   }
 }
