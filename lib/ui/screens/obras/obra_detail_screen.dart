@@ -179,7 +179,7 @@ class _ObraDetailScreenState extends State<ObraDetailScreen> {
   }
 
   // ─── Registrar Avance ───
-  Future<void> _registrarAvance(Map<String, dynamic> actividad) async {
+    Future<void> _registrarAvance(Map<String, dynamic> actividad) async {
     final idActividad =
         int.tryParse(actividad['id_actividad']?.toString() ?? '') ?? 0;
     if (idActividad <= 0) return;
@@ -191,77 +191,142 @@ class _ObraDetailScreenState extends State<ObraDetailScreen> {
 
     final confirmado = await showDialog<bool>(
       context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Registrar avance'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            TextField(
-              controller: porcentajeController,
-              keyboardType:
-                  const TextInputType.numberWithOptions(decimal: true),
-              decoration: const InputDecoration(
-                  labelText: 'Avance (%)', hintText: '0 a 100'),
+      barrierDismissible: false,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setModal) {
+          bool guardando = false;
+          return Dialog(
+            insetPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+            backgroundColor: AppColors.grisfondo,
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 500),
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.all(24.0),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(8),
+                          decoration: BoxDecoration(color: AppColors.naranja, borderRadius: BorderRadius.circular(8)),
+                          child: const Icon(Icons.trending_up, color: Colors.white, size: 24),
+                        ),
+                        const SizedBox(width: 12),
+                        const Expanded(
+                          child: Text('Registrar avance', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                        ),
+                        IconButton(
+                          icon: const Icon(Icons.close),
+                          onPressed: guardando ? null : () => Navigator.pop(ctx, false),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 24),
+
+                    Text('Actividad: ${actividad['titulo']}', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+                    const SizedBox(height: 16),
+
+                    const Text('Avance (%) *', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.black87)),
+                    const SizedBox(height: 6),
+                    Container(
+                      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(8), border: Border.all(color: AppColors.naranja)),
+                      child: TextFormField(
+                        controller: porcentajeController,
+                        keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                        style: const TextStyle(fontSize: 13),
+                        decoration: const InputDecoration(hintText: 'Ej. 50', border: InputBorder.none, contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 14), isDense: true),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+
+                    const Text('Observaciones', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.black87)),
+                    const SizedBox(height: 6),
+                    Container(
+                      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(8), border: Border.all(color: AppColors.naranja)),
+                      child: TextFormField(
+                        controller: observacionesController,
+                        maxLines: 3,
+                        style: const TextStyle(fontSize: 13),
+                        decoration: const InputDecoration(hintText: 'Ej. Se terminó la cimentación', border: InputBorder.none, contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 14), isDense: true),
+                      ),
+                    ),
+                    const SizedBox(height: 32),
+
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.end,
+                      children: [
+                        OutlinedButton(
+                          onPressed: guardando ? null : () => Navigator.pop(ctx, false),
+                          style: OutlinedButton.styleFrom(
+                            foregroundColor: AppColors.gris,
+                            side: const BorderSide(color: AppColors.bordeSuave),
+                            padding: const EdgeInsets.symmetric(horizontal: 24),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                          ),
+                          child: const Text('CANCELAR', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
+                        ),
+                        const SizedBox(width: 12),
+                        ElevatedButton(
+                          onPressed: guardando ? null : () async {
+                            final porcentaje = double.tryParse(porcentajeController.text.trim());
+                            if (porcentaje == null || porcentaje < 0 || porcentaje > 100) {
+                              ScaffoldMessenger.of(ctx).showSnackBar(const SnackBar(content: Text('El avance debe ser un número entre 0 y 100.')));
+                              return;
+                            }
+
+                            setModal(() => guardando = true);
+
+                            try {
+                              final respuesta = await ApiService.post('actividad_avance.php', {
+                                'id_actividad': idActividad,
+                                'porcentaje_nuevo': porcentaje,
+                                'observaciones': observacionesController.text.trim(),
+                              });
+
+                              if (respuesta['estado'] != true) {
+                                throw Exception(respuesta['mensaje'] ?? 'No se pudo registrar el avance');
+                              }
+
+                              Navigator.pop(ctx, true);
+                            } catch (error) {
+                              setModal(() => guardando = false);
+                              ScaffoldMessenger.of(ctx).showSnackBar(SnackBar(content: Text('Error: $error'), backgroundColor: AppColors.estadoRojo));
+                            }
+                          },
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: AppColors.naranja,
+                            foregroundColor: Colors.white,
+                            padding: const EdgeInsets.symmetric(horizontal: 24),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                          ),
+                          child: guardando 
+                              ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+                              : const Text('GUARDAR', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
             ),
-            const SizedBox(height: 12),
-            TextField(
-              controller: observacionesController,
-              maxLines: 3,
-              decoration: const InputDecoration(labelText: 'Observaciones'),
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-              onPressed: () => Navigator.pop(ctx, false),
-              child: const Text('Cancelar')),
-          FilledButton(
-              onPressed: () => Navigator.pop(ctx, true),
-              child: const Text('Guardar')),
-        ],
+          );
+        }
       ),
     );
 
-    if (confirmado != true || !mounted) {
-      porcentajeController.dispose();
-      observacionesController.dispose();
-      return;
-    }
-
-    final porcentaje = double.tryParse(porcentajeController.text.trim());
     porcentajeController.dispose();
+    observacionesController.dispose();
 
-    if (porcentaje == null || porcentaje < 0 || porcentaje > 100) {
-      observacionesController.dispose();
-      _showError('El avance debe ser un número entre 0 y 100.');
-      return;
-    }
-
-    try {
-      final observaciones = observacionesController.text.trim();
-      observacionesController.dispose();
-
-      final respuesta = await ApiService.post('actividad_avance.php', {
-        'id_actividad': idActividad,
-        'porcentaje_nuevo': porcentaje,
-        'observaciones': observaciones,
-      });
-
-      if (respuesta['estado'] != true) {
-        throw Exception(
-            respuesta['mensaje'] ?? 'No se pudo registrar el avance');
-      }
-
+    if (confirmado == true && mounted) {
       await _cargarDetalle();
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-            content: Text('Avance registrado correctamente'),
-            backgroundColor: Colors.green),
-      );
-    } catch (error) {
-      if (!mounted) return;
-      _showError('No se pudo registrar el avance: $error');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Avance registrado correctamente'), backgroundColor: Colors.green),
+        );
+      }
     }
   }
 
@@ -352,7 +417,7 @@ class _ObraDetailScreenState extends State<ObraDetailScreen> {
     );
   }
 
-  // ─── Selector de tiempo (incluye "Personalizado" con showDateRangePicker) ───
+    // ─── Selector de tiempo ───
   Widget _buildSelectorTiempo() {
     final opciones = [
       'Diario',
@@ -566,7 +631,6 @@ class _ObraDetailScreenState extends State<ObraDetailScreen> {
       });
     }
   }
-
   // ─── Widgets de UI ───
   PreferredSizeWidget _buildAppBar() {
     return AppBar(
@@ -817,11 +881,19 @@ class _ObraDetailScreenState extends State<ObraDetailScreen> {
     return LayoutBuilder(
       builder: (context, constraints) {
         final compact = constraints.maxWidth < 560;
-        final controls = Wrap(
-          spacing: 8,
-          runSpacing: 8,
-          crossAxisAlignment: WrapCrossAlignment.center,
-          children: [_buildFaseDropdown(), _buildNuevaActividadButton()],
+        
+        // Alineamos el dropdown y el botón para que no dejen huecos
+        final controls = Row(
+          children: [
+            Expanded(
+              child: _buildFaseDropdown(),
+            ),
+            const SizedBox(width: 8),
+            if (_puedeCrearActividad)
+              Expanded(
+                child: _buildNuevaActividadButton(),
+              ),
+          ],
         );
 
         return Container(
@@ -838,8 +910,7 @@ class _ObraDetailScreenState extends State<ObraDetailScreen> {
                   children: [
                     const Text(
                       'Programa y control de actividades',
-                      style: TextStyle(
-                          fontSize: 14, fontWeight: FontWeight.bold),
+                      style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
                     ),
                     const SizedBox(height: 10),
                     controls,
@@ -851,11 +922,14 @@ class _ObraDetailScreenState extends State<ObraDetailScreen> {
                     const Expanded(
                       child: Text(
                         'Programa y control de actividades',
-                        style: TextStyle(
-                            fontSize: 14, fontWeight: FontWeight.bold),
+                        style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
                       ),
                     ),
-                    controls,
+                    const SizedBox(width: 16),
+                    SizedBox(
+                      width: 340, // Ancho fijo para escritorio
+                      child: controls,
+                    ),
                   ],
                 ),
         );
@@ -863,7 +937,7 @@ class _ObraDetailScreenState extends State<ObraDetailScreen> {
     );
   }
 
-  Widget _buildFaseDropdown() {
+    Widget _buildFaseDropdown() {
     final fasesNombres = [
       'Todas las fases',
       ..._fases.map((f) => f['nombre'].toString())
@@ -872,25 +946,27 @@ class _ObraDetailScreenState extends State<ObraDetailScreen> {
       _faseSeleccionada = 'Todas las fases';
     }
 
-    return SizedBox(
+    return Container(
       height: 40,
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 12),
-        decoration: BoxDecoration(
-            color: AppColors.noseleccionado,
-            borderRadius: BorderRadius.circular(8)),
-        child: DropdownButton<String>(
-          value: _faseSeleccionada,
-          underline: const SizedBox(),
-          icon: const Icon(Icons.keyboard_arrow_down,
-              size: 18, color: AppColors.gris),
-          style: const TextStyle(
-              fontSize: 12, color: AppColors.gris, fontWeight: FontWeight.bold),
-          items: fasesNombres
-              .map((fase) => DropdownMenuItem(value: fase, child: Text(fase)))
-              .toList(),
-          onChanged: (value) => setState(() => _faseSeleccionada = value!),
-        ),
+      padding: const EdgeInsets.symmetric(horizontal: 12),
+      decoration: BoxDecoration(
+          color: AppColors.noseleccionado,
+          borderRadius: BorderRadius.circular(8)),
+      child: DropdownButton<String>(
+        value: _faseSeleccionada,
+        isExpanded: true,
+        underline: const SizedBox(),
+        icon: const Icon(Icons.keyboard_arrow_down,
+            size: 18, color: AppColors.gris),
+        style: const TextStyle(
+            fontSize: 12, color: AppColors.gris, fontWeight: FontWeight.bold),
+        items: fasesNombres
+            .map((fase) => DropdownMenuItem(
+                  value: fase,
+                  child: Text(fase, overflow: TextOverflow.ellipsis),
+                ))
+            .toList(),
+        onChanged: (value) => setState(() => _faseSeleccionada = value!),
       ),
     );
   }
@@ -907,7 +983,7 @@ class _ObraDetailScreenState extends State<ObraDetailScreen> {
         style: ElevatedButton.styleFrom(
             backgroundColor: AppColors.naranja,
             foregroundColor: Colors.white,
-            padding: const EdgeInsets.symmetric(horizontal: 16),
+            padding: const EdgeInsets.symmetric(horizontal: 8),
             shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(8))),
       ),
@@ -939,7 +1015,7 @@ class _ObraDetailScreenState extends State<ObraDetailScreen> {
     );
   }
 
-  Widget _buildFasesResumen() {
+    Widget _buildFasesResumen() {
     return LayoutBuilder(
       builder: (context, constraints) {
         if (_cargando) {
@@ -959,6 +1035,8 @@ class _ObraDetailScreenState extends State<ObraDetailScreen> {
             ),
           );
         }
+
+        // En escritorio mantenemos un ancho fijo o fluido
         if (constraints.maxWidth > 900) {
           return Wrap(
             spacing: 12,
@@ -1259,6 +1337,8 @@ class _ObraDetailScreenState extends State<ObraDetailScreen> {
             const SizedBox(width: 4)
           ],
           Text(text,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
               style: TextStyle(
                   fontSize: 10, fontWeight: FontWeight.bold, color: color)),
         ],
