@@ -182,7 +182,7 @@ class ReportePdfService {
           ),
           pw.SizedBox(height: 10),
 
-          // ─── 1. AVANCE ───
+          // ─── 1. AVANCE (AHORA ES DINÁMICO) ───
           _tablaHeader('1. REPORTE DE AVANCE %', estiloTituloSeccion, colorGrisFondo, colorBorde),
           pw.Table(
             border: pw.TableBorder.all(color: colorBorde, width: 1),
@@ -198,10 +198,10 @@ class ReportePdfService {
                   _celdaHeader('% AVANCE', estiloBold, align: pw.TextAlign.center),
                 ],
               ),
-              _filaAvance('Preliminares', '${datos['avancePreliminares']}%', estiloCuerpo),
-              _filaAvance('Cimentación', '${datos['avanceCimentacion']}%', estiloCuerpo),
-              _filaAvance('Estructura', '${datos['avanceEstructura']}%', estiloCuerpo),
-              _filaAvance('Albañilería', '${datos['avanceAlbanileria']}%', estiloCuerpo),
+              // Aquí recorremos las fases que vienen en los datos (ej: Preliminares, Estructura, Albañilería)
+              ...(datos['fases'] as List? ?? []).map((f) {
+                return _filaAvance(f['nombre'].toString(), '${f['porcentaje']}%', estiloCuerpo);
+              }),
               pw.TableRow(
                 decoration: pw.BoxDecoration(color: colorGrisFondo),
                 children: [
