@@ -2,8 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
-
-// IMPORTA TUS ARCHIVOS (Asegúrate de que las rutas sean correctas)
 import 'config/theme/app_theme.dart';
 import 'ui/screens/auth/login_screen.dart';
 
@@ -33,9 +31,6 @@ class MiApp extends StatelessWidget {
   }
 }
 
-// ============================================================
-// FUNCIÓN DE PRUEBA (Puedes dejarla aquí temporalmente o boorrarla)
-// ============================================================
 Future<void> probarConexion() async {
   final url = Uri.parse('https://gestobra.alwaysdata.net/test_conexion.php');
 

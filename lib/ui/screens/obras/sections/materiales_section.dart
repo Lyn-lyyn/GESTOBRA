@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../../../config/theme/app_colors.dart';
+import '../../../../servicios/api_service.dart';
 
 class MaterialesSection extends StatefulWidget {
   final Map<String, dynamic> obra;
@@ -13,71 +14,28 @@ class MaterialesSection extends StatefulWidget {
 class _MaterialesSectionState extends State<MaterialesSection> {
   final _busquedaController = TextEditingController();
   final _kardexScrollController = ScrollController();
-  String _vistaSeleccionada = 'Stock';
+  String _vistaSeleccionada = 'Plan';
+  bool _cargando = true;
+  String? _error;
 
-  final List<Map<String, dynamic>> _materiales = [
-    {'codigo': 'MAT-CEM-01', 'nombre': 'Cemento Gris Portland CPC 30R', 'categoria': 'Cementos y Morteros', 'cantidad': 138.0, 'unidad': 'Bultos', 'minimo': 40.0, 'maximo': 200.0, 'referencia': 'Ref. 5245 C/U'},
-    {'codigo': 'MAT-VAR-38', 'nombre': 'Varilla Corrugada 3/8” (Grado 42)', 'categoria': 'Acero y Fierro', 'cantidad': 420.0, 'unidad': 'kg', 'minimo': 100.0, 'maximo': 500.0, 'referencia': 'Ref. 726.5 C/U'},
-    {'codigo': 'MAT-VAR-12', 'nombre': 'Varilla Corrugada 1/2” (Grado 42)', 'categoria': 'Acero y Fierro', 'cantidad': 310.0, 'unidad': 'kg', 'minimo': 100.0, 'maximo': 500.0, 'referencia': 'Ref. 927 C/U'},
-    {'codigo': 'MAT-ARE-01', 'nombre': 'Arena de Río cribado', 'categoria': 'Áridos y Pétreos', 'cantidad': 12.0, 'unidad': 'm³', 'minimo': 3.0, 'maximo': 15.0, 'referencia': 'Ref. 540 C/U'},
-    {'codigo': 'MAT-GRA-01', 'nombre': 'Grava triturada 3/4”', 'categoria': 'Áridos y Pétreos', 'cantidad': 1.0, 'unidad': 'm³', 'minimo': 4.0, 'maximo': 15.0, 'referencia': 'Ref. 820 C/U'},
-    {'codigo': 'MAT-ALA-01', 'nombre': 'Alambre recocido calibre 16', 'categoria': 'Acero y Fierro', 'cantidad': 45.0, 'unidad': 'kg', 'minimo': 10.0, 'maximo': 50.0, 'referencia': 'Ref. 532 C/U'},
-    {'codigo': 'MAT-TAB-01', 'nombre': 'Block hueco de concreto 15x20x40', 'categoria': 'Cementos y Morteros', 'cantidad': 850.0, 'unidad': 'piezas', 'minimo': 200.0, 'maximo': 1000.0, 'referencia': 'Ref. 8.5 C/U'},
-  ];
+  // Datos
+  List<Map<String, dynamic>> _plan = [];
+  List<Map<String, dynamic>> _stock = [];
+  List<Map<String, dynamic>> _consumo = [];
+  List<Map<String, dynamic>> _kardex = [];
+  List<Map<String, dynamic>> _maquinariaObra = [];
+  List<Map<String, dynamic>> _maquinariaDisponible = [];
+  List<Map<String, dynamic>> _catalogoMateriales = [];
+  List<Map<String, dynamic>> _catalogoProveedores = [];
+  List<Map<String, dynamic>> _listaActividadesObra = [];
 
-  final List<Map<String, dynamic>> _consumos = [
-    {
-      'fase': 'PRELIMINARES', 'avance': 100, 'titulo': 'Limpieza y desmonte del terreno',
-      'descripcion': 'Retiro de maleza, escombros y nivelación superficial del terreno con maquinaria ligera.',
-      'responsable': 'Cuadrilla 1 - Don Pedro', 'materiales': [],
-    },
-    {
-      'fase': 'PRELIMINARES', 'avance': 100, 'titulo': 'Trazo y nivelación topográfica',
-      'descripcion': 'Colocación de valas de madera y tendido de hilos según planos arquitectónicos y estructurales.',
-      'responsable': 'Topógrafo Miguel', 'materiales': [],
-    },
-    {
-      'fase': 'CIMENTACIÓN', 'avance': 100, 'titulo': 'Excavación para zapatas y contratrabes',
-      'descripcion': 'Excavación a cielo abierto a 1.60 m de profundidad para 12 zapatas aisladas y zanjas de liga.',
-      'responsable': 'Cuadrilla 2 - Operador Retro', 'materiales': [],
-    },
-    {
-      'fase': 'CIMENTACIÓN', 'avance': 100, 'titulo': 'Plantilla de concreto pobre f’c = 100 kg/cm²',
-      'descripcion': 'Espesor de 5 cm en fondo de zapatas para recibir armado de acero.',
-      'responsable': 'Cuadrilla Albañilería',
-      'materiales': [
-        {'nombre': 'Cemento Gris Portland CPC 30R', 'cantidad': 20.0, 'unidad': 'Bultos'},
-      ],
-    },
-    {
-      'fase': 'CIMENTACIÓN', 'avance': 85, 'titulo': 'Armado de acero en zapatas y dados',
-      'descripcion': 'Corte, doblez y armado de parrillas de varilla #2 y #3 para zapatas Z1 a Z8 y bastones de dados.',
-      'responsable': 'Fierro Juan y ayudante',
-      'materiales': [
-        {'nombre': 'Varilla Corrugada 3/8” (Grado 42)', 'cantidad': 250.0, 'unidad': 'Kg'},
-        {'nombre': 'Alambre recocido calibre 16', 'cantidad': 15.0, 'unidad': 'Kg'},
-      ],
-    },
-    {
-      'fase': 'CIMENTACIÓN', 'avance': 30, 'titulo': 'Colado de zapatas y contratrabes f’c = 250 kg/cm²',
-      'descripcion': 'Vaciado de concreto premezclado con vibrador de aguja en elementos de cimentación.',
-      'responsable': 'Cuadrilla Colados',
-      'materiales': [
-        {'nombre': 'Cemento Gris Portland CPC 30R', 'cantidad': 24.0, 'unidad': 'Bultos'},
-        {'nombre': 'Arena de Río cribado', 'cantidad': 3.0, 'unidad': 'm³'},
-        {'nombre': 'Grava triturada 3/4”', 'cantidad': 2.0, 'unidad': 'm³'},
-      ],
-    },
-  ];
+  int get _obraId => int.tryParse(widget.obra['id_obra']?.toString() ?? '') ?? 0;
 
-  final List<Map<String, dynamic>> _movimientos = [
-    {'tipo': 'Salida', 'fecha': '2026-09-22', 'material': 'Cemento Gris Portland CPC 30R', 'cantidad': 24.0, 'unidad': 'Bultos', 'actividad': 'Colado de zapatas y contratrabes f’c = 250 kg/cm²', 'proveedor': 'Concretos Veracruz', 'notas': 'Colado de zapatas Z1–Z8', 'registrado': 'Ing. Carlos Morales'},
-    {'tipo': 'Salida', 'fecha': '2026-09-20', 'material': 'Varilla Corrugada 3/8” (Grado 42)', 'cantidad': 250.0, 'unidad': 'Kg', 'actividad': 'Armado de acero en zapatas y dados', 'proveedor': 'Aceros DIMEX', 'notas': 'Varilla y armado para zapatas', 'registrado': 'Arq. Sofía Méndez'},
-    {'tipo': 'Salida', 'fecha': '2026-09-19', 'material': 'Alambre recocido calibre 16', 'cantidad': 15.0, 'unidad': 'Kg', 'actividad': 'Armado de acero en zapatas y dados', 'proveedor': 'Aceros DIMEX', 'notas': 'Amarre de parrillas y dados', 'registrado': 'Arq. Sofía Méndez'},
-    {'tipo': 'Salida', 'fecha': '2026-09-17', 'material': 'Cemento Gris Portland CPC 30R', 'cantidad': 20.0, 'unidad': 'Bultos', 'actividad': 'Plantilla de concreto pobre f’c = 100 kg/cm²', 'proveedor': 'Concretos Veracruz', 'notas': 'Preparación de plantilla en terreno', 'registrado': 'Arq. Sofía Méndez'},
-    {'tipo': 'Entrada', 'fecha': '2026-09-07', 'material': 'Cemento Gris Portland CPC 30R', 'cantidad': 100.0, 'unidad': 'Bultos', 'actividad': 'Compra inicial', 'proveedor': 'Materiales y Aceros del Golfo', 'notas': 'Recepción inicial de inventario', 'registrado': 'Ing. Carlos Morales'},
-    {'tipo': 'Entrada', 'fecha': '2026-09-07', 'material': 'Varilla Corrugada 1/2” (Grado 42)', 'cantidad': 670.0, 'unidad': 'Kg', 'actividad': 'Compra inicial', 'proveedor': 'Aceros DIMEX', 'notas': 'Lote certificado recibido en almacén', 'registrado': 'Ing. Carlos Morales'},
-  ];
+  @override
+  void initState() {
+    super.initState();
+    _cargarTodo();
+  }
 
   @override
   void dispose() {
@@ -86,28 +44,107 @@ class _MaterialesSectionState extends State<MaterialesSection> {
     super.dispose();
   }
 
-  List<Map<String, dynamic>> get _materialesFiltrados {
-    final query = _busquedaController.text.trim().toLowerCase();
-    if (query.isEmpty) return _materiales;
-    return _materiales.where((material) {
-      return material['nombre'].toString().toLowerCase().contains(query) ||
-          material['codigo'].toString().toLowerCase().contains(query) ||
-          material['categoria'].toString().toLowerCase().contains(query);
-    }).toList();
+  Future<void> _cargarTodo() async {
+    if (_obraId <= 0) return;
+    setState(() {
+      _cargando = true;
+      _error = null;
+    });
+
+    try {
+      final results = await Future.wait([
+        ApiService.get('materiales_plan_obra.php?id_obra=$_obraId'), // 0
+        ApiService.get('materiales_obra.php?id_obra=$_obraId&tipo=stock'), // 1
+        ApiService.get('materiales_obra.php?id_obra=$_obraId&tipo=consumo'), // 2
+        ApiService.get('materiales_obra.php?id_obra=$_obraId&tipo=kardex'), // 3
+        ApiService.get('maquinaria_obra.php?id_obra=$_obraId'), // 4
+        ApiService.get('materiales_admin.php'), // 5
+        ApiService.get('proveedores.php'), // 6
+        ApiService.get('maquinaria.php'), // 7
+        ApiService.get('actividades_obra.php?id_obra=$_obraId'), // 8
+      ]);
+
+      if (results[0]['estado'] == true) _plan = List<Map<String, dynamic>>.from(results[0]['data']);
+      if (results[1]['estado'] == true) _stock = List<Map<String, dynamic>>.from(results[1]['data']);
+      if (results[2]['estado'] == true) _consumo = List<Map<String, dynamic>>.from(results[2]['data']);
+      if (results[3]['estado'] == true) _kardex = List<Map<String, dynamic>>.from(results[3]['data']);
+      if (results[4]['estado'] == true) _maquinariaObra = List<Map<String, dynamic>>.from(results[4]['data']);
+      if (results[5]['estado'] == true) _catalogoMateriales = List<Map<String, dynamic>>.from(results[5]['data']);
+      if (results[6]['estado'] == true) _catalogoProveedores = List<Map<String, dynamic>>.from(results[6]['data']);
+      if (results[8]['estado'] == true) _listaActividadesObra = List<Map<String, dynamic>>.from(results[8]['data']);
+
+      if (results[7]['estado'] == true) {
+        final asignadas = _maquinariaObra.map((m) => m['id_maquinaria']).toSet();
+        _maquinariaDisponible = List<Map<String, dynamic>>.from(results[7]['data'])
+            .where((m) => !asignadas.contains(m['id_maquinaria']))
+            .toList();
+      }
+
+      setState(() => _cargando = false);
+    } catch (e) {
+      setState(() {
+        _cargando = false;
+        _error = 'Error al cargar datos: $e';
+      });
+    }
   }
 
-  List<Map<String, dynamic>> get _consumosFiltrados {
-    final query = _busquedaController.text.trim().toLowerCase();
-    if (query.isEmpty) return _consumos;
-    return _consumos.where((consumo) {
-      return consumo['titulo'].toString().toLowerCase().contains(query) ||
-          consumo['fase'].toString().toLowerCase().contains(query) ||
-          consumo['responsable'].toString().toLowerCase().contains(query);
-    }).toList();
+  // ────────────────────────────────────────────────────────
+  // FILTROS
+  // ────────────────────────────────────────────────────────
+  List<Map<String, dynamic>> get _stockFiltrado {
+    final q = _busquedaController.text.trim().toLowerCase();
+    if (q.isEmpty) return _stock;
+    return _stock.where((m) => 
+      m['material'].toString().toLowerCase().contains(q) ||
+      (m['tipo'] ?? '').toString().toLowerCase().contains(q)
+    ).toList();
+  }
+
+  List<Map<String, dynamic>> get _consumoFiltrado {
+    final q = _busquedaController.text.trim().toLowerCase();
+    if (q.isEmpty) return _consumo;
+    return _consumo.where((c) => 
+      c['actividad'].toString().toLowerCase().contains(q) ||
+      c['fase'].toString().toLowerCase().contains(q)
+    ).toList();
+  }
+
+  List<Map<String, dynamic>> get _kardexFiltrado {
+    final q = _busquedaController.text.trim().toLowerCase();
+    if (q.isEmpty) return _kardex;
+    return _kardex.where((m) => 
+      m['material'].toString().toLowerCase().contains(q) ||
+      m['tipo_movimiento'].toString().toLowerCase().contains(q) ||
+      (m['proveedor'] ?? '').toString().toLowerCase().contains(q)
+    ).toList();
   }
 
   @override
   Widget build(BuildContext context) {
+    if (_cargando) {
+      return Container(
+        padding: const EdgeInsets.all(40),
+        child: const Center(child: CircularProgressIndicator(color: AppColors.naranja)),
+      );
+    }
+
+    if (_error != null) {
+      return Container(
+        padding: const EdgeInsets.all(24),
+        decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(12)),
+        child: Column(
+          children: [
+            const Icon(Icons.error_outline, color: AppColors.estadoRojo, size: 40),
+            const SizedBox(height: 12),
+            Text(_error!, textAlign: TextAlign.center),
+            const SizedBox(height: 12),
+            OutlinedButton.icon(onPressed: _cargarTodo, icon: const Icon(Icons.refresh), label: const Text('Reintentar')),
+          ],
+        ),
+      );
+    }
+
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(12),
@@ -123,9 +160,11 @@ class _MaterialesSectionState extends State<MaterialesSection> {
           const SizedBox(height: 12),
           _buildSearchAndTabs(),
           const SizedBox(height: 12),
-          if (_vistaSeleccionada == 'Stock') _buildStockView()
+          if (_vistaSeleccionada == 'Plan') _buildPlanView()
+          else if (_vistaSeleccionada == 'Stock') _buildStockView()
           else if (_vistaSeleccionada == 'Consumo') _buildConsumoView()
-          else _buildKardexView(),
+          else if (_vistaSeleccionada == 'Kardex') _buildKardexView()
+          else _buildMaquinariaView(),
         ],
       ),
     );
@@ -145,30 +184,43 @@ class _MaterialesSectionState extends State<MaterialesSection> {
             'Materiales, Entradas y Consumos',
             style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
           );
-          final actions = Wrap(
-            spacing: 8,
-            runSpacing: 8,
+
+          final actions = Row(
             children: [
-              _movementButton(
-                label: 'Entrada',
-                icon: Icons.south_west,
-                onPressed: () => _openMovementDialog(context, 'Entrada'),
+              Expanded(
+                child: _movementButton(
+                  label: 'Entrada',
+                  icon: Icons.south_west,
+                  onPressed: () => _openMovementDialog(context, 'Entrada'),
+                ),
               ),
-              _movementButton(
-                label: 'Salida',
-                icon: Icons.north_east,
-                onPressed: () => _openMovementDialog(context, 'Salida'),
+              const SizedBox(width: 8),
+              Expanded(
+                child: _movementButton(
+                  label: 'Salida',
+                  icon: Icons.north_east,
+                  onPressed: () => _openMovementDialog(context, 'Salida'),
+                ),
               ),
             ],
           );
+
           if (constraints.maxWidth < 480) {
             return Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [title, const SizedBox(height: 10), actions],
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                title,
+                const SizedBox(height: 10),
+                actions,
+              ],
             );
           }
           return Row(
-            children: [Expanded(child: title), actions],
+            children: [
+              Expanded(child: title),
+              const SizedBox(width: 12),
+              SizedBox(width: 240, child: actions),
+            ],
           );
         },
       ),
@@ -177,7 +229,8 @@ class _MaterialesSectionState extends State<MaterialesSection> {
 
   Widget _movementButton({required String label, required IconData icon, required VoidCallback onPressed}) {
     return SizedBox(
-      height: 38,
+      height: 40,
+      width: double.infinity,
       child: ElevatedButton.icon(
         onPressed: onPressed,
         icon: Icon(icon, size: 16),
@@ -208,7 +261,8 @@ class _MaterialesSectionState extends State<MaterialesSection> {
             onChanged: (_) => setState(() {}),
             decoration: InputDecoration(
               isDense: true,
-              hintText: 'Buscar material o actividad...',
+              hintText: 'Buscar material...',
+              hintStyle: const TextStyle(fontSize: 13),
               prefixIcon: const Icon(Icons.search, size: 18, color: AppColors.textoGris),
               suffixIcon: _busquedaController.text.isEmpty
                   ? null
@@ -227,11 +281,25 @@ class _MaterialesSectionState extends State<MaterialesSection> {
               focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: AppColors.naranja, width: 1.5)),
             ),
           );
+          
           final tabs = _buildViewSelector();
+
           if (constraints.maxWidth < 570) {
-            return Column(children: [search, const SizedBox(height: 8), Align(alignment: Alignment.centerRight, child: tabs)]);
+            return Column(
+              children: [
+                search, 
+                const SizedBox(height: 10), 
+                Align(alignment: Alignment.centerLeft, child: tabs)
+              ]
+            );
           }
-          return Row(children: [Expanded(child: search), const SizedBox(width: 10), tabs]);
+          return Row(
+            children: [
+              Expanded(child: search), 
+              const SizedBox(width: 10), 
+              tabs
+            ]
+          );
         },
       ),
     );
@@ -241,35 +309,313 @@ class _MaterialesSectionState extends State<MaterialesSection> {
     return Container(
       padding: const EdgeInsets.all(3),
       decoration: BoxDecoration(color: Colors.white, border: Border.all(color: AppColors.bordeSuave), borderRadius: BorderRadius.circular(20)),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: ['Stock', 'Consumo', 'Kardex'].map((vista) {
-          final selected = _vistaSeleccionada == vista;
-          return InkWell(
-            onTap: () => setState(() => _vistaSeleccionada = vista),
-            borderRadius: BorderRadius.circular(16),
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 6),
-              child: Text(
-                vista,
-                style: TextStyle(
-                  color: selected ? AppColors.naranja : AppColors.textoGris,
-                  fontSize: 11,
-                  fontWeight: selected ? FontWeight.bold : FontWeight.w600,
-                  decoration: selected ? TextDecoration.underline : null,
-                  decorationColor: AppColors.naranja,
+      child: SingleChildScrollView(
+        scrollDirection: Axis.horizontal,
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: ['Plan', 'Stock', 'Consumo', 'Kardex', 'Maquinaria'].map((vista) {
+            final selected = _vistaSeleccionada == vista;
+            return InkWell(
+              onTap: () => setState(() => _vistaSeleccionada = vista),
+              borderRadius: BorderRadius.circular(16),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                child: Text(
+                  vista,
+                  softWrap: false,
+                  style: TextStyle(
+                    color: selected ? AppColors.naranja : AppColors.textoGris,
+                    fontSize: 11,
+                    fontWeight: selected ? FontWeight.bold : FontWeight.w600,
+                    decoration: selected ? TextDecoration.underline : null,
+                    decorationColor: AppColors.naranja,
+                  ),
                 ),
               ),
-            ),
-          );
-        }).toList(),
+            );
+          }).toList(),
+        ),
       ),
     );
   }
 
+  // ────────────────────────────────────────────────────────
+  // VISTA: PLAN (Lo presupuestado vs lo real)
+  // ────────────────────────────────────────────────────────
+  Widget _buildPlanView() {
+    if (_plan.isEmpty) return _emptyState('No hay materiales presupuestados en el plan de esta obra');
+
+    return Column(
+      children: [
+        ..._plan.map(_buildPlanCard),
+      ],
+    );
+  }
+
+  Widget _buildPlanCard(Map<String, dynamic> p) {
+    final presupuestado = double.tryParse(p['cantidad_presupuestada']?.toString() ?? '0') ?? 0;
+    final entrada = double.tryParse(p['cantidad_entrada']?.toString() ?? '0') ?? 0;
+    final consumido = double.tryParse(p['cantidad_consumida']?.toString() ?? '0') ?? 0;
+    final pendiente = double.tryParse(p['pendiente_por_llegar']?.toString() ?? '0') ?? 0;
+    final esExtra = (p['es_extra'] == 1 || p['es_extra'] == true);
+    final unidad = p['unidad_medida'] ?? '';
+
+    // Color basado en consumo vs presupuesto
+    Color colorConsumo = Colors.green;
+    if (presupuestado > 0) {
+      final ratio = consumido / presupuestado;
+      if (ratio >= 1.0) colorConsumo = AppColors.estadoRojo;
+      else if (ratio >= 0.8) colorConsumo = Colors.orange;
+    }
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 10),
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: AppColors.blanco,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: esExtra ? AppColors.estadoRojo.withValues(alpha: 0.4) : AppColors.bordeSuave, width: esExtra ? 1.2 : 1),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(children: [
+                      Flexible(child: Text(p['material'] ?? '', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14))),
+                      if (esExtra) ...[
+                        const SizedBox(width: 6),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                          decoration: BoxDecoration(color: AppColors.estadoRojo.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(4)),
+                          child: const Text('EXTRA', style: TextStyle(fontSize: 9, fontWeight: FontWeight.bold, color: AppColors.estadoRojo)),
+                        ),
+                      ],
+                    ]),
+                    Text('Unidad: $unidad', style: const TextStyle(fontSize: 11, color: AppColors.textoGris)),
+                  ],
+                ),
+              ),
+              IconButton(
+                icon: const Icon(Icons.edit, size: 18, color: AppColors.naranja),
+                tooltip: 'Editar información del plan',
+                onPressed: () => _abrirModalEditarPlan(p),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              _statChip('Presupuesto', '${_formatQuantity(presupuestado)} $unidad', AppColors.textoNegro),
+              const SizedBox(width: 6),
+              _statChip('Recibido', '${_formatQuantity(entrada)} $unidad', Colors.green),
+              const SizedBox(width: 6),
+              _statChip('Consumido', '${_formatQuantity(consumido)} $unidad', colorConsumo),
+              const SizedBox(width: 6),
+              _statChip('Pendiente', '${_formatQuantity(pendiente)} $unidad', AppColors.naranja),
+            ],
+          ),
+          const SizedBox(height: 10),
+          ClipRRect(
+            borderRadius: BorderRadius.circular(6),
+            child: LinearProgressIndicator(
+              value: presupuestado > 0 ? (consumido / presupuestado).clamp(0.0, 1.0) : 0,
+              minHeight: 6,
+              backgroundColor: AppColors.grisfondo,
+              valueColor: AlwaysStoppedAnimation<Color>(colorConsumo),
+            ),
+          ),
+          if (esExtra && p['motivo_extra'] != null && p['motivo_extra'].toString().isNotEmpty) ...[
+            const SizedBox(height: 8),
+            Text('Motivo extra: ${p['motivo_extra']}', style: const TextStyle(fontSize: 11, color: AppColors.estadoRojo)),
+          ],
+        ],
+      ),
+    );
+  }
+
+  // ────────────────────────────────────────────────────────
+  // MODAL: EDITAR PLAN
+  // ────────────────────────────────────────────────────────
+  Future<void> _abrirModalEditarPlan(Map<String, dynamic> p) async {
+    final cantCtrl = TextEditingController(text: _formatQuantity(p['cantidad_presupuestada']));
+    final costoCtrl = TextEditingController(text: p['costo_unitario_presupuestado']?.toString() ?? '');
+    final motivoCtrl = TextEditingController();
+
+    final res = await showDialog<bool>(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setModal) {
+          bool guardando = false;
+          return Dialog(
+            insetPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+            backgroundColor: AppColors.grisfondo,
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 500),
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.all(24.0),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(8),
+                          decoration: BoxDecoration(color: AppColors.naranja, borderRadius: BorderRadius.circular(8)),
+                          child: const Icon(Icons.assignment, color: Colors.white, size: 24),
+                        ),
+                        const SizedBox(width: 12),
+                        const Expanded(
+                          child: Text('Editar material del plan', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                        ),
+                        IconButton(
+                          icon: const Icon(Icons.close),
+                          onPressed: guardando ? null : () => Navigator.pop(ctx, false),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 24),
+
+                    Text('Material: ${p['material']}', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+                    const SizedBox(height: 16),
+
+                    Text('Cantidad presupuestada *', style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.black87)),
+                    const SizedBox(height: 6),
+                    Container(
+                      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(8), border: Border.all(color: AppColors.naranja)),
+                      child: TextFormField(
+                        controller: cantCtrl,
+                        keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                        style: const TextStyle(fontSize: 13),
+                        decoration: const InputDecoration(hintText: 'Ej. 50', border: InputBorder.none, contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 14), isDense: true),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+
+                    Text('Costo unitario (\$)', style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.black87)),
+                    const SizedBox(height: 6),
+                    Container(
+                      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(8), border: Border.all(color: AppColors.naranja)),
+                      child: TextFormField(
+                        controller: costoCtrl,
+                        keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                        style: const TextStyle(fontSize: 13),
+                        decoration: const InputDecoration(hintText: 'Ej. 150.00', border: InputBorder.none, contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 14), isDense: true),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+
+                    Text('Motivo de la edición *', style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.black87)),
+                    const SizedBox(height: 6),
+                    Container(
+                      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(8), border: Border.all(color: AppColors.naranja)),
+                      child: TextFormField(
+                        controller: motivoCtrl,
+                        maxLines: 2,
+                        style: const TextStyle(fontSize: 13),
+                        decoration: const InputDecoration(hintText: 'Ej. Se actualizó la cotización', border: InputBorder.none, contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 14), isDense: true),
+                      ),
+                    ),
+                    const SizedBox(height: 32),
+
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.end,
+                      children: [
+                        OutlinedButton(
+                          onPressed: guardando ? null : () => Navigator.pop(ctx, false),
+                          style: OutlinedButton.styleFrom(
+                            foregroundColor: AppColors.gris,
+                            side: const BorderSide(color: AppColors.bordeSuave),
+                            padding: const EdgeInsets.symmetric(horizontal: 24),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                          ),
+                          child: const Text('CANCELAR', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
+                        ),
+                        const SizedBox(width: 12),
+                        ElevatedButton(
+                          onPressed: guardando ? null : () async {
+                            final nuevaCant = double.tryParse(cantCtrl.text.replaceAll(',', '.'));
+                            if (nuevaCant == null || nuevaCant <= 0) {
+                              ScaffoldMessenger.of(ctx).showSnackBar(const SnackBar(content: Text('Cantidad inválida')));
+                              return;
+                            }
+                            if (motivoCtrl.text.trim().isEmpty) {
+                              ScaffoldMessenger.of(ctx).showSnackBar(const SnackBar(content: Text('Escribe el motivo de la edición')));
+                              return;
+                            }
+                            
+                            setModal(() => guardando = true);
+                            
+                            String obsFinal = p['observaciones'] ?? '';
+                            obsFinal = "$obsFinal\n[Editado: ${motivoCtrl.text.trim()}]".trim();
+
+                            final apiRes = await ApiService.put('materiales_plan_obra.php', {
+                              'id_plan_material': p['id_plan_material'],
+                              'cantidad_presupuestada': nuevaCant,
+                              'costo_unitario_presupuestado': costoCtrl.text.trim(),
+                              'observaciones': obsFinal,
+                            });
+                            
+                            if (apiRes['estado'] == true) {
+                              Navigator.pop(ctx, true);
+                            } else {
+                              setModal(() => guardando = false);
+                              ScaffoldMessenger.of(ctx).showSnackBar(SnackBar(content: Text(apiRes['mensaje'] ?? 'Error'), backgroundColor: AppColors.estadoRojo));
+                            }
+                          },
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: AppColors.naranja,
+                            foregroundColor: Colors.white,
+                            padding: const EdgeInsets.symmetric(horizontal: 24),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                          ),
+                          child: guardando 
+                              ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+                              : const Text('GUARDAR', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          );
+        }
+      ),
+    );
+    if (res == true) _cargarTodo();
+  }
+
+  Widget _statChip(String label, String value, Color color) {
+    return Expanded(
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 4),
+        decoration: BoxDecoration(color: color.withValues(alpha: 0.07), borderRadius: BorderRadius.circular(6)),
+        child: Column(
+          children: [
+            Text(label, style: const TextStyle(fontSize: 9, color: AppColors.textoGris), overflow: TextOverflow.ellipsis),
+            const SizedBox(height: 2),
+            Text(value, style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: color), overflow: TextOverflow.ellipsis),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // ────────────────────────────────────────────────────────
+  // VISTA: STOCK
+  // ────────────────────────────────────────────────────────
   Widget _buildStockView() {
-    final materiales = _materialesFiltrados;
-    if (materiales.isEmpty) return _emptyState('No se encontraron materiales');
+    final lista = _stockFiltrado;
+    if (lista.isEmpty) return _emptyState('No hay materiales en stock');
+
     return LayoutBuilder(
       builder: (context, constraints) {
         final width = constraints.maxWidth;
@@ -277,28 +623,31 @@ class _MaterialesSectionState extends State<MaterialesSection> {
         return GridView.builder(
           shrinkWrap: true,
           physics: const NeverScrollableScrollPhysics(),
-          itemCount: materiales.length,
+          itemCount: lista.length,
           gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
             crossAxisCount: columns,
             crossAxisSpacing: 12,
             mainAxisSpacing: 12,
-            mainAxisExtent: 150,
+            mainAxisExtent: 190,
           ),
-          itemBuilder: (context, index) => _buildMaterialCard(materiales[index]),
+          itemBuilder: (context, index) => _buildMaterialCard(lista[index]),
         );
       },
     );
   }
 
-  Widget _buildMaterialCard(Map<String, dynamic> material) {
-    final cantidad = (material['cantidad'] as num).toDouble();
-    final maximo = (material['maximo'] as num).toDouble();
-    final minimo = (material['minimo'] as num).toDouble();
+  Widget _buildMaterialCard(Map<String, dynamic> m) {
+    final cantidad = double.tryParse(m['existencia']?.toString() ?? '0') ?? 0.0;
+    final minimo = double.tryParse(m['stock_minimo']?.toString() ?? '0') ?? 0.0;
+    final pendiente = double.tryParse(m['pendiente_por_llegar']?.toString() ?? '0') ?? 0.0;
+    
     final critico = cantidad < minimo;
-    final nivel = (cantidad / maximo).clamp(0.0, 1.0).toDouble();
+    final maximo = cantidad > 0 ? cantidad * 1.5 : 100;
+    final nivel = (cantidad / maximo).clamp(0.0, 1.0);
     final colorStock = critico ? AppColors.estadoRojo : const Color(0xFF20D620);
+
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 9),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
       decoration: BoxDecoration(
         color: AppColors.blanco,
         borderRadius: BorderRadius.circular(12),
@@ -308,244 +657,516 @@ class _MaterialesSectionState extends State<MaterialesSection> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Flexible(child: _codeBadge(material['codigo'].toString())),
+              Flexible(child: _codeBadge(m['tipo']?.toString() ?? 'MAT')),
               const SizedBox(width: 6),
               Flexible(child: _statusBadge(critico ? 'Stock crítico' : 'Stock normal', critico)),
             ],
           ),
-          const SizedBox(height: 5),
-          Text(material['nombre'].toString(), maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
-          Text(material['categoria'].toString(), maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 10, color: AppColors.textoGris)),
-          const Divider(height: 10, color: AppColors.gris),
+          const SizedBox(height: 8),
+          Text(m['material'].toString(), maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold)),
+          Text('${m['tipo'] ?? 'General'}', style: const TextStyle(fontSize: 10, color: AppColors.textoGris)),
+          const Divider(height: 16, color: AppColors.gris),
           Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Expanded(child: Text('Existencia', style: TextStyle(fontSize: 9))),
-              Text('${_formatQuantity(cantidad)} ${material['unidad']}', style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
+              const Text('Existencia en Obra:', style: TextStyle(fontSize: 9, color: AppColors.textoGris)),
+              RichText(
+                text: TextSpan(
+                  children: [
+                    TextSpan(text: _formatQuantity(cantidad), style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: AppColors.textoNegro)),
+                    TextSpan(text: ' ${m['unidad_medida']}', style: const TextStyle(fontSize: 10, color: AppColors.naranja, fontWeight: FontWeight.bold)),
+                  ],
+                ),
+              ),
             ],
           ),
-          const SizedBox(height: 3),
+          const SizedBox(height: 6),
           ClipRRect(
             borderRadius: BorderRadius.circular(8),
             child: LinearProgressIndicator(value: nivel, minHeight: 8, backgroundColor: Colors.white, valueColor: AlwaysStoppedAnimation<Color>(colorStock)),
           ),
-          Align(alignment: Alignment.centerRight, child: Text(material['referencia'].toString(), style: const TextStyle(fontSize: 8, color: AppColors.textoGris))),
+          const SizedBox(height: 6),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text('Mín: ${_formatQuantity(minimo)}', style: const TextStyle(fontSize: 9, color: AppColors.textoGris)),
+              Text('Pendiente: ${_formatQuantity(pendiente)}', style: const TextStyle(fontSize: 9, color: AppColors.naranja, fontWeight: FontWeight.bold)),
+            ],
+          ),
         ],
       ),
     );
   }
 
-  Widget _codeBadge(String text) => Container(
-        padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
-        decoration: BoxDecoration(color: Colors.white, border: Border.all(color: AppColors.naranja), borderRadius: BorderRadius.circular(10)),
-        child: Text(text, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 8, color: AppColors.naranja, fontWeight: FontWeight.bold)),
-      );
-
-  Widget _statusBadge(String text, bool critical) => Container(
-        padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
-        decoration: BoxDecoration(color: critical ? const Color(0xFFFFDCDD) : const Color(0xFFB8E9BE), borderRadius: BorderRadius.circular(10)),
-        child: Text(text, overflow: TextOverflow.ellipsis, style: TextStyle(fontSize: 8, color: critical ? AppColors.estadoRojo : const Color(0xFF17652A), fontWeight: FontWeight.bold)),
-      );
-
+  // ────────────────────────────────────────────────────────
+  // VISTA: CONSUMO Y KARDEX
+  // ────────────────────────────────────────────────────────
   Widget _buildConsumoView() {
-    final consumos = _consumosFiltrados;
-    if (consumos.isEmpty) return _emptyState('No se encontraron actividades');
-    return Column(children: consumos.map(_buildConsumoCard).toList());
+    final lista = _consumoFiltrado;
+    if (lista.isEmpty) return _emptyState('No hay actividades con consumo registrado');
+
+    return Column(children: lista.map(_buildConsumoCard).toList());
   }
 
-  Widget _buildConsumoCard(Map<String, dynamic> consumo) {
-    final materiales = consumo['materiales'] as List;
+  Widget _buildConsumoCard(Map<String, dynamic> c) {
+    final materiales = List<Map<String, dynamic>>.from(c['materiales'] ?? []);
     return Container(
       width: double.infinity,
       margin: const EdgeInsets.only(bottom: 10),
-      padding: const EdgeInsets.all(12),
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(color: AppColors.blanco, borderRadius: BorderRadius.circular(12), border: Border.all(color: AppColors.bordeSuave)),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Wrap(
-            spacing: 8,
-            runSpacing: 6,
-            crossAxisAlignment: WrapCrossAlignment.center,
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              _codeBadge(consumo['fase'].toString()),
-              Text('Avance: ${consumo['avance']}%', style: const TextStyle(fontSize: 9, color: AppColors.textoGris)),
-              Text('Responsable: ${consumo['responsable']}', style: const TextStyle(fontSize: 9, color: AppColors.textoNegro)),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                decoration: BoxDecoration(color: AppColors.grisfondo, borderRadius: BorderRadius.circular(6)),
+                child: Text(c['fase']?.toString().toUpperCase() ?? 'GENERAL', style: const TextStyle(fontSize: 9, fontWeight: FontWeight.bold, color: AppColors.textoGris)),
+              ),
+              Row(
+                children: [
+                  Text('Avance: ${(double.tryParse(c['porcentaje_avance']?.toString() ?? '0') ?? 0).toInt()}%', style: const TextStyle(fontSize: 10, color: AppColors.textoGris)),
+                  const SizedBox(width: 12),
+                  Text('Responsable: ${c['responsable'] ?? 'Sin asignar'}', style: const TextStyle(fontSize: 10, color: AppColors.textoNegro, fontWeight: FontWeight.bold)),
+                ],
+              ),
             ],
           ),
-          const SizedBox(height: 6),
-          Text(consumo['titulo'].toString(), style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
-          const SizedBox(height: 3),
-          Text(consumo['descripcion'].toString(), style: const TextStyle(fontSize: 10, color: AppColors.textoGris)),
+          const SizedBox(height: 12),
+          Text(c['actividad'].toString(), style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold)),
+          const SizedBox(height: 4),
+          Text(c['descripcion']?.toString() ?? '', style: const TextStyle(fontSize: 11, color: AppColors.textoGris)),
+          const Divider(height: 24),
           if (materiales.isEmpty)
-            const Padding(
-              padding: EdgeInsets.only(top: 7),
-              child: Text('No se han registrado consumos de materiales para esta actividad aún.', style: TextStyle(fontSize: 9, color: AppColors.textoGris, fontStyle: FontStyle.italic)),
-            )
+            const Text('No se han registrado consumos de materiales específicos para esta actividad aún.', style: TextStyle(fontSize: 10, color: AppColors.textoGris, fontStyle: FontStyle.italic))
           else
-            Padding(
-              padding: const EdgeInsets.only(top: 8),
-              child: Wrap(
-                spacing: 8,
-                runSpacing: 8,
-                children: materiales
-                    .map((item) => _consumedMaterialCard(
-                          Map<String, dynamic>.from(item as Map),
-                        ))
-                    .toList(),
-              ),
+            Wrap(
+              spacing: 12,
+              runSpacing: 12,
+              children: materiales.map((m) => _consumedMaterialCard(m)).toList(),
             ),
         ],
       ),
     );
   }
 
-  Widget _consumedMaterialCard(Map<String, dynamic> item) {
+  Widget _consumedMaterialCard(Map<String, dynamic> m) {
+    final cant = double.tryParse(m['cantidad']?.toString() ?? '0') ?? 0.0;
     return Container(
-      constraints: const BoxConstraints(minWidth: 190, maxWidth: 290),
-      padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 7),
+      constraints: const BoxConstraints(minWidth: 200, maxWidth: 300),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
       decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(8), border: Border.all(color: AppColors.bordeSuave)),
       child: Row(
         children: [
-          Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text(item['nombre'].toString(), maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold)), const Text('Destino verificado', style: TextStyle(fontSize: 8, color: AppColors.textoGris))])),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(m['nombre'].toString(), maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
+                const SizedBox(height: 2),
+                const Text('Destino verificado', style: TextStyle(fontSize: 9, color: AppColors.textoGris)),
+              ],
+            ),
+          ),
           const SizedBox(width: 8),
-          Text(_formatQuantity((item['cantidad'] as num).toDouble()), style: const TextStyle(fontSize: 13, color: AppColors.naranja, fontWeight: FontWeight.bold)),
-          const SizedBox(width: 3),
-          Text(item['unidad'].toString(), style: const TextStyle(fontSize: 8)),
+          Text(_formatQuantity(cant), style: const TextStyle(fontSize: 16, color: AppColors.naranja, fontWeight: FontWeight.bold)),
+          const SizedBox(width: 4),
+          Text(m['unidad'].toString(), style: const TextStyle(fontSize: 9, fontWeight: FontWeight.bold, color: AppColors.textoGris)),
         ],
       ),
     );
   }
 
   Widget _buildKardexView() {
-    final query = _busquedaController.text.trim().toLowerCase();
-    final movimientos = _movimientos.where((movimiento) {
-      if (query.isEmpty) return true;
-      return movimiento['material'].toString().toLowerCase().contains(query) ||
-          movimiento['actividad'].toString().toLowerCase().contains(query) ||
-          movimiento['proveedor'].toString().toLowerCase().contains(query);
-    }).toList();
-    if (movimientos.isEmpty) return _emptyState('No hay movimientos que coincidan');
+    final lista = _kardexFiltrado;
+    
     return Column(
       children: [
         Container(
           width: double.infinity,
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
           decoration: BoxDecoration(color: AppColors.blanco, border: Border.all(color: AppColors.bordeSuave), borderRadius: BorderRadius.circular(12)),
-          child: const Row(children: [Icon(Icons.history, color: AppColors.naranja, size: 18), SizedBox(width: 6), Text('Bitácora de Movimientos y Kardex de Almacén', style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold))]),
+          child: Row(
+            children: [
+              const Icon(Icons.history, color: AppColors.naranja, size: 20),
+              const SizedBox(width: 8),
+              const Expanded(
+                child: Text(
+                  'Bitácora de Movimientos y Kardex de Almacén', 
+                  style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+              const SizedBox(width: 8),
+              Text('${lista.length} movimientos', style: const TextStyle(fontSize: 11, color: AppColors.textoGris)),
+            ],
+          ),
         ),
         const SizedBox(height: 8),
         Container(
           width: double.infinity,
           decoration: BoxDecoration(color: Colors.white, border: Border.all(color: AppColors.bordeSuave), borderRadius: BorderRadius.circular(12)),
-          child: LayoutBuilder(
-            builder: (context, constraints) {
-              final isMobile = constraints.maxWidth < 700;
-              return Scrollbar(
+          child: lista.isEmpty 
+            ? const Padding(padding: EdgeInsets.all(24), child: Center(child: Text('No hay movimientos registrados', style: TextStyle(color: AppColors.textoGris))))
+            : Scrollbar(
                 controller: _kardexScrollController,
-                thumbVisibility: isMobile,
-                trackVisibility: isMobile,
-                thickness: isMobile ? 6 : 4,
-                radius: const Radius.circular(8),
+                thumbVisibility: true,
                 child: SingleChildScrollView(
                   controller: _kardexScrollController,
                   scrollDirection: Axis.horizontal,
                   child: ConstrainedBox(
-                    constraints: BoxConstraints(minWidth: constraints.maxWidth),
+                    constraints: const BoxConstraints(minWidth: 900),
                     child: DataTable(
                       headingRowHeight: 44,
                       dataRowMinHeight: 58,
                       dataRowMaxHeight: 72,
-                      columnSpacing: isMobile ? 22 : 28,
-                      horizontalMargin: 20,
+                      columnSpacing: 20,
                       columns: const [
-                        DataColumn(label: Text('Tipo', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold))),
-                        DataColumn(label: Text('Fecha', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold))),
-                        DataColumn(label: Text('Material', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold))),
-                        DataColumn(label: Text('Cantidad', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold))),
-                        DataColumn(label: Text('Proveedor / Actividad', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold))),
-                        DataColumn(label: Text('Ref. / Notas', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold))),
-                        DataColumn(label: Text('Registrado por', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold))),
+                        DataColumn(label: Text('TIPO', style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: AppColors.textoGris))),
+                        DataColumn(label: Text('FECHA', style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: AppColors.textoGris))),
+                        DataColumn(label: Text('MATERIAL', style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: AppColors.textoGris))),
+                        DataColumn(label: Text('CANTIDAD', style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: AppColors.textoGris))),
+                        DataColumn(label: Text('PROVEEDOR / ACTIVIDAD', style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: AppColors.textoGris))),
+                        DataColumn(label: Text('OBSERVACIONES', style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: AppColors.textoGris))),
+                        DataColumn(label: Text('REGISTRADO POR', style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: AppColors.textoGris))),
                       ],
-                      rows: movimientos.map((movimiento) {
-                        final entrada = movimiento['tipo'] == 'Entrada';
+                      rows: lista.map((m) {
+                        final entrada = m['tipo_movimiento'] == 'ENTRADA';
+                        final esExtra = m['plan_es_extra'] == 1 || m['plan_es_extra'] == true;
                         return DataRow(cells: [
-                          DataCell(Icon(entrada ? Icons.south_west : Icons.north_east, color: entrada ? const Color(0xFF2C9B43) : AppColors.naranja, size: 20)),
-                          DataCell(Text(movimiento['fecha'].toString(), style: const TextStyle(fontSize: 11))),
-                          DataCell(SizedBox(width: 180, child: Text(movimiento['material'].toString(), maxLines: 2, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 11)))),
-                          DataCell(Text('${_formatQuantity((movimiento['cantidad'] as num).toDouble())} ${movimiento['unidad']}', style: const TextStyle(fontSize: 11))),
-                          DataCell(SizedBox(width: 190, child: Text('${movimiento['actividad']}\n${movimiento['proveedor']}', maxLines: 2, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 10)))),
-                          DataCell(SizedBox(width: 180, child: Text(movimiento['notas'].toString(), maxLines: 2, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 10)))),
-                          DataCell(Text(movimiento['registrado'].toString(), style: const TextStyle(fontSize: 11))),
+                          DataCell(
+                            Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                  decoration: BoxDecoration(color: entrada ? Colors.green.withValues(alpha: 0.1) : AppColors.naranja.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(6)),
+                                  child: Text(
+                                    m['tipo_movimiento'] == 'ENTRADA' ? 'ENTRADA' : 'SALIDA', 
+                                    style: TextStyle(fontSize: 9, fontWeight: FontWeight.bold, color: entrada ? Colors.green : AppColors.naranja),
+                                  ),
+                                ),
+                                if (esExtra) ...[
+                                  const SizedBox(width: 4),
+                                  const Icon(Icons.warning_amber_rounded, size: 14, color: AppColors.estadoRojo),
+                                ]
+                              ],
+                            ),
+                          ),
+                          DataCell(Text((m['fecha_movimiento'] ?? '').toString().split(' ')[0], style: const TextStyle(fontSize: 11))),
+                          DataCell(SizedBox(width: 180, child: Text(m['material'].toString(), maxLines: 2, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold)))),
+                          DataCell(Text('${_formatQuantity(double.tryParse(m['cantidad']?.toString() ?? '0') ?? 0.0)} ${m['unidad_medida']}', style: const TextStyle(fontSize: 11))),
+                          DataCell(SizedBox(width: 150, child: Text('${m['proveedor'] ?? m['actividad_nombre'] ?? '-'}', maxLines: 2, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 10, color: AppColors.textoGris)))),
+                          DataCell(SizedBox(width: 150, child: Text(m['observaciones'] ?? '-', maxLines: 2, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 10, color: AppColors.textoGris)))),
+                          DataCell(Text(m['registrado_por_nombre'] ?? '-', style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold))),
                         ]);
                       }).toList(),
                     ),
                   ),
                 ),
-              );
-            },
-          ),
+              ),
         ),
-        const SizedBox(height: 10),
-        Align(
-          alignment: Alignment.center,
-          child: ElevatedButton.icon(
-            onPressed: () => ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('La impresión del Kardex estará disponible al conectar el módulo de reportes.'))),
+        if (lista.isNotEmpty) const SizedBox(height: 16),
+        if (lista.isNotEmpty) 
+          ElevatedButton.icon(
+            onPressed: () => ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Exportación a PDF en desarrollo...'))),
             icon: const Icon(Icons.print_outlined, size: 16),
-            label: const Text('IMPRIMIR', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
-            style: ElevatedButton.styleFrom(backgroundColor: AppColors.naranja, foregroundColor: Colors.black, padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8))),
+            label: const Text('IMPRIMIR KARDEX', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
+            style: ElevatedButton.styleFrom(backgroundColor: AppColors.naranja, foregroundColor: Colors.white, padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12)),
           ),
-        ),
       ],
     );
   }
 
-  Widget _emptyState(String message) => Container(
-        width: double.infinity,
-        padding: const EdgeInsets.all(24),
-        decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(12), border: Border.all(color: AppColors.bordeSuave)),
-        child: Center(child: Text(message, style: const TextStyle(color: AppColors.textoGris, fontSize: 12))),
-      );
-
-  Future<void> _openMovementDialog(BuildContext context, String tipo) async {
-    final result = await showDialog<Map<String, dynamic>>(
-      context: context,
-      builder: (_) => _MaterialMovementDialog(materiales: _materiales, actividades: _consumos, tipo: tipo),
+  // ────────────────────────────────────────────────────────
+  // VISTA: MAQUINARIA
+  // ────────────────────────────────────────────────────────
+  Widget _buildMaquinariaView() {
+    return Column(
+      children: [
+        Container(
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(color: AppColors.blanco, borderRadius: BorderRadius.circular(12), border: Border.all(color: AppColors.bordeSuave)),
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              if (constraints.maxWidth < 400) {
+                return Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text('Maquinaria asignada a la obra', style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold)),
+                    const SizedBox(height: 10),
+                    SizedBox(
+                      width: double.infinity,
+                      child: ElevatedButton.icon(
+                        onPressed: _abrirModalAsignarMaquinaria,
+                        icon: const Icon(Icons.add, size: 16),
+                        label: const Text('Asignar', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
+                        style: ElevatedButton.styleFrom(backgroundColor: AppColors.naranja, foregroundColor: Colors.white, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8))),
+                      ),
+                    ),
+                  ],
+                );
+              }
+              return Row(
+                children: [
+                  const Expanded(child: Text('Maquinaria asignada a la obra', style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold))),
+                  ElevatedButton.icon(
+                    onPressed: _abrirModalAsignarMaquinaria,
+                    icon: const Icon(Icons.add, size: 16),
+                    label: const Text('Asignar', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
+                    style: ElevatedButton.styleFrom(backgroundColor: AppColors.naranja, foregroundColor: Colors.white, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8))),
+                  ),
+                ],
+              );
+            }
+          ),
+        ),
+        const SizedBox(height: 12),
+        if (_maquinariaObra.isEmpty)
+          _emptyState('No hay maquinaria asignada a esta obra')
+        else
+          ..._maquinariaObra.map(_buildMaquinariaCard),
+      ],
     );
-    if (result == null || !mounted) return;
-    final material = _materiales.firstWhere((item) => item['nombre'] == result['material']);
-    final cantidad = result['cantidad'] as double;
-    if (tipo == 'Salida' && cantidad > (material['cantidad'] as num).toDouble()) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('La cantidad de salida supera las existencias disponibles.')));
-      return;
-    }
-    setState(() {
-      final stockActual = (material['cantidad'] as num).toDouble();
-      material['cantidad'] = tipo == 'Entrada' ? stockActual + cantidad : stockActual - cantidad;
-      _movimientos.insert(0, {
-        'tipo': tipo,
-        'fecha': result['fecha'],
-        'material': result['material'],
-        'cantidad': cantidad,
-        'unidad': result['unidad'],
-        'actividad': result['actividad'],
-        'proveedor': result['proveedor'],
-        'notas': result['notas'],
-        'registrado': 'Ing. Carlos Morales',
-      });
-    });
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('$tipo registrada correctamente')));
   }
 
-  String _formatQuantity(double value) => value == value.roundToDouble() ? value.toInt().toString() : value.toStringAsFixed(1);
+  Widget _buildMaquinariaCard(Map<String, dynamic> m) {
+    final operativa = m['estado_equipo'] == 'OPERATIVA';
+    final enMant = m['estado_equipo'] == 'MANTENIMIENTO';
+    final colorEstado = operativa ? Colors.green : (enMant ? Colors.orange : Colors.red);
+    
+    return Container(
+      margin: const EdgeInsets.only(bottom: 10),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(color: AppColors.blanco, borderRadius: BorderRadius.circular(12), border: Border.all(color: AppColors.bordeSuave)),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(10),
+            decoration: BoxDecoration(color: AppColors.naranja.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(10)),
+            child: const Icon(Icons.precision_manufacturing, color: AppColors.naranja),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text('${m['codigo_maquinaria']} - ${m['nombre_maquinaria']}', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13), maxLines: 2, overflow: TextOverflow.ellipsis),
+                Text('${m['tipo_equipo']} | ${m['marca'] ?? ''} ${m['modelo'] ?? ''}', style: const TextStyle(fontSize: 11, color: AppColors.textoGris)),
+                Text('Desde: ${m['fecha_asignacion'] ?? '-'}', style: const TextStyle(fontSize: 10, color: AppColors.textoGris)),
+              ],
+            ),
+          ),
+          Column(
+            children: [
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                decoration: BoxDecoration(color: colorEstado.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(6)),
+                child: Text(m['estado_equipo'], style: TextStyle(color: colorEstado, fontSize: 9, fontWeight: FontWeight.bold)),
+              ),
+              IconButton(
+                icon: const Icon(Icons.remove_circle, color: AppColors.estadoRojo, size: 20),
+                onPressed: () => _retirarMaquinaria(m),
+                padding: EdgeInsets.zero,
+                constraints: const BoxConstraints(),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ────────────────────────────────────────────────────────
+  // MODAL DE MOVIMIENTO
+  // ────────────────────────────────────────────────────────
+  Future<void> _openMovementDialog(BuildContext context, String tipo, {Map<String, dynamic>? planLinea}) async {
+    if (_catalogoMateriales.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('No hay materiales en el catálogo')));
+      return;
+    }
+
+    final result = await showDialog<Map<String, dynamic>>(
+      context: context,
+      builder: (_) => _MaterialMovementDialog(
+        materiales: _catalogoMateriales,
+        planLineas: _plan, 
+        stockObra: _stock,
+        actividades: _listaActividadesObra,
+        proveedores: _catalogoProveedores,
+        tipo: tipo,
+        planLineaInicial: planLinea,
+      ),
+    );
+
+    if (result == null || !mounted) return;
+
+    final body = {
+      'id_obra': _obraId,
+      'id_material': result['id_material'],
+      'tipo': tipo.toUpperCase(),
+      'cantidad': result['cantidad'],
+      'id_plan_material': result['id_plan_material'],
+      'crear_extra': result['crear_extra'],
+      'motivo_extra': result['motivo_extra'],
+      'id_proveedor': result['id_proveedor'],
+      'id_actividad': result['id_actividad'],
+      'costo_unitario': result['costo_unitario'],
+      'referencia': '',
+      'observaciones': result['observaciones'],
+    };
+
+    final res = await ApiService.post('materiales_obra.php', body);
+    if (!mounted) return;
+
+    if (res['estado'] == true) {
+      _cargarTodo();
+      
+      String msg = '$tipo registrada correctamente';
+      if (res['excede_presupuesto'] == true) msg += ' (¡Atención! Se superó el presupuesto)';
+      
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content: Text(msg), 
+        backgroundColor: res['excede_presupuesto'] == true ? Colors.orange : Colors.green
+      ));
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(res['mensaje'] ?? 'Error'), backgroundColor: AppColors.estadoRojo));
+    }
+  }
+
+  // ────────────────────────────────────────────────────────
+  // MODAL MAQUINARIA
+  // ────────────────────────────────────────────────────────
+  Future<void> _abrirModalAsignarMaquinaria() async {
+    if (_maquinariaDisponible.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('No hay maquinaria disponible')));
+      return;
+    }
+
+    int? idSeleccionado;
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setModal) => AlertDialog(
+          title: const Text('Asignar Maquinaria'),
+          content: SizedBox(
+            width: 400,
+            child: DropdownButtonFormField<int>(
+              decoration: const InputDecoration(labelText: 'Selecciona el equipo', border: OutlineInputBorder()),
+              items: _maquinariaDisponible.map((m) => DropdownMenuItem<int>(
+                value: m['id_maquinaria'] as int,
+                child: Text('${m['codigo']} - ${m['nombre']}'),
+              )).toList(),
+              onChanged: (v) => setModal(() => idSeleccionado = v),
+            ),
+          ),
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancelar')),
+            ElevatedButton(
+              onPressed: idSeleccionado == null ? null : () => Navigator.pop(ctx, true),
+              style: ElevatedButton.styleFrom(backgroundColor: AppColors.naranja),
+              child: const Text('Asignar'),
+            ),
+          ],
+        ),
+      ),
+    );
+
+    if (confirm != true || idSeleccionado == null) return;
+
+    final res = await ApiService.post('maquinaria_obra.php', {
+      'id_obra': _obraId,
+      'id_maquinaria': idSeleccionado,
+    });
+
+    if (!mounted) return;
+    if (res['estado'] == true) {
+      _cargarTodo();
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Maquinaria asignada'), backgroundColor: Colors.green));
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(res['mensaje'] ?? 'Error'), backgroundColor: AppColors.estadoRojo));
+    }
+  }
+
+  Future<void> _retirarMaquinaria(Map<String, dynamic> m) async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('¿Retirar maquinaria?'),
+        content: Text('¿Estás seguro de retirar "${m['nombre_maquinaria']}" de esta obra?'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancelar')),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            style: ElevatedButton.styleFrom(backgroundColor: AppColors.estadoRojo),
+            child: const Text('Retirar'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm != true) return;
+
+    final res = await ApiService.delete('maquinaria_obra.php?id=${m['id_obra_maquinaria']}');
+    if (!mounted) return;
+    if (res['estado'] == true) {
+      _cargarTodo();
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Maquinaria retirada')));
+    }
+  }
+
+  // ────────────────────────────────────────────────────────
+  // HELPERS
+  // ────────────────────────────────────────────────────────
+  Widget _codeBadge(String text) => Container(
+    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+    decoration: BoxDecoration(color: Colors.white, border: Border.all(color: AppColors.naranja), borderRadius: BorderRadius.circular(6)),
+    child: Text(text, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 9, color: AppColors.naranja, fontWeight: FontWeight.bold)),
+  );
+
+  Widget _statusBadge(String text, bool critical) => Container(
+    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+    decoration: BoxDecoration(color: critical ? const Color(0xFFFFDCDD) : const Color(0xFFB8E9BE), borderRadius: BorderRadius.circular(6)),
+    child: Text(text, overflow: TextOverflow.ellipsis, style: TextStyle(fontSize: 9, color: critical ? AppColors.estadoRojo : const Color(0xFF17652A), fontWeight: FontWeight.bold)),
+  );
+
+  Widget _emptyState(String message) => Container(
+    width: double.infinity,
+    padding: const EdgeInsets.all(24),
+    decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(12), border: Border.all(color: AppColors.bordeSuave)),
+    child: Center(child: Text(message, style: const TextStyle(color: AppColors.textoGris, fontSize: 12))),
+  );
+
+  String _formatQuantity(num? value) {
+    if (value == null) return '0';
+    final d = value.toDouble();
+    return d == d.roundToDouble() ? d.toInt().toString() : d.toStringAsFixed(1);
+  }
 }
 
 class _MaterialMovementDialog extends StatefulWidget {
   final List<Map<String, dynamic>> materiales;
+  final List<Map<String, dynamic>> planLineas;
+  final List<Map<String, dynamic>> stockObra;
   final List<Map<String, dynamic>> actividades;
+  final List<Map<String, dynamic>> proveedores;
   final String tipo;
+  final Map<String, dynamic>? planLineaInicial;
 
-  const _MaterialMovementDialog({required this.materiales, required this.actividades, required this.tipo});
+  const _MaterialMovementDialog({
+    required this.materiales, 
+    required this.planLineas,
+    required this.stockObra,
+    required this.actividades, 
+    required this.proveedores, 
+    required this.tipo,
+    this.planLineaInicial,
+  });
 
   @override
   State<_MaterialMovementDialog> createState() => _MaterialMovementDialogState();
@@ -553,81 +1174,356 @@ class _MaterialMovementDialog extends StatefulWidget {
 
 class _MaterialMovementDialogState extends State<_MaterialMovementDialog> {
   final _cantidadController = TextEditingController();
-  final _proveedorController = TextEditingController();
   final _notasController = TextEditingController();
-  String? _materialSeleccionado;
-  String? _actividadSeleccionada;
+  final _motivoExtraController = TextEditingController();
+  
+  int? _idMaterialSel;
+  int? _idPlanMaterialSel;
+  int? _idActividadSel;
+  int? _idProveedorSel;
+  bool _esExtra = false;
+  double _maximoPermitido = 999999.0;
+
+  bool get _esEntrada => widget.tipo == 'Entrada';
+  bool get _vieneDelPlan => widget.planLineaInicial != null;
+
+  @override
+  void initState() {
+    super.initState();
+    if (_vieneDelPlan) {
+      final p = widget.planLineaInicial!;
+      _idMaterialSel = p['id_material'] as int;
+      _idPlanMaterialSel = p['id_plan_material'] as int;
+      _idProveedorSel = p['id_proveedor_sugerido'] as int?;
+      
+      final pendiente = double.tryParse(p['pendiente_por_llegar']?.toString() ?? '0') ?? 0.0;
+      _maximoPermitido = pendiente;
+      // Formateamos la cantidad inicial para que no muestre .0
+      if (pendiente > 0) _cantidadController.text = _formatQuantity(pendiente);
+    }
+  }
 
   @override
   void dispose() {
     _cantidadController.dispose();
-    _proveedorController.dispose();
     _notasController.dispose();
+    _motivoExtraController.dispose();
     super.dispose();
   }
 
   void _save() {
     final cantidad = double.tryParse(_cantidadController.text.trim().replaceAll(',', '.'));
-    if (_materialSeleccionado == null || cantidad == null || cantidad <= 0) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Selecciona un material e indica una cantidad válida.')));
+    
+    if (_idMaterialSel == null || cantidad == null || cantidad <= 0) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Selecciona un material y una cantidad válida')));
       return;
     }
-    final material = widget.materiales.firstWhere((item) => item['nombre'] == _materialSeleccionado);
+
+    if (_esEntrada && !_esExtra && cantidad > _maximoPermitido) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('No puedes recibir más de lo pendiente ($_maximoPermitido). Si es material extra, selecciona la opción de extra.')));
+      return;
+    }
+
+    if (_esEntrada && _esExtra && _motivoExtraController.text.trim().isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Escribe el motivo del material extra')));
+      return;
+    }
+
     Navigator.of(context).pop({
-      'material': _materialSeleccionado,
+      'id_material': _idMaterialSel,
+      'id_plan_material': _esExtra ? null : _idPlanMaterialSel,
+      'crear_extra': _esExtra,
+      'motivo_extra': _esExtra ? _motivoExtraController.text.trim() : null,
       'cantidad': cantidad,
-      'unidad': material['unidad'],
-      'actividad': _actividadSeleccionada ?? (widget.tipo == 'Entrada' ? 'Compra / recepción de material' : 'Consumo de obra'),
-      'proveedor': _proveedorController.text.trim().isEmpty ? 'Sin especificar' : _proveedorController.text.trim(),
-      'notas': _notasController.text.trim().isEmpty ? 'Sin observaciones' : _notasController.text.trim(),
-      'fecha': _today(),
+      'id_actividad': !_esEntrada ? _idActividadSel : null,
+      'id_proveedor': _esEntrada ? _idProveedorSel : null,
+      'costo_unitario': null,
+      'observaciones': _notasController.text.trim(),
     });
   }
 
-  String _today() {
-    final now = DateTime.now();
-    return '${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}';
+  Widget _buildInputWrapper({required Widget child}) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: AppColors.naranja),
+      ),
+      child: child,
+    );
+  }
+
+  String _formatQuantity(num? value) {
+    if (value == null) return '0';
+    final d = value.toDouble();
+    return d == d.roundToDouble() ? d.toInt().toString() : d.toStringAsFixed(1);
   }
 
   @override
   Widget build(BuildContext context) {
-    final esEntrada = widget.tipo == 'Entrada';
-    return AlertDialog(
-      title: Row(children: [Icon(esEntrada ? Icons.south_west : Icons.north_east, color: AppColors.naranja), const SizedBox(width: 8), Expanded(child: Text('Registrar ${widget.tipo.toLowerCase()} de material'))]),
-      content: SingleChildScrollView(
-        child: SizedBox(
-          width: 480,
+    // FILTRO DE SEGURIDAD: Usamos double.tryParse para evitar el error de tipos
+    final materialesConStock = widget.stockObra.where((s) => 
+      (double.tryParse(s['existencia']?.toString() ?? '0') ?? 0) > 0
+    ).toList();
+
+    return Dialog(
+      insetPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      backgroundColor: AppColors.grisfondo,
+      child: ConstrainedBox(
+        constraints: BoxConstraints(
+          maxWidth: 500,
+          maxHeight: MediaQuery.of(context).size.height * 0.88,
+        ),
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(24.0),
           child: Column(
             mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              _dropdown('Material', _materialSeleccionado, widget.materiales.map((item) => item['nombre'].toString()).toList(), (value) => setState(() => _materialSeleccionado = value)),
-              const SizedBox(height: 12),
-              TextField(controller: _cantidadController, keyboardType: const TextInputType.numberWithOptions(decimal: true), decoration: InputDecoration(labelText: 'Cantidad', border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)))),
-              const SizedBox(height: 12),
-              if (esEntrada)
-                TextField(controller: _proveedorController, decoration: InputDecoration(labelText: 'Proveedor', border: OutlineInputBorder(borderRadius: BorderRadius.circular(10))))
-              else
-                _dropdown('Actividad relacionada', _actividadSeleccionada, widget.actividades.map((item) => item['titulo'].toString()).toList(), (value) => setState(() => _actividadSeleccionada = value)),
-              const SizedBox(height: 12),
-              TextField(controller: _notasController, maxLines: 2, decoration: InputDecoration(labelText: esEntrada ? 'Referencia / notas' : 'Destino / notas', border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)))),
+              // Header
+              Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(color: AppColors.naranja, borderRadius: BorderRadius.circular(8)),
+                    child: Icon(_esEntrada ? Icons.south_west : Icons.north_east, color: Colors.white, size: 24),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Text('Registrar ${widget.tipo}', style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.close),
+                    onPressed: () => Navigator.pop(context),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 24),
+
+              // ENTRADAS
+              if (_esEntrada) ...[
+                if (!_vieneDelPlan) ...[
+                  const Text('Material a ingresar *', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.black87)),
+                  const SizedBox(height: 6),
+                  _buildInputWrapper(
+                    child: DropdownButtonFormField<int>(
+                      decoration: const InputDecoration(border: InputBorder.none, contentPadding: EdgeInsets.symmetric(horizontal: 12)),
+                      value: _esExtra ? null : _idPlanMaterialSel,
+                      hint: const Text('Selecciona material', style: TextStyle(fontSize: 13, color: Colors.grey)),
+                      icon: const Icon(Icons.arrow_drop_down, color: AppColors.naranja),
+                      style: const TextStyle(fontSize: 13, color: Colors.black87),
+                      isExpanded: true,
+                      menuMaxHeight: 250, 
+                      items: [
+                        ...widget.planLineas.map((p) => DropdownMenuItem<int>(
+                          value: p['id_plan_material'] as int, 
+                          child: Text(
+                            '${p['material']} (Pend: ${_formatQuantity(double.tryParse(p['pendiente_por_llegar']?.toString() ?? '0'))})', 
+                            overflow: TextOverflow.ellipsis
+                          ),
+                        )),
+                        const DropdownMenuItem<int>(
+                          value: -1, 
+                          child: Text('➕ Material no contemplado...', style: TextStyle(color: AppColors.estadoRojo, fontWeight: FontWeight.bold)),
+                        ),
+                      ],
+                      onChanged: (v) {
+                        setState(() {
+                          if (v == -1) {
+                            _esExtra = true;
+                            _idPlanMaterialSel = null;
+                            _idMaterialSel = null;
+                            _maximoPermitido = 999999.0;
+                          } else {
+                            _esExtra = false;
+                            _idPlanMaterialSel = v;
+                            final p = widget.planLineas.firstWhere((e) => e['id_plan_material'] == v);
+                            _idMaterialSel = p['id_material'] as int;
+                            _idProveedorSel = p['id_proveedor_sugerido'] as int?;
+                            
+                            final pendiente = double.tryParse(p['pendiente_por_llegar']?.toString() ?? '0') ?? 0.0;
+                            _maximoPermitido = pendiente;
+                            // Formateamos la cantidad al seleccionar para que no muestre ceros
+                            _cantidadController.text = pendiente > 0 ? _formatQuantity(pendiente) : '';
+                          }
+                        });
+                      },
+                    ),
+                  ),
+                ] else ...[
+                  const Text('Material (Desde Plan)', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.black87)),
+                  const SizedBox(height: 6),
+                  _buildInputWrapper(
+                    child: Padding(
+                      padding: const EdgeInsets.all(14),
+                      child: Text(widget.planLineaInicial!['material'] ?? '', style: const TextStyle(fontSize: 13)),
+                    ),
+                  ),
+                ],
+
+                if (_esExtra) ...[
+                  const Text('Selecciona el Material Extra *', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.black87)),
+                  const SizedBox(height: 6),
+                  _buildInputWrapper(
+                    child: DropdownButtonFormField<int>(
+                      decoration: const InputDecoration(border: InputBorder.none, contentPadding: EdgeInsets.symmetric(horizontal: 12)),
+                      value: _idMaterialSel,
+                      hint: const Text('Selecciona material', style: TextStyle(fontSize: 13, color: Colors.grey)),
+                      icon: const Icon(Icons.arrow_drop_down, color: AppColors.naranja),
+                      style: const TextStyle(fontSize: 13, color: Colors.black87),
+                      isExpanded: true,
+                      menuMaxHeight: 250,
+                      items: widget.materiales.map((m) => DropdownMenuItem<int>(
+                        value: m['id_material'] as int, 
+                        child: Text('${m['nombre']} (${m['unidad_medida']})', overflow: TextOverflow.ellipsis)
+                      )).toList(),
+                      onChanged: (v) => setState(() => _idMaterialSel = v),
+                    ),
+                  ),
+                  const Text('Motivo del material extra *', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.black87)),
+                  const SizedBox(height: 6),
+                  _buildInputWrapper(
+                    child: TextField(
+                      controller: _motivoExtraController, 
+                      maxLines: 2,
+                      style: const TextStyle(fontSize: 13),
+                      decoration: const InputDecoration(hintText: '¿Por qué se requiere?', border: InputBorder.none, contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 14)),
+                    ),
+                  ),
+                ],
+              ] else ...[
+                // SALIDAS
+                const Text('Material a consumir *', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.black87)),
+                const SizedBox(height: 6),
+                _buildInputWrapper(
+                  child: DropdownButtonFormField<int>(
+                    decoration: const InputDecoration(border: InputBorder.none, contentPadding: EdgeInsets.symmetric(horizontal: 12)),
+                    value: _idMaterialSel,
+                    hint: const Text('Selecciona material con stock', style: TextStyle(fontSize: 13, color: Colors.grey)),
+                    icon: const Icon(Icons.arrow_drop_down, color: AppColors.naranja),
+                    style: const TextStyle(fontSize: 13, color: Colors.black87),
+                    isExpanded: true,
+                    menuMaxHeight: 250,
+                    items: materialesConStock.map((m) => DropdownMenuItem<int>(
+                      value: m['id_material'] as int, 
+                      child: Text(
+                        '${m['material']} (Stock: ${_formatQuantity(double.tryParse(m['existencia']?.toString() ?? '0'))})', 
+                        overflow: TextOverflow.ellipsis
+                      )
+                    )).toList(),
+                    onChanged: (v) {
+                      setState(() {
+                        _idMaterialSel = v;
+                        // Resolver la línea de plan del material para que la salida
+                        // quede ligada y se refleje en la tarjeta del Plan.
+                        final planMatch = widget.planLineas
+                            .where((p) => p['id_material'] == v)
+                            .toList();
+                        _idPlanMaterialSel = planMatch.isNotEmpty
+                            ? planMatch.first['id_plan_material'] as int
+                            : null;
+                      });
+                    },
+                  ),
+                ),
+              ],
+
+              // CANTIDAD
+              const Text('Cantidad recibida / consumida *', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.black87)),
+              const SizedBox(height: 6),
+              _buildInputWrapper(
+                child: TextField(
+                  controller: _cantidadController, 
+                  keyboardType: const TextInputType.numberWithOptions(decimal: true), 
+                  style: const TextStyle(fontSize: 13),
+                  decoration: const InputDecoration(hintText: 'Ej. 50', border: InputBorder.none, contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 14)),
+                ),
+              ),
+              
+              // PROVEEDOR / ACTIVIDAD
+              if (_esEntrada) ...[
+                const Text('Proveedor', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.black87)),
+                const SizedBox(height: 6),
+                _buildInputWrapper(
+                  child: DropdownButtonFormField<int>(
+                    decoration: const InputDecoration(border: InputBorder.none, contentPadding: EdgeInsets.symmetric(horizontal: 12)),
+                    value: _idProveedorSel,
+                    hint: const Text('Selecciona proveedor', style: TextStyle(fontSize: 13, color: Colors.grey)),
+                    icon: const Icon(Icons.arrow_drop_down, color: AppColors.naranja),
+                    style: const TextStyle(fontSize: 13, color: Colors.black87),
+                    isExpanded: true,
+                    menuMaxHeight: 250,
+                    items: widget.proveedores.map((p) => DropdownMenuItem<int>(value: p['id_proveedor'] as int, child: Text(p['nombre'], overflow: TextOverflow.ellipsis))).toList(),
+                    onChanged: (v) => setState(() => _idProveedorSel = v),
+                  ),
+                ),
+              ] else ...[
+                const Text('Actividad relacionada (Destino) *', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.black87)),
+                const SizedBox(height: 6),
+                _buildInputWrapper(
+                  child: DropdownButtonFormField<int>(
+                    decoration: const InputDecoration(border: InputBorder.none, contentPadding: EdgeInsets.symmetric(horizontal: 12)),
+                    value: _idActividadSel,
+                    hint: const Text('Selecciona actividad', style: TextStyle(fontSize: 13, color: Colors.grey)),
+                    icon: const Icon(Icons.arrow_drop_down, color: AppColors.naranja),
+                    style: const TextStyle(fontSize: 13, color: Colors.black87),
+                    isExpanded: true,
+                    menuMaxHeight: 250,
+                    items: widget.actividades.map((a) => DropdownMenuItem<int>(
+                      value: a['id_actividad'] as int, 
+                      child: Text('${a['fase']} - ${a['nombre']}', overflow: TextOverflow.ellipsis),
+                    )).toList(),
+                    onChanged: (v) => setState(() => _idActividadSel = v),
+                  ),
+                ),
+              ],
+
+              // OBSERVACIONES
+              const Text('Observaciones', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.black87)),
+              const SizedBox(height: 6),
+              _buildInputWrapper(
+                child: TextField(
+                  controller: _notasController, 
+                  maxLines: 3, 
+                  style: const TextStyle(fontSize: 13),
+                  decoration: const InputDecoration(hintText: 'Notas (llegó dañado, etc.)', border: InputBorder.none, contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 14)),
+                ),
+              ),
+              const SizedBox(height: 16),
+
+              // BOTONES
+              Row(
+                mainAxisAlignment: MainAxisAlignment.end,
+                children: [
+                  OutlinedButton(
+                    onPressed: () => Navigator.pop(context),
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: AppColors.gris,
+                      side: const BorderSide(color: AppColors.bordeSuave),
+                      padding: const EdgeInsets.symmetric(horizontal: 24),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                    ),
+                    child: const Text('CANCELAR', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
+                  ),
+                  const SizedBox(width: 12),
+                  ElevatedButton(
+                    onPressed: _save, 
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.naranja, 
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(horizontal: 24),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                    ), 
+                    child: Text('REGISTRAR ${widget.tipo.toUpperCase()}', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
+                  ),
+                ],
+              ),
             ],
           ),
         ),
       ),
-      actions: [
-        TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancelar')),
-        ElevatedButton(onPressed: _save, style: ElevatedButton.styleFrom(backgroundColor: AppColors.naranja, foregroundColor: Colors.black), child: Text('REGISTRAR ${widget.tipo.toUpperCase()}')),
-      ],
-    );
-  }
-
-  Widget _dropdown(String label, String? value, List<String> items, ValueChanged<String?> onChanged) {
-    return DropdownButtonFormField<String>(
-      value: value,
-      isExpanded: true,
-      decoration: InputDecoration(labelText: label, border: OutlineInputBorder(borderRadius: BorderRadius.circular(10))),
-      items: items.map((item) => DropdownMenuItem(value: item, child: Text(item, overflow: TextOverflow.ellipsis))).toList(),
-      onChanged: onChanged,
     );
   }
 }

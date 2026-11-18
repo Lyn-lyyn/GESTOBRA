@@ -18,6 +18,7 @@ class _AdminCatalogosScreenState extends State<AdminCatalogosScreen> {
     'estados_obra': 'Estados de Obra',
     'estados_actividad': 'Estados de Actividad',
     'tipos_movimiento_material': 'Tipos de Movimiento',
+     'catalogo_fases': 'Catálogo de Fases de Obra',
   };
 
   String _tablaSeleccionada = 'tipos_material';

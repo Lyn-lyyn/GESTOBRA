@@ -13,13 +13,15 @@ import 'package:gestobra/ui/screens/obras/widgets/reporte_firmas.dart';
 class ReportesSection extends StatefulWidget {
   final Map<String, dynamic> obra;
   final String tipoReporteInicial;
-  final DateTimeRange? rangoPersonalizado; // <-- NUEVO
+  final DateTimeRange? rangoPersonalizado;
+  final List<Map<String, dynamic>> fasesReales; // <-- NUEVO: Recibimos las fases reales
 
   const ReportesSection({
     super.key,
     required this.obra,
     this.tipoReporteInicial = 'Semanal',
-    this.rangoPersonalizado, // <-- NUEVO
+    this.rangoPersonalizado,
+    this.fasesReales = const [], // <-- NUEVO
   });
 
   @override
@@ -86,17 +88,36 @@ class _ReportesSectionState extends State<ReportesSection> {
 
       if (dataGeneral['estado'] == true && dataMateriales['estado'] == true) {
         
-        // --- TRADUCCIÓN DE FASES ---
+        // --- TRADUCCIÓN DE FASES DINÁMICAS ---
         final List fasesRaw = dataGeneral['data']['fases'] ?? [];
         
-        double buscarAvance(String nombreFase) {
+        // Aquí generamos la lista de fases basándonos en las fases reales que pasó el padre
+        // y buscamos su avance en la respuesta del backend.
+        final List<Map<String, dynamic>> fasesFormateadas = widget.fasesReales.map((fase) {
+          final nombre = fase['nombre']?.toString() ?? '';
+          
+          // Buscamos el avance en la data del backend. Si no lo encuentra, es 0.
+          double avance = 0.0;
           for (var f in fasesRaw) {
-            if (f['fase'].toString().toLowerCase() == nombreFase.toLowerCase()) {
-              return double.tryParse(f['avance'].toString()) ?? 0.0;
+            if (f['fase'].toString().toLowerCase() == nombre.toLowerCase()) {
+              avance = double.tryParse(f['avance'].toString()) ?? 0.0;
+              break;
             }
           }
-          return 0.0;
-        }
+
+          return {
+            'nombre': nombre,
+            'porcentaje': avance.toInt(),
+          };
+        }).toList();
+
+        // Si por alguna razón las fasesReales está vacío, usamos lo que venga del backend
+        final fasesFinales = fasesFormateadas.isNotEmpty 
+            ? fasesFormateadas 
+            : fasesRaw.map((f) => {
+                'nombre': f['fase'].toString(),
+                'porcentaje': (double.tryParse(f['avance'].toString()) ?? 0.0).toInt(),
+              }).toList();
 
         // --- TRADUCCIÓN DE INCIDENCIAS ---
         final List incidenciasRaw = dataGeneral['data']['incidencias'] ?? [];
@@ -122,10 +143,8 @@ class _ReportesSectionState extends State<ReportesSection> {
             'estado': dataGeneral['data']['info']['estado'],
             'avanceGeneral': double.tryParse(dataGeneral['data']['avanceGeneral'].toString()) ?? 0.0,
             
-            'avancePreliminares': buscarAvance('Preliminares').toInt(),
-            'avanceCimentacion': buscarAvance('Cimentación').toInt(),
-            'avanceEstructura': buscarAvance('Estructura').toInt(),
-            'avanceAlbanileria': buscarAvance('Albañilería').toInt(),
+            // AQUÍ INYECTAMOS LA LISTA DINÁMICA DE FASES
+            'fases': fasesFinales,
             
             'actividades': dataGeneral['data']['actividades'].map((a) => {
               'actividad': a['actividad'],
@@ -233,7 +252,7 @@ class _ReportesSectionState extends State<ReportesSection> {
                       children: [
                         ReporteHeader(obra: widget.obra, datos: _datosReporte!),
                         SizedBox(height: pad * 0.75),
-                        ReporteBalanceAvance(datos: _datosReporte!),
+                        ReporteBalanceAvance(datos: _datosReporte!), // <-- Este widget ahora recibe 'fases'
                         SizedBox(height: pad * 0.75),
                         ReporteActividadesTabla(datos: _datosReporte!),
                         SizedBox(height: pad * 0.75),
