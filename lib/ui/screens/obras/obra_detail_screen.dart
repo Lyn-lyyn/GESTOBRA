@@ -96,7 +96,8 @@ class _ObraDetailScreenState extends State<ObraDetailScreen> {
 
       final actividades = actividadesBase.map((actividad) {
         final porcentaje = (double.tryParse(
-                    actividad['porcentaje_avance']?.toString() ?? '') ?? 0)
+                    actividad['porcentaje_avance']?.toString() ?? '') ??
+                0)
             .clamp(0, 100)
             .toDouble();
         final inicio = DateTime.tryParse(
@@ -409,7 +410,8 @@ class _ObraDetailScreenState extends State<ObraDetailScreen> {
                   ),
                 )
               : SingleChildScrollView(
-                  padding: const EdgeInsets.all(16.0),
+                  // En móvil reducimos un poco el padding general
+                  padding: const EdgeInsets.all(12.0),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
@@ -808,6 +810,7 @@ class _ObraDetailScreenState extends State<ObraDetailScreen> {
 
     return LayoutBuilder(
       builder: (context, constraints) {
+        // En móvil, si la pantalla es menor a 500px, usamos 2 filas
         if (constraints.maxWidth < 500) {
           const spacing = 6.0;
           final tabWidth = (constraints.maxWidth - spacing * 2) / 3;
@@ -1039,8 +1042,9 @@ class _ObraDetailScreenState extends State<ObraDetailScreen> {
     }
 
     return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 4),
-      padding: const EdgeInsets.all(8),
+      margin: const EdgeInsets.symmetric(
+          horizontal: 0), // Sin margen extra, usamos spacing
+      padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
           color: AppColors.blanco,
           borderRadius: BorderRadius.circular(12),
@@ -1302,12 +1306,43 @@ class _ObraDetailScreenState extends State<ObraDetailScreen> {
         BitacoraSection(obra: widget.obra),
         MaterialesSection(obra: widget.obra),
         EvidenciasSection(obra: widget.obra),
+        // AQUÍ PASAMOS LAS FASES REALES AL REPORTE
         ReportesSection(
           obra: widget.obra,
           tipoReporteInicial: _tipoReporte,
           rangoPersonalizado: _rangoPersonalizado,
+          fasesReales: _fases,
         ),
       ],
+    );
+  }
+}
+
+// ============================================================================
+// --- CLASE PARA EL AUTO-FORMATO DE FECHAS CON "/" ---
+// ============================================================================
+class DateInputFormatter extends TextInputFormatter {
+  @override
+  TextEditingValue formatEditUpdate(
+      TextEditingValue oldValue, TextEditingValue newValue) {
+    var text = newValue.text;
+
+    if (newValue.selection.baseOffset == 0) return newValue;
+
+    text = text.replaceAll(RegExp(r'[^0-9]'), '');
+    if (text.length > 8) text = text.substring(0, 8);
+
+    String formatted = '';
+    for (int i = 0; i < text.length; i++) {
+      formatted += text[i];
+      if ((i == 1 || i == 3) && i != text.length - 1) {
+        formatted += '/';
+      }
+    }
+
+    return TextEditingValue(
+      text: formatted,
+      selection: TextSelection.collapsed(offset: formatted.length),
     );
   }
 }
