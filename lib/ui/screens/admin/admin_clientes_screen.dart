@@ -22,7 +22,10 @@ class _AdminClientesScreenState extends State<AdminClientesScreen> {
   }
 
   Future<void> _cargarClientes() async {
-    setState(() { _cargando = true; _error = null; });
+    setState(() {
+      _cargando = true;
+      _error = null;
+    });
     try {
       final res = await ApiService.get('clientes.php');
       if (res['estado'] == true) {
@@ -31,16 +34,22 @@ class _AdminClientesScreenState extends State<AdminClientesScreen> {
           _cargando = false;
         });
       } else {
-        setState(() { _error = res['mensaje'] ?? 'Error al cargar'; _cargando = false; });
+        setState(() {
+          _error = res['mensaje'] ?? 'Error al cargar';
+          _cargando = false;
+        });
       }
     } catch (e) {
-      setState(() { _error = 'Error de red: $e'; _cargando = false; });
+      setState(() {
+        _error = 'Error de red: $e';
+        _cargando = false;
+      });
     }
   }
 
   Future<void> _abrirModalCliente({Map<String, dynamic>? cliente}) async {
     final esEdicion = cliente != null;
-    
+
     final nombreCtrl = TextEditingController(text: cliente?['nombre']);
     final telCtrl = TextEditingController(text: cliente?['telefono']);
     final correoCtrl = TextEditingController(text: cliente?['correo']);
@@ -175,7 +184,9 @@ class _AdminClientesScreenState extends State<AdminClientesScreen> {
                           onPressed: guardando
                               ? null
                               : () async {
-                                  if (!formKey.currentState!.validate()) return;
+                                  if (!formKey.currentState!.validate()) {
+                                    return;
+                                  }
                                   setModal(() => guardando = true);
 
                                   final body = {
@@ -197,15 +208,21 @@ class _AdminClientesScreenState extends State<AdminClientesScreen> {
                                   if (res['estado'] == true) {
                                     Navigator.pop(ctx);
                                     _cargarClientes();
-                                    ScaffoldMessenger.of(context).showSnackBar(
-                                      SnackBar(content: Text(res['mensaje'])),
+                                    ScaffoldMessenger.of(context)
+                                        .showSnackBar(
+                                      SnackBar(
+                                        content: Text(res['mensaje']),
+                                      ),
                                     );
                                   } else {
                                     setModal(() => guardando = false);
                                     ScaffoldMessenger.of(ctx).showSnackBar(
                                       SnackBar(
-                                        content: Text(res['mensaje'] ?? 'Error'),
-                                        backgroundColor: AppColors.estadoRojo,
+                                        content: Text(
+                                          res['mensaje'] ?? 'Error',
+                                        ),
+                                        backgroundColor:
+                                            AppColors.estadoRojo,
                                       ),
                                     );
                                   }
@@ -272,11 +289,18 @@ class _AdminClientesScreenState extends State<AdminClientesScreen> {
       context: context,
       builder: (ctx) => AlertDialog(
         title: const Text('Eliminar Cliente'),
-        content: Text('¿Estás seguro de eliminar a ${cliente['nombre']}? No se borrará de la BD, solo se ocultará del directorio.'),
+        content: Text(
+          '¿Estás seguro de eliminar a ${cliente['nombre']}? No se borrará de la BD, solo se ocultará del directorio.',
+        ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancelar')),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Cancelar'),
+          ),
           ElevatedButton(
-            style: ElevatedButton.styleFrom(backgroundColor: AppColors.estadoRojo),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.estadoRojo,
+            ),
             onPressed: () => Navigator.pop(ctx, true),
             child: const Text('Eliminar'),
           ),
@@ -286,12 +310,307 @@ class _AdminClientesScreenState extends State<AdminClientesScreen> {
 
     if (confirmar != true) return;
 
-    final res = await ApiService.delete('clientes.php?id=${cliente['id_cliente']}');
+    final res = await ApiService.delete(
+      'clientes.php?id=${cliente['id_cliente']}',
+    );
     if (res['estado'] == true) {
       _cargarClientes();
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Cliente eliminado')));
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Cliente eliminado')),
+      );
     }
+  }
+
+  // ---------------------------------------------------------------------------
+  // Helpers de tarjeta
+  // ---------------------------------------------------------------------------
+
+  String _iniciales(String? nombre) {
+    if (nombre == null || nombre.trim().isEmpty) return '?';
+    final partes = nombre.trim().split(RegExp(r'\s+'));
+    if (partes.length == 1) return partes.first.substring(0, 1).toUpperCase();
+    return (partes.first.substring(0, 1) + partes.last.substring(0, 1))
+        .toUpperCase();
+  }
+
+  bool _tiene(Map<String, dynamic> c, String key) {
+    final v = c[key];
+    return v != null && v.toString().trim().isNotEmpty;
+  }
+
+  Widget _chipMeta({
+    required IconData icon,
+    required String text,
+    Color color = AppColors.textoGris,
+  }) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: color.withValues(alpha: 0.18)),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 14, color: color),
+          const SizedBox(width: 6),
+          Flexible(
+            child: Text(
+              text,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                fontSize: 12.5,
+                color: color,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _tarjetaCliente(Map<String, dynamic> c) {
+    final nombre = (c['nombre'] ?? '').toString();
+    final tieneTel = _tiene(c, 'telefono');
+    final tieneCorreo = _tiene(c, 'correo');
+    final tieneDir = _tiene(c, 'direccion');
+    final tieneObs = _tiene(c, 'observaciones');
+
+    return Material(
+      color: AppColors.blanco,
+      borderRadius: BorderRadius.circular(16),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(16),
+        onTap: () => _abrirModalCliente(cliente: c),
+        child: Container(
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: AppColors.bordeSuave),
+          ),
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Cabecera: avatar + nombre + menú
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Container(
+                    width: 48,
+                    height: 48,
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        colors: [
+                          AppColors.naranja,
+                          AppColors.naranja.withValues(alpha: 0.75),
+                        ],
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                      ),
+                      borderRadius: BorderRadius.circular(12),
+                      boxShadow: [
+                        BoxShadow(
+                          color: AppColors.naranja.withValues(alpha: 0.25),
+                          blurRadius: 8,
+                          offset: const Offset(0, 3),
+                        ),
+                      ],
+                    ),
+                    alignment: Alignment.center,
+                    child: Text(
+                      _iniciales(nombre),
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 16,
+                        letterSpacing: 0.5,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 14),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Expanded(
+                              child: Text(
+                                nombre.isEmpty ? 'Sin nombre' : nombre,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: const TextStyle(
+                                  fontSize: 15.5,
+                                  fontWeight: FontWeight.w700,
+                                  color: Colors.black87,
+                                ),
+                              ),
+                            ),
+                            if (tieneObs)
+                              Padding(
+                                padding: const EdgeInsets.only(left: 8),
+                                child: Tooltip(
+                                  message: c['observaciones'].toString(),
+                                  child: Container(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 8,
+                                      vertical: 2,
+                                    ),
+                                    decoration: BoxDecoration(
+                                      color: AppColors.naranja
+                                          .withValues(alpha: 0.12),
+                                      borderRadius: BorderRadius.circular(6),
+                                    ),
+                                    child: const Text(
+                                      'Nota',
+                                      style: TextStyle(
+                                        fontSize: 10.5,
+                                        color: AppColors.naranja,
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ),
+                          ],
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          tieneDir ? c['direccion'].toString() : 'Cliente registrado',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                            fontSize: 12.5,
+                            color: AppColors.textoGris,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  PopupMenuButton<String>(
+                    icon: const Icon(
+                      Icons.more_vert,
+                      color: AppColors.textoGris,
+                      size: 20,
+                    ),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    onSelected: (value) {
+                      if (value == 'editar') {
+                        _abrirModalCliente(cliente: c);
+                      }
+                      if (value == 'eliminar') {
+                        _eliminarCliente(c);
+                      }
+                    },
+                    itemBuilder: (ctx) => [
+                      const PopupMenuItem(
+                        value: 'editar',
+                        child: Row(
+                          children: [
+                            Icon(
+                              Icons.edit_outlined,
+                              size: 20,
+                              color: AppColors.naranja,
+                            ),
+                            SizedBox(width: 10),
+                            Text('Editar'),
+                          ],
+                        ),
+                      ),
+                      const PopupMenuItem(
+                        value: 'eliminar',
+                        child: Row(
+                          children: [
+                            Icon(
+                              Icons.delete_outline,
+                              size: 20,
+                              color: AppColors.estadoRojo,
+                            ),
+                            SizedBox(width: 10),
+                            Text(
+                              'Eliminar',
+                              style: TextStyle(color: AppColors.estadoRojo),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+
+              // Separador sutil
+              if (tieneTel || tieneCorreo) ...[
+                const SizedBox(height: 14),
+                Container(
+                  height: 1,
+                  color: AppColors.bordeSuave.withValues(alpha: 0.7),
+                ),
+                const SizedBox(height: 12),
+              ],
+
+              // Metadatos con chips
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: [
+                  if (tieneTel)
+                    _chipMeta(
+                      icon: Icons.phone_outlined,
+                      text: c['telefono'].toString(),
+                      color: AppColors.naranja,
+                    ),
+                  if (tieneCorreo)
+                    _chipMeta(
+                      icon: Icons.mail_outline,
+                      text: c['correo'].toString(),
+                      color: AppColors.textoGris,
+                    ),
+                ],
+              ),
+
+              // Acciones rápidas (editar)
+              const SizedBox(height: 14),
+              Row(
+                children: [
+                  const Spacer(),
+                  TextButton.icon(
+                    onPressed: () => _abrirModalCliente(cliente: c),
+                    icon: const Icon(
+                      Icons.edit_outlined,
+                      size: 16,
+                      color: AppColors.naranja,
+                    ),
+                    label: const Text(
+                      'Editar',
+                      style: TextStyle(
+                        color: AppColors.naranja,
+                        fontSize: 12.5,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    style: TextButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 10,
+                        vertical: 4,
+                      ),
+                      minimumSize: const Size(0, 32),
+                      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 
   @override
@@ -299,7 +618,13 @@ class _AdminClientesScreenState extends State<AdminClientesScreen> {
     return Scaffold(
       backgroundColor: AppColors.grisfondo,
       appBar: AppBar(
-        title: const Text('Directorio de Clientes', style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold)),
+        title: const Text(
+          'Directorio de Clientes',
+          style: TextStyle(
+            color: Colors.black,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
         backgroundColor: AppColors.blanco,
         elevation: 0,
         actions: [
@@ -308,7 +633,11 @@ class _AdminClientesScreenState extends State<AdminClientesScreen> {
             onPressed: _cargarClientes,
           ),
           IconButton(
-            icon: const Icon(Icons.person_add_alt_1, color: AppColors.naranja, size: 26),
+            icon: const Icon(
+              Icons.person_add_alt_1,
+              color: AppColors.naranja,
+              size: 26,
+            ),
             tooltip: 'Nuevo Cliente',
             onPressed: () => _abrirModalCliente(),
           ),
@@ -321,72 +650,65 @@ class _AdminClientesScreenState extends State<AdminClientesScreen> {
           child: _cargando
               ? const Center(child: CircularProgressIndicator())
               : _error != null
-                  ? Center(child: Text(_error!, style: const TextStyle(color: AppColors.estadoRojo)))
+                  ? Center(
+                      child: Text(
+                        _error!,
+                        style: const TextStyle(
+                          color: AppColors.estadoRojo,
+                        ),
+                      ),
+                    )
                   : _clientes.isEmpty
-                      ? const Center(child: Text('No hay clientes registrados', style: TextStyle(color: AppColors.textoGris)))
+                      ? Center(
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Container(
+                                padding: const EdgeInsets.all(16),
+                                decoration: BoxDecoration(
+                                  color: AppColors.naranja
+                                      .withValues(alpha: 0.1),
+                                  shape: BoxShape.circle,
+                                ),
+                                child: const Icon(
+                                  Icons.people_outline,
+                                  color: AppColors.naranja,
+                                  size: 36,
+                                ),
+                              ),
+                              const SizedBox(height: 12),
+                              const Text(
+                                'No hay clientes registrados',
+                                style: TextStyle(
+                                  color: AppColors.textoGris,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                              const SizedBox(height: 16),
+                              ElevatedButton.icon(
+                                onPressed: () => _abrirModalCliente(),
+                                icon: const Icon(
+                                  Icons.person_add_alt_1,
+                                  size: 18,
+                                ),
+                                label: const Text('Crear primer cliente'),
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: AppColors.naranja,
+                                  foregroundColor: Colors.white,
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        )
                       : ListView.separated(
                           padding: const EdgeInsets.all(20),
                           itemCount: _clientes.length,
-                          separatorBuilder: (_, __) => const SizedBox(height: 10),
-                          itemBuilder: (context, i) {
-                            final c = _clientes[i];
-                            return Container(
-                              decoration: BoxDecoration(
-                                color: AppColors.blanco,
-                                borderRadius: BorderRadius.circular(14),
-                                border: Border.all(color: AppColors.bordeSuave),
-                              ),
-                              child: ListTile(
-                                contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-                                leading: CircleAvatar(
-                                  backgroundColor: AppColors.naranja.withValues(alpha: 0.15),
-                                  child: const Icon(Icons.business, color: AppColors.naranja),
-                                ),
-                                title: Text(c['nombre'] ?? '', style: const TextStyle(fontWeight: FontWeight.bold)),
-                                subtitle: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    const SizedBox(height: 4),
-                                    if (c['telefono'] != null && c['telefono'].toString().isNotEmpty)
-                                      Text('📞 ${c['telefono']}'),
-                                    if (c['correo'] != null && c['correo'].toString().isNotEmpty)
-                                      Text('✉️ ${c['correo']}'),
-                                    if (c['direccion'] != null && c['direccion'].toString().isNotEmpty)
-                                      Text('📍 ${c['direccion']}'),
-                                  ],
-                                ),
-                                trailing: PopupMenuButton<String>(
-                                  icon: const Icon(Icons.more_vert, color: AppColors.naranja),
-                                  onSelected: (value) {
-                                    if (value == 'editar') _abrirModalCliente(cliente: c);
-                                    if (value == 'eliminar') _eliminarCliente(c);
-                                  },
-                                  itemBuilder: (ctx) => [
-                                    const PopupMenuItem(
-                                      value: 'editar',
-                                      child: Row(
-                                        children: [
-                                          Icon(Icons.edit, size: 20, color: AppColors.naranja),
-                                          SizedBox(width: 8),
-                                          Text('Editar'),
-                                        ],
-                                      ),
-                                    ),
-                                    const PopupMenuItem(
-                                      value: 'eliminar',
-                                      child: Row(
-                                        children: [
-                                          Icon(Icons.delete, size: 20, color: AppColors.naranja),
-                                          SizedBox(width: 8),
-                                          Text('Eliminar', style: TextStyle(color: AppColors.estadoRojo)),
-                                        ],
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            );
-                          },
+                          separatorBuilder: (_, __) =>
+                              const SizedBox(height: 10),
+                          itemBuilder: (context, i) => _tarjetaCliente(_clientes[i]),
                         ),
         ),
       ),
