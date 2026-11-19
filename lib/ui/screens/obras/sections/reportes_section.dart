@@ -14,14 +14,14 @@ class ReportesSection extends StatefulWidget {
   final Map<String, dynamic> obra;
   final String tipoReporteInicial;
   final DateTimeRange? rangoPersonalizado;
-  final List<Map<String, dynamic>> fasesReales; // <-- NUEVO: Recibimos las fases reales
+  final List<Map<String, dynamic>> fasesReales;
 
   const ReportesSection({
     super.key,
     required this.obra,
     this.tipoReporteInicial = 'Semanal',
     this.rangoPersonalizado,
-    this.fasesReales = const [], // <-- NUEVO
+    this.fasesReales = const [],
   });
 
   @override
@@ -60,7 +60,6 @@ class _ReportesSectionState extends State<ReportesSection> {
 
     int idObra = int.tryParse(widget.obra['id_obra']?.toString() ?? '1') ?? 1;
 
-    // 1. CALCULAMOS LAS FECHAS
     DateTime hoy = DateTime.now();
     DateTime inicio;
 
@@ -74,29 +73,25 @@ class _ReportesSectionState extends State<ReportesSection> {
     } else if (_tipoReporte == 'Quincenal') {
       inicio = hoy.subtract(const Duration(days: 15));
     } else {
-      inicio = DateTime(2020, 1, 1); // Acumulado
+      inicio = DateTime(2020, 1, 1);
     }
 
     String fInicio = inicio.toIso8601String().split('T')[0];
     String fFin = hoy.toIso8601String().split('T')[0];
 
     try {
-      // 2. MANDAMOS LAS FECHAS AL PHP
       final dataGeneral = await ApiService.get(
           'reporte_general.php?id_obra=$idObra&periodo=$_tipoReporte&inicio=$fInicio&fin=$fFin');
-      final dataMateriales = await ApiService.get('reporte_materiales.php?id_obra=$idObra&inicio=$fInicio&fin=$fFin');
+      final dataMateriales = await ApiService.get(
+          'reporte_materiales.php?id_obra=$idObra&inicio=$fInicio&fin=$fFin');
 
       if (dataGeneral['estado'] == true && dataMateriales['estado'] == true) {
-        
-        // --- TRADUCCIÓN DE FASES DINÁMICAS ---
         final List fasesRaw = dataGeneral['data']['fases'] ?? [];
-        
-        // Aquí generamos la lista de fases basándonos en las fases reales que pasó el padre
-        // y buscamos su avance en la respuesta del backend.
-        final List<Map<String, dynamic>> fasesFormateadas = widget.fasesReales.map((fase) {
+
+        final List<Map<String, dynamic>> fasesFormateadas =
+            widget.fasesReales.map((fase) {
           final nombre = fase['nombre']?.toString() ?? '';
-          
-          // Buscamos el avance en la data del backend. Si no lo encuentra, es 0.
+
           double avance = 0.0;
           for (var f in fasesRaw) {
             if (f['fase'].toString().toLowerCase() == nombre.toLowerCase()) {
@@ -111,15 +106,14 @@ class _ReportesSectionState extends State<ReportesSection> {
           };
         }).toList();
 
-        // Si por alguna razón las fasesReales está vacío, usamos lo que venga del backend
-        final fasesFinales = fasesFormateadas.isNotEmpty 
-            ? fasesFormateadas 
+        final fasesFinales = fasesFormateadas.isNotEmpty
+            ? fasesFormateadas
             : fasesRaw.map((f) => {
-                'nombre': f['fase'].toString(),
-                'porcentaje': (double.tryParse(f['avance'].toString()) ?? 0.0).toInt(),
-              }).toList();
+                  'nombre': f['fase'].toString(),
+                  'porcentaje':
+                      (double.tryParse(f['avance'].toString()) ?? 0.0).toInt(),
+                }).toList();
 
-        // --- TRADUCCIÓN DE INCIDENCIAS ---
         final List incidenciasRaw = dataGeneral['data']['incidencias'] ?? [];
         final incidenciasFormateadas = incidenciasRaw.map((i) {
           return {
@@ -141,21 +135,26 @@ class _ReportesSectionState extends State<ReportesSection> {
             'ubicacion': dataGeneral['data']['info']['ubicacion'],
             'plazoContractual': dataGeneral['data']['info']['plazoContractual'],
             'estado': dataGeneral['data']['info']['estado'],
-            'avanceGeneral': double.tryParse(dataGeneral['data']['avanceGeneral'].toString()) ?? 0.0,
-            
-            // AQUÍ INYECTAMOS LA LISTA DINÁMICA DE FASES
+            'avanceGeneral':
+                double.tryParse(dataGeneral['data']['avanceGeneral'].toString()) ??
+                    0.0,
+
             'fases': fasesFinales,
-            
+
             'actividades': dataGeneral['data']['actividades'].map((a) => {
-              'actividad': a['actividad'],
-              'fase': a['fase'],
-              'responsable': a['responsable'] ?? 'Sin asignar',
-              'avance': double.tryParse(a['porcentaje_avance'].toString()) ?? 0.0,
-              'materiales_usados': a['materiales_usados'] ?? 'N/A',
-            }).toList(),
-            
+                  'actividad': a['actividad'],
+                  'fase': a['fase'],
+                  'responsable': a['responsable'] ?? 'Sin asignar',
+                  'avance':
+                      double.tryParse(a['porcentaje_avance'].toString()) ?? 0.0,
+                  'materiales_usados': a['materiales_usados'] ?? 'N/A',
+                }).toList(),
+
             'incidencias': incidenciasFormateadas,
+            
+            // AHORA RECIBIMOS LA LISTA DIRECTA DEL BACKEND
             'notasGenerales': dataGeneral['data']['notasGenerales'],
+            
             'materiales': dataMateriales['materiales'],
             'personal': dataMateriales['personal'],
             'maquinaria': dataMateriales['maquinaria'],
@@ -179,7 +178,7 @@ class _ReportesSectionState extends State<ReportesSection> {
 
   Future<void> _exportarPdf() async {
     if (_datosReporte == null) return;
-    
+
     setState(() => _exportando = true);
     try {
       await ReportePdfService.generarYCompartir(
@@ -211,7 +210,8 @@ class _ReportesSectionState extends State<ReportesSection> {
             const SizedBox(height: 16),
             Text('Error: $_error', textAlign: TextAlign.center),
             const SizedBox(height: 16),
-            ElevatedButton(onPressed: _cargarDatos, child: const Text('Reintentar')),
+            ElevatedButton(
+                onPressed: _cargarDatos, child: const Text('Reintentar')),
           ],
         ),
       );
@@ -230,7 +230,8 @@ class _ReportesSectionState extends State<ReportesSection> {
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 16, vertical: 12),
                     decoration: BoxDecoration(
                       color: AppColors.grisfondo,
                       borderRadius: BorderRadius.circular(12),
@@ -252,7 +253,7 @@ class _ReportesSectionState extends State<ReportesSection> {
                       children: [
                         ReporteHeader(obra: widget.obra, datos: _datosReporte!),
                         SizedBox(height: pad * 0.75),
-                        ReporteBalanceAvance(datos: _datosReporte!), // <-- Este widget ahora recibe 'fases'
+                        ReporteBalanceAvance(datos: _datosReporte!),
                         SizedBox(height: pad * 0.75),
                         ReporteActividadesTabla(datos: _datosReporte!),
                         SizedBox(height: pad * 0.75),
@@ -298,23 +299,37 @@ class _ReportesSectionState extends State<ReportesSection> {
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
                   color: AppColors.textoNegro,
-                  borderRadius: const BorderRadius.vertical(top: Radius.circular(10)),
+                  borderRadius:
+                      const BorderRadius.vertical(top: Radius.circular(10)),
                 ),
-                child: Text(titulo, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12)),
+                child: Text(titulo,
+                    style: const TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 12)),
               ),
               if (items.isEmpty)
-                const Padding(padding: EdgeInsets.all(12), child: Text('Sin registros', style: TextStyle(fontSize: 12))),
+                const Padding(
+                    padding: EdgeInsets.all(12),
+                    child: Text('Sin registros',
+                        style: TextStyle(fontSize: 12))),
               ...items.map((item) {
                 return Container(
                   padding: const EdgeInsets.all(10),
                   decoration: BoxDecoration(
-                    border: Border(bottom: BorderSide(color: AppColors.gris.withValues(alpha: 0.2))),
+                    border: Border(
+                        bottom: BorderSide(
+                            color: AppColors.gris.withValues(alpha: 0.2))),
                   ),
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Expanded(child: Text(item[key].toString(), style: const TextStyle(fontSize: 12))),
-                      Text(item['cantidad'].toString(), style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
+                      Expanded(
+                          child: Text(item[key].toString(),
+                              style: const TextStyle(fontSize: 12))),
+                      Text(item['cantidad'].toString(),
+                          style: const TextStyle(
+                              fontWeight: FontWeight.bold, fontSize: 12)),
                     ],
                   ),
                 );
@@ -336,6 +351,8 @@ class _ReportesSectionState extends State<ReportesSection> {
   }
 
   Widget _buildNotasGeneralesWeb() {
+    final notas = (_datosReporte!['notasGenerales'] as List?) ?? [];
+
     return Container(
       width: double.infinity,
       decoration: BoxDecoration(
@@ -350,17 +367,65 @@ class _ReportesSectionState extends State<ReportesSection> {
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
               color: AppColors.textoNegro,
-              borderRadius: const BorderRadius.vertical(top: Radius.circular(10)),
+              borderRadius:
+                  const BorderRadius.vertical(top: Radius.circular(10)),
             ),
-            child: const Text('NOTAS GENERALES', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12)),
+            child: const Text('NOTAS GENERALES',
+                style: TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 12)),
           ),
-          Padding(
-            padding: const EdgeInsets.all(16),
-            child: Text(
-              _datosReporte!['notasGenerales'] ?? 'Sin notas.',
-              style: const TextStyle(fontSize: 12, color: AppColors.textoNegro),
+          if (notas.isEmpty)
+            const Padding(
+              padding: EdgeInsets.all(16),
+              child: Text('Sin notas en el periodo seleccionado.',
+                  style: TextStyle(fontSize: 12, color: AppColors.textoGris)),
+            )
+          else
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  decoration: BoxDecoration(
+                    color: Colors.grey.shade100,
+                    border: Border(bottom: BorderSide(color: AppColors.gris.withValues(alpha: 0.3))),
+                  ),
+                  child: Row(
+                    children: const [
+                      SizedBox(
+                        width: 90,
+                        child: Text('FECHA', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: AppColors.textoNegro)),
+                      ),
+                      Expanded(
+                        child: Text('OBSERVACIÓN', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: AppColors.textoNegro)),
+                      ),
+                    ],
+                  ),
+                ),
+                ...notas.map((n) {
+                  return Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                    decoration: BoxDecoration(
+                      border: Border(bottom: BorderSide(color: AppColors.gris.withValues(alpha: 0.2))),
+                    ),
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        SizedBox(
+                          width: 90,
+                          child: Text(n['fecha']?.toString() ?? '', style: const TextStyle(fontSize: 12, color: AppColors.textoGris)),
+                        ),
+                        Expanded(
+                          child: Text(n['nota']?.toString() ?? '', style: const TextStyle(fontSize: 12, color: AppColors.textoNegro)),
+                        ),
+                      ],
+                    ),
+                  );
+                }),
+              ],
             ),
-          ),
         ],
       ),
     );
@@ -380,7 +445,8 @@ class _ReportesSectionState extends State<ReportesSection> {
               ? const SizedBox(
                   width: 14,
                   height: 14,
-                  child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                  child: CircularProgressIndicator(
+                      strokeWidth: 2, color: Colors.white),
                 )
               : const Icon(Icons.picture_as_pdf_outlined, size: 16),
           label: Text(
@@ -391,7 +457,8 @@ class _ReportesSectionState extends State<ReportesSection> {
             backgroundColor: AppColors.naranja,
             foregroundColor: Colors.white,
             padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+            shape:
+                RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
           ),
         ),
       ],

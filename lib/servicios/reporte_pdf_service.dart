@@ -39,7 +39,6 @@ class ReportePdfService {
       imagenesEvidencias.add(await _cargarImagenDesdeUrl(url));
     }
 
-    // Estilos generales
     final estiloTituloSeccion = pw.TextStyle(
       fontSize: 9,
       fontWeight: pw.FontWeight.bold,
@@ -70,7 +69,6 @@ class ReportePdfService {
           );
         },
         build: (context) => [
-          // ─── ENCABEZADO CORPORATIVO ───
           pw.Container(
             decoration: pw.BoxDecoration(
               border: pw.Border.all(color: colorBorde, width: 1),
@@ -182,7 +180,6 @@ class ReportePdfService {
           ),
           pw.SizedBox(height: 10),
 
-          // ─── 1. AVANCE (AHORA ES DINÁMICO) ───
           _tablaHeader('1. REPORTE DE AVANCE %', estiloTituloSeccion, colorGrisFondo, colorBorde),
           pw.Table(
             border: pw.TableBorder.all(color: colorBorde, width: 1),
@@ -198,7 +195,6 @@ class ReportePdfService {
                   _celdaHeader('% AVANCE', estiloBold, align: pw.TextAlign.center),
                 ],
               ),
-              // Aquí recorremos las fases que vienen en los datos (ej: Preliminares, Estructura, Albañilería)
               ...(datos['fases'] as List? ?? []).map((f) {
                 return _filaAvance(f['nombre'].toString(), '${f['porcentaje']}%', estiloCuerpo);
               }),
@@ -213,7 +209,6 @@ class ReportePdfService {
           ),
           pw.SizedBox(height: 10),
 
-          // ─── 2. ACTIVIDADES Y FRENTES ───
           _tablaHeader('2. ACTIVIDADES Y FRENTES DE TRABAJO', estiloTituloSeccion, colorGrisFondo, colorBorde),
           pw.TableHelper.fromTextArray(
             border: pw.TableBorder.all(color: colorBorde, width: 1),
@@ -254,7 +249,6 @@ class ReportePdfService {
           ),
           pw.SizedBox(height: 10),
 
-          // ─── 3. MATERIALES ───
           _tablaHeader('3. RESUMEN DE MATERIALES UTILIZADOS', estiloTituloSeccion, colorGrisFondo, colorBorde),
           pw.TableHelper.fromTextArray(
             border: pw.TableBorder.all(color: colorBorde, width: 1),
@@ -283,7 +277,6 @@ class ReportePdfService {
           ),
           pw.SizedBox(height: 10),
 
-          // ─── 4. PERSONAL Y MAQUINARIA ───
           pw.Row(
             crossAxisAlignment: pw.CrossAxisAlignment.start,
             children: [
@@ -356,7 +349,6 @@ class ReportePdfService {
           ),
           pw.SizedBox(height: 10),
 
-          // ─── 5. INCIDENCIAS ───
           _tablaHeader('5. INCIDENCIAS / PAROS REGISTRADOS', estiloTituloSeccion, colorGrisFondo, colorBorde),
           pw.Table(
             border: pw.TableBorder.all(color: colorBorde, width: 1),
@@ -394,10 +386,9 @@ class ReportePdfService {
           ),
           pw.SizedBox(height: 10),
 
-          // ─── 6. EVIDENCIAS FOTOGRÁFICAS (Ancho completo y tarjetas con tamaño uniforme) ───
           _tablaHeader('6. REPORTE FOTOGRÁFICO', estiloTituloSeccion, colorGrisFondo, colorBorde),
           pw.Container(
-            width: double.infinity, // Ocupa todo el ancho de la página igual que las tablas superiores
+            width: double.infinity,
             decoration: pw.BoxDecoration(
               border: pw.Border.all(color: colorBorde, width: 1),
             ),
@@ -414,7 +405,6 @@ class ReportePdfService {
                       final img = imagenesEvidencias[index];
                       final titulo = evidencias[index] is Map ? (evidencias[index]['titulo'] ?? '') : '';
 
-                      // TARJETA CON TAMAÑO UNIFORME Y ALTURA FIJA PARA EL PIE DE FOTO
                       return pw.Container(
                         width: 140,
                         decoration: pw.BoxDecoration(
@@ -428,7 +418,6 @@ class ReportePdfService {
                           child: pw.Column(
                             crossAxisAlignment: pw.CrossAxisAlignment.stretch,
                             children: [
-                              // Imagen con altura fija
                               img != null
                                   ? pw.Image(img, height: 90, fit: pw.BoxFit.cover)
                                   : pw.Container(
@@ -437,14 +426,12 @@ class ReportePdfService {
                                       alignment: pw.Alignment.center,
                                       child: pw.Text('Sin imagen', style: estiloCuerpo),
                                     ),
-                              
-                              // Contenedor de título con altura fija para que todas las tarjetas midan exactamente lo mismo
                               pw.Container(
-                                height: 35, // Altura fija uniforme para el pie de foto (hasta 2 líneas)
+                                height: 35,
                                 padding: const pw.EdgeInsets.symmetric(horizontal: 4),
-                                alignment: pw.Alignment.center, // Centrado vertical y horizontal automático
+                                alignment: pw.Alignment.center,
                                 decoration: pw.BoxDecoration(
-                                  color: PdfColor.fromHex('#1F2937'), // Fondo gris oscuro corporativo
+                                  color: PdfColor.fromHex('#1F2937'),
                                 ),
                                 child: pw.Text(
                                   titulo.isNotEmpty ? titulo : 'Sin descripción',
@@ -453,7 +440,7 @@ class ReportePdfService {
                                   style: pw.TextStyle(
                                     fontSize: 7.5,
                                     fontWeight: pw.FontWeight.bold,
-                                    color: PdfColors.white, // Texto blanco
+                                    color: PdfColors.white,
                                   ),
                                 ),
                               ),
@@ -466,31 +453,28 @@ class ReportePdfService {
           ),
           pw.SizedBox(height: 10),
 
-          // ─── 7. NOTAS GENERALES ───
           _tablaHeader('7. NOTAS GENERALES', estiloTituloSeccion, colorGrisFondo, colorBorde),
-          pw.Container(
-            width: double.infinity,
-            padding: const pw.EdgeInsets.all(8),
-            decoration: pw.BoxDecoration(
-              border: pw.Border.all(color: colorBorde, width: 1),
-            ),
-            child: pw.Text(
-              datos['notasGenerales'] ?? 'SIN NOTAS',
-              style: estiloCuerpo,
-            ),
-          ),
-          
-          // ─── FORZAR SALTO DE PÁGINA ANTES DE LAS FIRMAS ───
-          pw.NewPage(),
+          _buildTablaNotas(datos['notasGenerales'], estiloBold, estiloCuerpo, colorBorde),
 
-          pw.SizedBox(height: 50),
+          pw.SizedBox(height: 60),
 
-          // ─── FIRMAS ───
-          pw.Row(
-            mainAxisAlignment: pw.MainAxisAlignment.spaceAround,
+          pw.Table(
+            border: null,
+            columnWidths: {
+              0: const pw.FlexColumnWidth(1),
+              1: const pw.FlexColumnWidth(1),
+            },
             children: [
-              _firmaFormal(datos['residente'], 'RESIDENTE DE OBRA', estiloBold, estiloCuerpo),
-              _firmaFormal(datos['cliente'], 'SUPERVISIÓN / CLIENTE', estiloBold, estiloCuerpo),
+              pw.TableRow(
+                children: [
+                  pw.Center(
+                    child: _firmaFormal(datos['residente'], 'RESIDENTE DE OBRA', estiloBold, estiloCuerpo),
+                  ),
+                  pw.Center(
+                    child: _firmaFormal(datos['cliente'], 'SUPERVISIÓN / CLIENTE', estiloBold, estiloCuerpo),
+                  ),
+                ],
+              ),
             ],
           ),
         ],
@@ -503,7 +487,43 @@ class ReportePdfService {
     );
   }
 
-  // ─── HELPERS PARA DISEÑO TIPO DOCUMENTO ───
+  static pw.Widget _buildTablaNotas(dynamic notasRaw, pw.TextStyle estiloBold, pw.TextStyle estiloCuerpo, PdfColor colorBorde) {
+    final notas = (notasRaw as List?) ?? [];
+    
+    if (notas.isEmpty) {
+      return pw.Container(
+        width: double.infinity,
+        padding: const pw.EdgeInsets.all(8),
+        decoration: pw.BoxDecoration(border: pw.Border.all(color: colorBorde, width: 1)),
+        child: pw.Text('SIN NOTAS EN EL PERIODO', style: estiloCuerpo),
+      );
+    }
+
+    return pw.Table(
+      border: pw.TableBorder.all(color: colorBorde, width: 1),
+      columnWidths: {
+        0: const pw.FlexColumnWidth(1.5),
+        1: const pw.FlexColumnWidth(8.5),
+      },
+      children: [
+        pw.TableRow(
+          decoration: pw.BoxDecoration(color: PdfColor.fromHex('#F3F4F6')),
+          children: [
+            _celdaHeader('FECHA', estiloBold),
+            _celdaHeader('OBSERVACIÓN', estiloBold),
+          ],
+        ),
+        ...notas.map((n) {
+          return pw.TableRow(
+            children: [
+              _celdaTexto(n['fecha']?.toString() ?? '', estiloCuerpo),
+              _celdaTexto(n['nota']?.toString() ?? '', estiloCuerpo),
+            ],
+          );
+        }),
+      ],
+    );
+  }
 
   static pw.Widget _tablaHeader(String titulo, pw.TextStyle estilo, PdfColor fondo, PdfColor borde) {
     return pw.Container(
@@ -543,10 +563,19 @@ class ReportePdfService {
   static pw.Widget _firmaFormal(String nombre, String cargo, pw.TextStyle estiloBold, pw.TextStyle estiloCuerpo) {
     return pw.Column(
       children: [
-        pw.Container(width: 180, height: 1, color: PdfColors.black),
-        pw.SizedBox(height: 14),
-        pw.Text(nombre, style: estiloBold),
-        pw.Text(cargo, style: pw.TextStyle(fontSize: 7)),
+        pw.Container(width: 150, height: 1, color: PdfColors.black),
+        pw.SizedBox(height: 10),
+        pw.Text(
+          nombre, 
+          style: estiloBold, 
+          textAlign: pw.TextAlign.center
+        ),
+        pw.SizedBox(height: 2),
+        pw.Text(
+          cargo, 
+          style: pw.TextStyle(fontSize: 7, color: PdfColors.grey700), 
+          textAlign: pw.TextAlign.center
+        ),
       ],
     );
   }

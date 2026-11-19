@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart'; // 👈 Necesario para los formateadores
-import 'package:gestobra/config/theme/app_colors.dart';
+import '../../../../config/theme/app_colors.dart';
 import 'package:gestobra/servicios/api_service.dart';
 
 class BitacoraSection extends StatefulWidget {
@@ -254,11 +254,11 @@ class _NuevaBitacoraDialogState extends State<_NuevaBitacoraDialog> {
   final _observacionesController = TextEditingController();
   final _incidenciasController = TextEditingController();
 
-  // ─── Calendario con estilo naranja ───
+  // ─── Calendario con estilo naranja (idéntico a NuevaActividadModal) ───
   Future<void> _seleccionarFecha() async {
     final DateTime? picked = await showDatePicker(
       context: context,
-      initialDate: _fechaSeleccionada ?? DateTime.now(),
+      initialDate: DateTime.now(),
       firstDate: DateTime(2020),
       lastDate: DateTime(2030),
       builder: (context, child) {
@@ -283,38 +283,36 @@ class _NuevaBitacoraDialogState extends State<_NuevaBitacoraDialog> {
     }
   }
 
-  Future<void> _guardar() async {
+  void _guardar() async {
     if (_fechaController.text.trim().isEmpty ||
         _descripcionController.text.trim().isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-            content: Text('La fecha y la descripción son obligatorias')),
+        const SnackBar(content: Text('La fecha y la descripción son obligatorias')),
       );
       return;
     }
 
     setState(() => _guardando = true);
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (_) => const Center(child: CircularProgressIndicator()),
+    );
 
     final body = {
       'id_obra': widget.idObra,
       'fecha': _fechaController.text.trim(),
       'clima': _climaSeleccionado ?? '',
-      'temperatura': _temperaturaController.text.trim(),
       'personal_presente': int.tryParse(_personalController.text) ?? 0,
       'descripcion_jornada': _descripcionController.text.trim(),
       'observaciones': _observacionesController.text.trim(),
       'incidencias': _incidenciasController.text.trim(),
-      'hubo_retraso': _huboRetraso,
-      'horas_retraso': _huboRetraso
-          ? (int.tryParse(_horasRetrasoController.text.trim()) ?? 0)
-          : 0,
-      'causa_retraso':
-          _huboRetraso ? _causaRetrasoController.text.trim() : '',
     };
 
     final res = await ApiService.post('bitacoras.php', body);
 
     if (!mounted) return;
+    Navigator.pop(context);
     setState(() => _guardando = false);
 
     if (res['estado'] == true) {
@@ -359,8 +357,7 @@ class _NuevaBitacoraDialogState extends State<_NuevaBitacoraDialog> {
               const Padding(
                 padding: EdgeInsets.only(bottom: 16),
                 child: Text('Nueva bitácora',
-                    style:
-                        TextStyle(fontSize: 20, fontWeight: FontWeight.w600)),
+                    style: TextStyle(fontSize: 20, fontWeight: FontWeight.w600)),
               ),
 
               // ─── Fecha ───
@@ -372,14 +369,12 @@ class _NuevaBitacoraDialogState extends State<_NuevaBitacoraDialog> {
                 readOnly: true,
                 onTap: _seleccionarFecha,
                 suffixIcon: IconButton(
-                  icon: const Icon(Icons.calendar_month_outlined,
-                      color: AppColors.naranja),
+                  icon: const Icon(Icons.calendar_month_outlined, color: AppColors.naranja),
                   onPressed: _seleccionarFecha,
                 ),
               ),
               const SizedBox(height: 14),
 
-              // FILA 1: CLIMA Y TEMPERATURA
               Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -393,15 +388,8 @@ class _NuevaBitacoraDialogState extends State<_NuevaBitacoraDialog> {
                           hint: 'Selecciona',
                           icon: Icons.wb_sunny_outlined,
                           value: _climaSeleccionado,
-                          items: const [
-                            'Soleado',
-                            'Nublado',
-                            'Lluvioso',
-                            'Tormenta',
-                            'Viento'
-                          ],
-                          onChanged: (value) =>
-                              setState(() => _climaSeleccionado = value),
+                          items: const ['Soleado', 'Nublado', 'Lluvioso', 'Tormenta', 'Viento fuerte'],
+                          onChanged: (value) => setState(() => _climaSeleccionado = value),
                         ),
                       ],
                     ),
@@ -412,13 +400,36 @@ class _NuevaBitacoraDialogState extends State<_NuevaBitacoraDialog> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        _buildLabel('Temp. °C'),
+                        _buildLabel('Temperatura'),
                         _buildCustomTextField(
                           hint: '28',
                           icon: Icons.thermostat_outlined,
                           controller: _temperaturaController,
-                          keyboardType: const TextInputType.numberWithOptions(
-                              decimal: true),
+                          keyboardType: TextInputType.number,
+                          // 👇 Solo permite números enteros
+                          inputFormatters: [
+                            FilteringTextInputFormatter.digitsOnly,
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    flex: 4,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        _buildLabel('Personal'),
+                        _buildCustomTextField(
+                          hint: '8',
+                          icon: Icons.groups_outlined,
+                          controller: _personalController,
+                          keyboardType: TextInputType.number,
+                          // 👇 Solo permite números enteros
+                          inputFormatters: [
+                            FilteringTextInputFormatter.digitsOnly,
+                          ],
                         ),
                       ],
                     ),
@@ -427,22 +438,11 @@ class _NuevaBitacoraDialogState extends State<_NuevaBitacoraDialog> {
               ),
               const SizedBox(height: 14),
 
-              // FILA 2: PERSONAL (Ocupa todo el ancho)
-              _buildLabel('Personal en obra'),
-              _buildCustomTextField(
-                hint: 'Ej. 8',
-                icon: Icons.groups_outlined,
-                controller: _personalController,
-                keyboardType: TextInputType.number,
-              ),
-              const SizedBox(height: 14),
-
               _buildLabel('Descripción de la jornada *'),
               _buildCustomTextField(
                 hint: 'Describe las actividades',
                 icon: Icons.description_outlined,
                 controller: _descripcionController,
-                maxLines: 3,
               ),
               const SizedBox(height: 14),
 
@@ -462,7 +462,6 @@ class _NuevaBitacoraDialogState extends State<_NuevaBitacoraDialog> {
                       hint: 'Escribe las observaciones',
                       icon: Icons.notes_outlined,
                       controller: _observacionesController,
-                      maxLines: 2,
                     ),
                     const SizedBox(height: 10),
                     CheckboxListTile(
@@ -476,19 +475,43 @@ class _NuevaBitacoraDialogState extends State<_NuevaBitacoraDialog> {
                     ),
                     if (_huboRetraso) ...[
                       const SizedBox(height: 8),
-                      _buildLabel('Horas de retraso'),
-                      _buildCustomTextField(
-                        hint: '0',
-                        icon: Icons.timer_outlined,
-                        controller: _horasRetrasoController,
-                        keyboardType: TextInputType.number,
-                      ),
-                      const SizedBox(height: 10),
-                      _buildLabel('Causa del retraso'),
-                      _buildCustomTextField(
-                        hint: 'Describe la causa',
-                        icon: Icons.warning_amber_outlined,
-                        controller: _causaRetrasoController,
+                      Row(
+                        children: [
+                          Expanded(
+                            flex: 1,
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                _buildLabel('Horas'),
+                                _buildCustomTextField(
+                                  hint: '0',
+                                  icon: Icons.timer_outlined,
+                                  controller: _horasRetrasoController,
+                                  keyboardType: TextInputType.number,
+                                  // 👇 Solo permite números enteros
+                                  inputFormatters: [
+                                    FilteringTextInputFormatter.digitsOnly,
+                                  ],
+                                ),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            flex: 2,
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                _buildLabel('Causa'),
+                                _buildCustomTextField(
+                                  hint: 'Describe',
+                                  icon: Icons.warning_amber_outlined,
+                                  controller: _causaRetrasoController,
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
                       ),
                     ],
                   ],
@@ -501,7 +524,6 @@ class _NuevaBitacoraDialogState extends State<_NuevaBitacoraDialog> {
                 hint: 'Describe cualquier incidencia',
                 icon: Icons.warning_amber_outlined,
                 controller: _incidenciasController,
-                maxLines: 2,
               ),
               const SizedBox(height: 20),
 
@@ -509,8 +531,7 @@ class _NuevaBitacoraDialogState extends State<_NuevaBitacoraDialog> {
                 mainAxisAlignment: MainAxisAlignment.end,
                 children: [
                   TextButton(
-                    onPressed:
-                        _guardando ? null : () => Navigator.pop(context),
+                    onPressed: _guardando ? null : () => Navigator.pop(context),
                     child: const Text('Cancelar',
                         style: TextStyle(color: AppColors.textoGris)),
                   ),
@@ -539,7 +560,7 @@ class _NuevaBitacoraDialogState extends State<_NuevaBitacoraDialog> {
     );
   }
 
-  // ─── Widgets auxiliares ───
+  // ─── Widgets auxiliares con los MISMOS iconos de tu diseño original ───
 
   Widget _buildLabel(String text) => Padding(
         padding: const EdgeInsets.only(bottom: 6.0),
@@ -579,9 +600,9 @@ class _NuevaBitacoraDialogState extends State<_NuevaBitacoraDialog> {
         suffixIcon: suffixIcon,
         filled: true,
         fillColor: Colors.white,
-        contentPadding:
-            const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
+        contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
         isDense: true,
+        // Borde naranja perfecto (sin doble caja)
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(8),
           borderSide: const BorderSide(color: AppColors.naranja),
@@ -602,9 +623,6 @@ class _NuevaBitacoraDialogState extends State<_NuevaBitacoraDialog> {
     required void Function(String?) onChanged,
   }) {
     return DropdownButtonFormField<String>(
-      // En Flutter reciente usa `initialValue`; `value` sigue funcionando
-      // en versiones estables. Si tu SDK marca deprecación, cambia a:
-      // initialValue: value,
       value: value,
       isExpanded: true,
       hint: Text(hint,
@@ -615,9 +633,9 @@ class _NuevaBitacoraDialogState extends State<_NuevaBitacoraDialog> {
         prefixIcon: Icon(icon, color: Colors.grey.shade600, size: 20),
         filled: true,
         fillColor: Colors.white,
-        contentPadding:
-            const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
+        contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
         isDense: true,
+        // Borde naranja perfecto
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(8),
           borderSide: const BorderSide(color: AppColors.naranja),
