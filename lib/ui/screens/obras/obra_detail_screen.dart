@@ -109,10 +109,6 @@ class _ObraDetailScreenState extends State<ObraDetailScreen> {
         final fase = fasesPorId[actividad['id_fase'].toString()];
         final estado = (actividad['estado_nombre'] ?? 'PENDIENTE').toString();
 
-        // El reporte ahora viene del backend (último avance)
-        final String reporte =
-            (actividad['ultimo_reporte']?.toString() ?? '').trim();
-
         return <String, dynamic>{
           ...actividad,
           'fase': (fase?['nombre'] ?? 'Sin fase').toString().toUpperCase(),
@@ -124,8 +120,11 @@ class _ObraDetailScreenState extends State<ObraDetailScreen> {
           'fechaFin': fin,
           'programado':
               'Programado ${_formatoFecha(inicio)} al ${_formatoFecha(fin)}',
-          'reporte': reporte.isNotEmpty ? reporte : 'Sin reportes de avance',
+          'reporte': actividad['ultimo_reporte']?.toString().isNotEmpty == true
+              ? actividad['ultimo_reporte'].toString()
+              : 'Sin reportes de avance',
           'avance': porcentaje / 100,
+          'ponderacion': '—',
           'isCompleted':
               porcentaje >= 100 || estado.toUpperCase().contains('COMPLET'),
         };
@@ -179,11 +178,15 @@ class _ObraDetailScreenState extends State<ObraDetailScreen> {
     }
   }
 
+  // ─── Registrar Avance ───
   Future<void> _registrarAvance(Map<String, dynamic> actividad) async {
     final idActividad =
         int.tryParse(actividad['id_actividad']?.toString() ?? '') ?? 0;
     if (idActividad <= 0) return;
 
+    final avanceActual = ((actividad['avance'] as num?)?.toDouble() ?? 0) * 100;
+    final porcentajeController =
+        TextEditingController(text: avanceActual.toStringAsFixed(0));
     final observacionesController = TextEditingController();
 
     final confirmado = await showDialog<bool>(
@@ -211,14 +214,14 @@ class _ObraDetailScreenState extends State<ObraDetailScreen> {
                         Container(
                           padding: const EdgeInsets.all(8),
                           decoration: BoxDecoration(
-                              color: Colors.green.shade700,
+                              color: AppColors.naranja,
                               borderRadius: BorderRadius.circular(8)),
-                          child: const Icon(Icons.check_circle,
+                          child: const Icon(Icons.trending_up,
                               color: Colors.white, size: 24),
                         ),
                         const SizedBox(width: 12),
                         const Expanded(
-                          child: Text('Completar actividad',
+                          child: Text('Registrar avance',
                               style: TextStyle(
                                   fontSize: 16, fontWeight: FontWeight.bold)),
                         ),
@@ -234,7 +237,32 @@ class _ObraDetailScreenState extends State<ObraDetailScreen> {
                         style: const TextStyle(
                             fontWeight: FontWeight.bold, fontSize: 14)),
                     const SizedBox(height: 16),
-                    const Text('Observaciones (opcional)',
+                    const Text('Avance (%) *',
+                        style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.black87)),
+                    const SizedBox(height: 6),
+                    Container(
+                      decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(color: AppColors.naranja)),
+                      child: TextFormField(
+                        controller: porcentajeController,
+                        keyboardType: const TextInputType.numberWithOptions(
+                            decimal: true),
+                        style: const TextStyle(fontSize: 13),
+                        decoration: const InputDecoration(
+                            hintText: 'Ej. 50',
+                            border: InputBorder.none,
+                            contentPadding: EdgeInsets.symmetric(
+                                horizontal: 12, vertical: 14),
+                            isDense: true),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    const Text('Observaciones',
                         style: TextStyle(
                             fontSize: 12,
                             fontWeight: FontWeight.bold,
@@ -250,13 +278,11 @@ class _ObraDetailScreenState extends State<ObraDetailScreen> {
                         maxLines: 3,
                         style: const TextStyle(fontSize: 13),
                         decoration: const InputDecoration(
-                          hintText:
-                              'Ej. Se terminó la cimbra y se retiró el material',
-                          border: InputBorder.none,
-                          contentPadding:
-                              EdgeInsets.symmetric(horizontal: 12, vertical: 14),
-                          isDense: true,
-                        ),
+                            hintText: 'Ej. Se terminó la cimentación',
+                            border: InputBorder.none,
+                            contentPadding: EdgeInsets.symmetric(
+                                horizontal: 12, vertical: 14),
+                            isDense: true),
                       ),
                     ),
                     const SizedBox(height: 32),
@@ -264,9 +290,8 @@ class _ObraDetailScreenState extends State<ObraDetailScreen> {
                       mainAxisAlignment: MainAxisAlignment.end,
                       children: [
                         OutlinedButton(
-                          onPressed: guardando
-                              ? null
-                              : () => Navigator.pop(ctx, false),
+                          onPressed:
+                              guardando ? null : () => Navigator.pop(ctx, false),
                           style: OutlinedButton.styleFrom(
                             foregroundColor: AppColors.gris,
                             side: const BorderSide(color: AppColors.bordeSuave),
@@ -283,21 +308,34 @@ class _ObraDetailScreenState extends State<ObraDetailScreen> {
                           onPressed: guardando
                               ? null
                               : () async {
+                                  final porcentaje = double.tryParse(
+                                      porcentajeController.text.trim());
+                                  if (porcentaje == null ||
+                                      porcentaje < 0 ||
+                                      porcentaje > 100) {
+                                    ScaffoldMessenger.of(ctx).showSnackBar(
+                                        const SnackBar(
+                                            content: Text(
+                                                'El avance debe ser un número entre 0 y 100.')));
+                                    return;
+                                  }
+
                                   setModal(() => guardando = true);
+
                                   try {
                                     final respuesta = await ApiService.post(
-                                      'actividad_avance.php',
-                                      {
-                                        'id_actividad': idActividad,
-                                        'observaciones':
-                                            observacionesController.text.trim(),
-                                      },
-                                    );
+                                        'actividad_avance.php', {
+                                      'id_actividad': idActividad,
+                                      'porcentaje_nuevo': porcentaje,
+                                      'observaciones':
+                                          observacionesController.text.trim(),
+                                    });
 
                                     if (respuesta['estado'] != true) {
                                       throw Exception(respuesta['mensaje'] ??
-                                          'No se pudo completar la actividad');
+                                          'No se pudo registrar el avance');
                                     }
+
                                     Navigator.pop(ctx, true);
                                   } catch (error) {
                                     setModal(() => guardando = false);
@@ -309,7 +347,7 @@ class _ObraDetailScreenState extends State<ObraDetailScreen> {
                                   }
                                 },
                           style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.green.shade700,
+                            backgroundColor: AppColors.naranja,
                             foregroundColor: Colors.white,
                             padding: const EdgeInsets.symmetric(horizontal: 24),
                             shape: RoundedRectangleBorder(
@@ -321,7 +359,7 @@ class _ObraDetailScreenState extends State<ObraDetailScreen> {
                                   height: 18,
                                   child: CircularProgressIndicator(
                                       color: Colors.white, strokeWidth: 2))
-                              : const Text('MARCAR COMO COMPLETADA',
+                              : const Text('GUARDAR',
                                   style: TextStyle(
                                       fontWeight: FontWeight.bold,
                                       fontSize: 12)),
@@ -337,6 +375,7 @@ class _ObraDetailScreenState extends State<ObraDetailScreen> {
       ),
     );
 
+    porcentajeController.dispose();
     observacionesController.dispose();
 
     if (confirmado == true && mounted) {
@@ -344,7 +383,7 @@ class _ObraDetailScreenState extends State<ObraDetailScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-              content: Text('Actividad completada correctamente'),
+              content: Text('Avance registrado correctamente'),
               backgroundColor: Colors.green),
         );
       }
@@ -371,6 +410,12 @@ class _ObraDetailScreenState extends State<ObraDetailScreen> {
     } catch (_) {
       return fechaStr;
     }
+  }
+
+  void _showError(String msg) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(msg), backgroundColor: AppColors.estadoRojo));
   }
 
   // ─── Build Principal ───
@@ -442,153 +487,208 @@ class _ObraDetailScreenState extends State<ObraDetailScreen> {
       'Personalizado',
     ];
 
-    return SizedBox(
-      height: 42,
-      child: ListView.separated(
-        scrollDirection: Axis.horizontal,
-        itemCount: opciones.length,
-        separatorBuilder: (_, __) => const SizedBox(width: 8),
-        itemBuilder: (context, index) {
-          final opcion = opciones[index];
-          final isSelected = _tipoReporte == opcion;
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        // En móvil, hacemos que los botones ocupen el ancho disponible de forma equitativa
+        final isMobile = constraints.maxWidth < 500;
 
-          return GestureDetector(
-            onTap: () async {
-              if (opcion == 'Personalizado') {
-                final ThemeData originalTheme = Theme.of(context);
-                final DateTimeRange? picked = await showDateRangePicker(
-                  context: context,
-                  firstDate: DateTime(2020),
-                  lastDate: DateTime.now(),
-                  initialDateRange: _rangoPersonalizado,
-                  initialEntryMode: DatePickerEntryMode.calendar,
-                  helpText: 'Selecciona el rango de fechas',
-                  cancelText: 'Cancelar',
-                  confirmText: 'Aceptar',
-                  fieldStartLabelText: 'Fecha inicio',
-                  fieldEndLabelText: 'Fecha fin',
-                  fieldStartHintText: 'dd/mm/aaaa',
-                  fieldEndHintText: 'dd/mm/aaaa',
-                  builder: (context, child) {
-                    return Theme(
-                      data: originalTheme.copyWith(
-                        colorScheme: originalTheme.colorScheme.copyWith(
-                          primary: AppColors.naranja,
-                          surface: Colors.white,
-                          onSurface: Colors.black87,
-                        ),
-                        dialogBackgroundColor: Colors.white,
-                        inputDecorationTheme: InputDecorationTheme(
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(8),
-                            borderSide: const BorderSide(color: AppColors.gris),
-                          ),
-                          focusedBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(8),
-                            borderSide:
-                                const BorderSide(color: AppColors.naranja, width: 2),
-                          ),
-                        ),
-                        datePickerTheme: DatePickerThemeData(
-                          backgroundColor: Colors.white,
-                          headerBackgroundColor: AppColors.naranja,
-                          headerForegroundColor: Colors.white,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(16),
-                          ),
-                          rangeSelectionBackgroundColor:
-                              AppColors.naranja.withValues(alpha: 0.2),
-                          todayForegroundColor:
-                              WidgetStateProperty.all(AppColors.naranja),
-                          headerHeadlineStyle: const TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.white,
-                          ),
-                          headerHelpStyle: const TextStyle(
-                            fontSize: 12,
-                            color: Colors.white70,
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
-                      ),
-                      child: Center(
-                        child: ConstrainedBox(
-                          constraints: const BoxConstraints(
-                            maxWidth: 540,
-                            maxHeight: 640,
-                          ),
-                          child: ClipRRect(
-                            borderRadius: BorderRadius.circular(16),
-                            child: MediaQuery(
-                              data: MediaQuery.of(context)
-                                  .copyWith(textScaler: const TextScaler.linear(1.0)),
-                              child: Directionality(
-                                textDirection: TextDirection.ltr,
-                                child: Align(
-                                  alignment: Alignment.center,
-                                  child: child!,
-                                ),
-                              ),
-                            ),
-                          ),
-                        ),
-                      ),
-                    );
-                  },
-                );
-
-                if (picked != null) {
-                  setState(() {
-                    _rangoPersonalizado = picked;
-                    _tipoReporte = opcion;
-                  });
-                }
-              } else {
-                setState(() {
-                  _tipoReporte = opcion;
-                  _rangoPersonalizado = null;
-                });
-              }
-            },
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              alignment: Alignment.center,
-              decoration: BoxDecoration(
-                color: isSelected ? AppColors.naranja : AppColors.blanco,
-                borderRadius: BorderRadius.circular(21),
-                border: Border.all(
-                  color: isSelected ? AppColors.naranja : AppColors.gris,
-                  width: 1.2,
-                ),
-              ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  if (opcion == 'Personalizado')
-                    Padding(
-                      padding: const EdgeInsets.only(right: 6),
-                      child: Icon(
-                        Icons.date_range,
-                        size: 14,
-                        color: isSelected ? Colors.white : AppColors.textoGris,
-                      ),
-                    ),
-                  Text(
-                    opcion,
-                    style: TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.bold,
-                      color: isSelected ? Colors.white : AppColors.textoGris,
+        if (isMobile) {
+          return Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: opciones.map((opcion) {
+              final isSelected = _tipoReporte == opcion;
+              return GestureDetector(
+                onTap: () async {
+                  await _handleSelectorTap(opcion);
+                },
+                child: Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  decoration: BoxDecoration(
+                    color: isSelected ? AppColors.naranja : AppColors.blanco,
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(
+                      color: isSelected ? AppColors.naranja : AppColors.gris,
+                      width: 1.2,
                     ),
                   ),
-                ],
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      if (opcion == 'Personalizado')
+                        Padding(
+                          padding: const EdgeInsets.only(right: 4),
+                          child: Icon(
+                            Icons.date_range,
+                            size: 12,
+                            color: isSelected
+                                ? Colors.white
+                                : AppColors.textoGris,
+                          ),
+                        ),
+                      Text(
+                        opcion,
+                        style: TextStyle(
+                          fontSize: 11,
+                          fontWeight: FontWeight.bold,
+                          color: isSelected
+                              ? Colors.white
+                              : AppColors.textoGris,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              );
+            }).toList(),
+          );
+        }
+
+        return Wrap(
+          spacing: 8,
+          runSpacing: 8,
+          children: opciones.map((opcion) {
+            final isSelected = _tipoReporte == opcion;
+            return GestureDetector(
+              onTap: () async {
+                await _handleSelectorTap(opcion);
+              },
+              child: Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                decoration: BoxDecoration(
+                  color: isSelected ? AppColors.naranja : AppColors.blanco,
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(
+                    color: isSelected ? AppColors.naranja : AppColors.gris,
+                    width: 1.2,
+                  ),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    if (opcion == 'Personalizado')
+                      Padding(
+                        padding: const EdgeInsets.only(right: 4),
+                        child: Icon(
+                          Icons.date_range,
+                          size: 14,
+                          color: isSelected
+                              ? Colors.white
+                              : AppColors.textoGris,
+                        ),
+                      ),
+                    Text(
+                      opcion,
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.bold,
+                        color:
+                            isSelected ? Colors.white : AppColors.textoGris,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            );
+          }).toList(),
+        );
+      },
+    );
+  }
+
+  Future<void> _handleSelectorTap(String opcion) async {
+    if (opcion == 'Personalizado') {
+      final ThemeData originalTheme = Theme.of(context);
+
+      // ─── FORZAMOS EL CALENDARIO FLOTANTE Y EN 2 COLUMNAS ───
+      final DateTimeRange? picked = await showDialog<DateTimeRange>(
+        context: context,
+        builder: (BuildContext context) {
+          return Dialog(
+            backgroundColor: Colors.transparent,
+            insetPadding: const EdgeInsets.all(16),
+            child: ConstrainedBox(
+              // Estas medidas fuerzan la vista de 2 columnas (la de tu primera foto)
+              constraints: const BoxConstraints(
+                maxWidth: 560, 
+                maxHeight: 640,
+              ),
+              child: Theme(
+                data: originalTheme.copyWith(
+                  colorScheme: const ColorScheme.light(
+                    primary: AppColors.naranja, // Círculo naranja
+                    onPrimary: Colors.white,
+                    surface: Colors.white, // Fondo blanco
+                    onSurface: Colors.black87, // Texto negro
+                  ),
+                  dialogBackgroundColor: Colors.white,
+                  textButtonTheme: TextButtonThemeData(
+                    style: TextButton.styleFrom(
+                      foregroundColor: AppColors.naranja, // Botones inferiores
+                      textStyle: const TextStyle(fontWeight: FontWeight.bold),
+                    ),
+                  ),
+                  // Aquí aplicamos los estilos específicos para que se vea idéntico a tu foto
+                  datePickerTheme: DatePickerThemeData(
+                    backgroundColor: Colors.white,
+                    headerBackgroundColor: Colors.white,
+                    headerForegroundColor: Colors.black87,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                    // El naranja claro para cuando seleccionas varios días
+                    rangeSelectionBackgroundColor: AppColors.naranja.withOpacity(0.2),
+                    todayForegroundColor: WidgetStateProperty.all(AppColors.naranja),
+                    // Estilo de los textos superiores (fecha seleccionada)
+                    headerHeadlineStyle: const TextStyle(
+                      fontSize: 24, // Más grande como en tu foto
+                      fontWeight: FontWeight.bold,
+                      color: Colors.black87,
+                    ),
+                    headerHelpStyle: const TextStyle(
+                      fontSize: 12,
+                      color: Colors.black54,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ),
+                // Usamos el diálogo nativo pero forzado dentro de nuestro ConstrainedBox
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(16),
+                  child: DateRangePickerDialog(
+                    firstDate: DateTime(2020),
+                    lastDate: DateTime.now().add(const Duration(days: 365)),
+                    initialDateRange: _rangoPersonalizado,
+                    currentDate: DateTime.now(),
+                    helpText: 'Selecciona una fecha',
+                    cancelText: 'Cancelar',
+                    confirmText: 'ACEPTAR',
+                    fieldStartLabelText: 'Fecha inicio',
+                    fieldEndLabelText: 'Fecha fin',
+                    fieldStartHintText: 'dd/mm/aaaa',
+                    fieldEndHintText: 'dd/mm/aaaa',
+                  ),
+                ),
               ),
             ),
           );
         },
-      ),
-    );
+      );
+
+      if (picked != null) {
+        setState(() {
+          _rangoPersonalizado = picked;
+          _tipoReporte = opcion;
+        });
+      }
+    } else {
+      setState(() {
+        _tipoReporte = opcion;
+        _rangoPersonalizado = null;
+      });
+    }
   }
 
   // ─── Widgets de UI ───
@@ -835,11 +935,13 @@ class _ObraDetailScreenState extends State<ObraDetailScreen> {
     );
   }
 
+  // ─── Action bar responsive mejorado para móviles ───
   Widget _buildActionBar() {
     return LayoutBuilder(
       builder: (context, constraints) {
         final compact = constraints.maxWidth < 560;
 
+        // Alineamos el dropdown y el botón para que no dejen huecos
         final controls = Row(
           children: [
             Expanded(
@@ -886,7 +988,7 @@ class _ObraDetailScreenState extends State<ObraDetailScreen> {
                     ),
                     const SizedBox(width: 16),
                     SizedBox(
-                      width: 340,
+                      width: 340, // Ancho fijo para escritorio
                       child: controls,
                     ),
                   ],
@@ -995,27 +1097,26 @@ class _ObraDetailScreenState extends State<ObraDetailScreen> {
           );
         }
 
-        int columns;
+        // En escritorio mantenemos un ancho fijo o fluido
         if (constraints.maxWidth > 900) {
-          columns = 4;
-        } else if (constraints.maxWidth > 600) {
-          columns = 4;
-        } else {
-          columns = 2;
+          return Wrap(
+            spacing: 12,
+            runSpacing: 12,
+            children: _fases
+                .map((fase) =>
+                    SizedBox(width: 200, child: _buildFaseCard(fase)))
+                .toList(),
+          );
         }
 
-        const spacing = 12.0;
-        final cardWidth =
-            (constraints.maxWidth - (spacing * (columns - 1))) / columns;
-
+        // En móvil, mostramos las tarjetas al 100% de ancho para que respiren mejor
+        const spacing = 8.0;
         return Wrap(
           spacing: spacing,
           runSpacing: spacing,
           children: _fases
               .map((fase) => SizedBox(
-                    width: cardWidth,
-                    child: _buildFaseCard(fase),
-                  ))
+                  width: constraints.maxWidth, child: _buildFaseCard(fase)))
               .toList(),
         );
       },
@@ -1090,82 +1191,136 @@ class _ObraDetailScreenState extends State<ObraDetailScreen> {
             ? Icons.timelapse
             : Icons.schedule;
 
-    return Container(
-      margin: const EdgeInsets.only(bottom: 8),
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: AppColors.bordeSuave)),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // ─── FILA SUPERIOR: FASE, ESTADO y BOTÓN ALINEADO A LA DERECHA ───
-          Row(
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final isMobile = constraints.maxWidth < 450;
+
+        return Container(
+          margin: const EdgeInsets.only(bottom: 12),
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: AppColors.bordeSuave)),
+          child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Expanded(
-                child: Wrap(
-                  spacing: 8,
-                  runSpacing: 6,
-                  crossAxisAlignment: WrapCrossAlignment.center,
-                  children: [
-                    ConstrainedBox(
-                      constraints: const BoxConstraints(maxWidth: 220),
-                      child: _buildBadge(actividad['fase'], AppColors.naranja,
-                          isOutlined: true),
-                    ),
-                    _buildBadge(estado, colorEstado, icon: iconoEstado),
-                  ],
-                ),
+              Wrap(
+                // Usamos Wrap para que los badges bajen de línea si no caben
+                spacing: 8,
+                runSpacing: 8,
+                crossAxisAlignment: WrapCrossAlignment.center,
+                children: [
+                  _buildBadge(actividad['fase'], AppColors.naranja,
+                      isOutlined: true),
+                  _buildBadge(estado, colorEstado, icon: iconoEstado),
+                ],
               ),
-              if (!completada && _puedeRegistrarAvance)
-                Padding(
-                  padding: const EdgeInsets.only(left: 8.0),
-                  child: ElevatedButton.icon(
-                    onPressed: () => _registrarAvance(actividad),
-                    icon: const Icon(Icons.check, size: 16),
-                    label: const Text('Marcar como completada',
-                        style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
-                    style: ElevatedButton.styleFrom(
-                        backgroundColor: AppColors.naranja,
-                        foregroundColor: Colors.white,
-                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                        shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(20))),
-                  ),
+              const SizedBox(height: 12),
+              Text(actividad['titulo'],
+                  style: const TextStyle(
+                      fontWeight: FontWeight.bold, fontSize: 16)),
+              const SizedBox(height: 6),
+              Text(actividad['descripcion'],
+                  style: const TextStyle(
+                      fontSize: 12, color: AppColors.gris, height: 1.4)),
+              const SizedBox(height: 12),
+              _buildIconText(Icons.person, actividad['responsable']),
+              const SizedBox(height: 4),
+              _buildIconText(Icons.calendar_today, actividad['programado']),
+              const SizedBox(height: 12),
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                    color: AppColors.naranja.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(
+                        color: AppColors.naranja.withValues(alpha: 0.3))),
+                child: Text('Último reporte: "${actividad['reporte']}"',
+                    style: const TextStyle(
+                        fontSize: 11,
+                        color: AppColors.naranja,
+                        fontStyle: FontStyle.italic)),
+              ),
+              const SizedBox(height: 16),
+              // En móvil, el botón de avance baja y ocupa todo el ancho
+              if (isMobile)
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    _buildAvanceInfo(actividad),
+                    const SizedBox(height: 12),
+                    _buildBotonAvance(actividad),
+                  ],
+                )
+              else
+                Row(
+                  children: [
+                    Expanded(child: _buildAvanceInfo(actividad)),
+                    const SizedBox(width: 16),
+                    _buildBotonAvance(actividad),
+                  ],
                 ),
             ],
           ),
-          const SizedBox(height: 12),
-          Text(actividad['titulo'],
-              style: const TextStyle(
-                  fontWeight: FontWeight.bold, fontSize: 16)),
-          const SizedBox(height: 6),
-          Text(actividad['descripcion'],
-              style: const TextStyle(
-                  fontSize: 12, color: AppColors.gris, height: 1.4)),
-          const SizedBox(height: 12),
-          _buildIconText(Icons.person, actividad['responsable']),
-          const SizedBox(height: 4),
-          _buildIconText(Icons.calendar_today, actividad['programado']),
-          const SizedBox(height: 12),
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.all(10),
-            decoration: BoxDecoration(
-                color: AppColors.naranja.withValues(alpha: 0.1),
-                borderRadius: BorderRadius.circular(8),
-                border: Border.all(
-                    color: AppColors.naranja.withValues(alpha: 0.3))),
-            child: Text('Detalles: "${actividad['reporte']}"',
+        );
+      },
+    );
+  }
+
+  // Separamos la info de avance para no repetir código
+  Widget _buildAvanceInfo(Map<String, dynamic> actividad) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text('Avance actual',
+            style: TextStyle(fontSize: 10, color: AppColors.gris)),
+        const SizedBox(height: 4),
+        Row(
+          children: [
+            Expanded(
+              child: Container(
+                decoration: BoxDecoration(
+                    border: Border.all(color: Colors.grey.shade300),
+                    borderRadius: BorderRadius.circular(4)),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(4),
+                  child: LinearProgressIndicator(
+                    value: actividad['avance'],
+                    backgroundColor: Colors.grey.shade100,
+                    valueColor: AlwaysStoppedAnimation<Color>(
+                        actividad['isCompleted'] == true
+                            ? Colors.green
+                            : AppColors.naranja),
+                    minHeight: 10,
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(width: 8),
+            Text('${(actividad['avance'] * 100).toInt()}%',
                 style: const TextStyle(
-                    fontSize: 11,
-                    color: AppColors.naranja,
-                    fontStyle: FontStyle.italic)),
-          ),
-        ],
-      ),
+                    fontWeight: FontWeight.bold, fontSize: 13)),
+          ],
+        ),
+      ],
+    );
+  }
+
+  // Separamos el botón para no repetir código
+  Widget _buildBotonAvance(Map<String, dynamic> actividad) {
+    return ElevatedButton(
+      onPressed:
+          _puedeRegistrarAvance ? () => _registrarAvance(actividad) : null,
+      style: ElevatedButton.styleFrom(
+          backgroundColor: AppColors.naranja,
+          foregroundColor: Colors.white,
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+          shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(20))),
+      child: const Text('Registrar avance',
+          style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
     );
   }
 
