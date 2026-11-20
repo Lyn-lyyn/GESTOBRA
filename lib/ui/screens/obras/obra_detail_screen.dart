@@ -178,15 +178,12 @@ class _ObraDetailScreenState extends State<ObraDetailScreen> {
     }
   }
 
-  // ─── Registrar Avance ───
+  // ─── Registrar Avance (NUEVO FLUJO) ───
   Future<void> _registrarAvance(Map<String, dynamic> actividad) async {
     final idActividad =
         int.tryParse(actividad['id_actividad']?.toString() ?? '') ?? 0;
     if (idActividad <= 0) return;
 
-    final avanceActual = ((actividad['avance'] as num?)?.toDouble() ?? 0) * 100;
-    final porcentajeController =
-        TextEditingController(text: avanceActual.toStringAsFixed(0));
     final observacionesController = TextEditingController();
 
     final confirmado = await showDialog<bool>(
@@ -214,21 +211,22 @@ class _ObraDetailScreenState extends State<ObraDetailScreen> {
                         Container(
                           padding: const EdgeInsets.all(8),
                           decoration: BoxDecoration(
-                              color: AppColors.naranja,
+                              color: Colors.green.shade700,
                               borderRadius: BorderRadius.circular(8)),
-                          child: const Icon(Icons.trending_up,
+                          child: const Icon(Icons.check_circle,
                               color: Colors.white, size: 24),
                         ),
                         const SizedBox(width: 12),
                         const Expanded(
-                          child: Text('Registrar avance',
+                          child: Text('Completar actividad',
                               style: TextStyle(
                                   fontSize: 16, fontWeight: FontWeight.bold)),
                         ),
                         IconButton(
                           icon: const Icon(Icons.close),
-                          onPressed:
-                              guardando ? null : () => Navigator.pop(ctx, false),
+                          onPressed: guardando
+                              ? null
+                              : () => Navigator.pop(ctx, false),
                         ),
                       ],
                     ),
@@ -237,32 +235,7 @@ class _ObraDetailScreenState extends State<ObraDetailScreen> {
                         style: const TextStyle(
                             fontWeight: FontWeight.bold, fontSize: 14)),
                     const SizedBox(height: 16),
-                    const Text('Avance (%) *',
-                        style: TextStyle(
-                            fontSize: 12,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.black87)),
-                    const SizedBox(height: 6),
-                    Container(
-                      decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(8),
-                          border: Border.all(color: AppColors.naranja)),
-                      child: TextFormField(
-                        controller: porcentajeController,
-                        keyboardType: const TextInputType.numberWithOptions(
-                            decimal: true),
-                        style: const TextStyle(fontSize: 13),
-                        decoration: const InputDecoration(
-                            hintText: 'Ej. 50',
-                            border: InputBorder.none,
-                            contentPadding: EdgeInsets.symmetric(
-                                horizontal: 12, vertical: 14),
-                            isDense: true),
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-                    const Text('Observaciones',
+                    const Text('Observaciones (opcional)',
                         style: TextStyle(
                             fontSize: 12,
                             fontWeight: FontWeight.bold,
@@ -278,7 +251,8 @@ class _ObraDetailScreenState extends State<ObraDetailScreen> {
                         maxLines: 3,
                         style: const TextStyle(fontSize: 13),
                         decoration: const InputDecoration(
-                            hintText: 'Ej. Se terminó la cimentación',
+                            hintText:
+                                'Ej. Se terminó la cimbra y se retiró el material',
                             border: InputBorder.none,
                             contentPadding: EdgeInsets.symmetric(
                                 horizontal: 12, vertical: 14),
@@ -290,11 +264,13 @@ class _ObraDetailScreenState extends State<ObraDetailScreen> {
                       mainAxisAlignment: MainAxisAlignment.end,
                       children: [
                         OutlinedButton(
-                          onPressed:
-                              guardando ? null : () => Navigator.pop(ctx, false),
+                          onPressed: guardando
+                              ? null
+                              : () => Navigator.pop(ctx, false),
                           style: OutlinedButton.styleFrom(
                             foregroundColor: AppColors.gris,
-                            side: const BorderSide(color: AppColors.bordeSuave),
+                            side:
+                                const BorderSide(color: AppColors.bordeSuave),
                             padding: const EdgeInsets.symmetric(horizontal: 24),
                             shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(8)),
@@ -308,32 +284,22 @@ class _ObraDetailScreenState extends State<ObraDetailScreen> {
                           onPressed: guardando
                               ? null
                               : () async {
-                                  final porcentaje = double.tryParse(
-                                      porcentajeController.text.trim());
-                                  if (porcentaje == null ||
-                                      porcentaje < 0 ||
-                                      porcentaje > 100) {
-                                    ScaffoldMessenger.of(ctx).showSnackBar(
-                                        const SnackBar(
-                                            content: Text(
-                                                'El avance debe ser un número entre 0 y 100.')));
-                                    return;
-                                  }
-
                                   setModal(() => guardando = true);
 
                                   try {
                                     final respuesta = await ApiService.post(
-                                        'actividad_avance.php', {
-                                      'id_actividad': idActividad,
-                                      'porcentaje_nuevo': porcentaje,
-                                      'observaciones':
-                                          observacionesController.text.trim(),
-                                    });
+                                      'actividad_avance.php',
+                                      {
+                                        'id_actividad': idActividad,
+                                        'observaciones': observacionesController
+                                            .text
+                                            .trim(),
+                                      },
+                                    );
 
                                     if (respuesta['estado'] != true) {
                                       throw Exception(respuesta['mensaje'] ??
-                                          'No se pudo registrar el avance');
+                                          'No se pudo completar la actividad');
                                     }
 
                                     Navigator.pop(ctx, true);
@@ -347,7 +313,7 @@ class _ObraDetailScreenState extends State<ObraDetailScreen> {
                                   }
                                 },
                           style: ElevatedButton.styleFrom(
-                            backgroundColor: AppColors.naranja,
+                            backgroundColor: Colors.green.shade700,
                             foregroundColor: Colors.white,
                             padding: const EdgeInsets.symmetric(horizontal: 24),
                             shape: RoundedRectangleBorder(
@@ -359,7 +325,7 @@ class _ObraDetailScreenState extends State<ObraDetailScreen> {
                                   height: 18,
                                   child: CircularProgressIndicator(
                                       color: Colors.white, strokeWidth: 2))
-                              : const Text('GUARDAR',
+                              : const Text('MARCAR COMO COMPLETADA',
                                   style: TextStyle(
                                       fontWeight: FontWeight.bold,
                                       fontSize: 12)),
@@ -375,7 +341,6 @@ class _ObraDetailScreenState extends State<ObraDetailScreen> {
       ),
     );
 
-    porcentajeController.dispose();
     observacionesController.dispose();
 
     if (confirmado == true && mounted) {
@@ -383,11 +348,105 @@ class _ObraDetailScreenState extends State<ObraDetailScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-              content: Text('Avance registrado correctamente'),
+              content: Text('Actividad completada correctamente'),
               backgroundColor: Colors.green),
         );
       }
     }
+  }
+
+  // ─── Ver Historial ───
+  Future<void> _verHistorial(Map<String, dynamic> actividad) async {
+    final idActividad =
+        int.tryParse(actividad['id_actividad']?.toString() ?? '') ?? 0;
+    if (idActividad <= 0) return;
+
+    showDialog(
+      context: context,
+      builder: (ctx) => FutureBuilder<Map<String, dynamic>>(
+        future: ApiService.get(
+            'actividad_historial.php?id_actividad=$idActividad'),
+        builder: (ctx, snapshot) {
+          if (!snapshot.hasData) {
+            return const Center(child: CircularProgressIndicator());
+          }
+          final resp = snapshot.data!;
+          if (resp['estado'] != true) {
+            return AlertDialog(content: Text(resp['mensaje'] ?? 'Error'));
+          }
+          final List historial = resp['data'] ?? [];
+          if (historial.isEmpty) {
+            return const AlertDialog(content: Text('Sin historial'));
+          }
+
+          return Dialog(
+            shape:
+                RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 500, maxHeight: 600),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.all(16.0),
+                    child: Row(
+                      children: [
+                        const Expanded(
+                          child: Text('Historial de reportes',
+                              style: TextStyle(
+                                  fontWeight: FontWeight.bold, fontSize: 16)),
+                        ),
+                        IconButton(
+                            icon: const Icon(Icons.close),
+                            onPressed: () => Navigator.pop(ctx)),
+                      ],
+                    ),
+                  ),
+                  const Divider(height: 1),
+                  Flexible(
+                    child: ListView.separated(
+                      shrinkWrap: true,
+                      padding: const EdgeInsets.all(16),
+                      itemCount: historial.length,
+                      separatorBuilder: (_, __) => const Divider(),
+                      itemBuilder: (_, i) {
+                        final h = historial[i];
+                        return ListTile(
+                          leading: CircleAvatar(
+                            backgroundColor: Colors.green.shade50,
+                            child: Icon(Icons.check,
+                                color: Colors.green.shade700, size: 18),
+                          ),
+                          title: Text(
+                            '${h['porcentaje_anterior']}% → ${h['porcentaje_nuevo']}%',
+                            style: const TextStyle(
+                                fontWeight: FontWeight.bold, fontSize: 13),
+                          ),
+                          subtitle: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const SizedBox(height: 4),
+                              Text(h['observaciones'] ?? 'Sin observaciones',
+                                  style: const TextStyle(fontSize: 12)),
+                              const SizedBox(height: 4),
+                              Text(
+                                '${h['fecha_registro']} · ${h['registrado_por'] ?? 'N/A'}',
+                                style: const TextStyle(
+                                    fontSize: 10, color: AppColors.gris),
+                              ),
+                            ],
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          );
+        },
+      ),
+    );
   }
 
   // ─── Helpers ───
@@ -455,7 +514,6 @@ class _ObraDetailScreenState extends State<ObraDetailScreen> {
                   ),
                 )
               : SingleChildScrollView(
-                  // En móvil reducimos un poco el padding general
                   padding: const EdgeInsets.all(12.0),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -489,7 +547,6 @@ class _ObraDetailScreenState extends State<ObraDetailScreen> {
 
     return LayoutBuilder(
       builder: (context, constraints) {
-        // En móvil, hacemos que los botones ocupen el ancho disponible de forma equitativa
         final isMobile = constraints.maxWidth < 500;
 
         if (isMobile) {
@@ -602,7 +659,6 @@ class _ObraDetailScreenState extends State<ObraDetailScreen> {
     if (opcion == 'Personalizado') {
       final ThemeData originalTheme = Theme.of(context);
 
-      // ─── FORZAMOS EL CALENDARIO FLOTANTE Y EN 2 COLUMNAS ───
       final DateTimeRange? picked = await showDialog<DateTimeRange>(
         context: context,
         builder: (BuildContext context) {
@@ -610,27 +666,25 @@ class _ObraDetailScreenState extends State<ObraDetailScreen> {
             backgroundColor: Colors.transparent,
             insetPadding: const EdgeInsets.all(16),
             child: ConstrainedBox(
-              // Estas medidas fuerzan la vista de 2 columnas (la de tu primera foto)
               constraints: const BoxConstraints(
-                maxWidth: 560, 
+                maxWidth: 560,
                 maxHeight: 640,
               ),
               child: Theme(
                 data: originalTheme.copyWith(
                   colorScheme: const ColorScheme.light(
-                    primary: AppColors.naranja, // Círculo naranja
+                    primary: AppColors.naranja,
                     onPrimary: Colors.white,
-                    surface: Colors.white, // Fondo blanco
-                    onSurface: Colors.black87, // Texto negro
+                    surface: Colors.white,
+                    onSurface: Colors.black87,
                   ),
                   dialogBackgroundColor: Colors.white,
                   textButtonTheme: TextButtonThemeData(
                     style: TextButton.styleFrom(
-                      foregroundColor: AppColors.naranja, // Botones inferiores
+                      foregroundColor: AppColors.naranja,
                       textStyle: const TextStyle(fontWeight: FontWeight.bold),
                     ),
                   ),
-                  // Aquí aplicamos los estilos específicos para que se vea idéntico a tu foto
                   datePickerTheme: DatePickerThemeData(
                     backgroundColor: Colors.white,
                     headerBackgroundColor: Colors.white,
@@ -638,12 +692,12 @@ class _ObraDetailScreenState extends State<ObraDetailScreen> {
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(16),
                     ),
-                    // El naranja claro para cuando seleccionas varios días
-                    rangeSelectionBackgroundColor: AppColors.naranja.withOpacity(0.2),
-                    todayForegroundColor: WidgetStateProperty.all(AppColors.naranja),
-                    // Estilo de los textos superiores (fecha seleccionada)
+                    rangeSelectionBackgroundColor:
+                        AppColors.naranja.withOpacity(0.2),
+                    todayForegroundColor:
+                        WidgetStateProperty.all(AppColors.naranja),
                     headerHeadlineStyle: const TextStyle(
-                      fontSize: 24, // Más grande como en tu foto
+                      fontSize: 24,
                       fontWeight: FontWeight.bold,
                       color: Colors.black87,
                     ),
@@ -654,7 +708,6 @@ class _ObraDetailScreenState extends State<ObraDetailScreen> {
                     ),
                   ),
                 ),
-                // Usamos el diálogo nativo pero forzado dentro de nuestro ConstrainedBox
                 child: ClipRRect(
                   borderRadius: BorderRadius.circular(16),
                   child: DateRangePickerDialog(
@@ -910,7 +963,6 @@ class _ObraDetailScreenState extends State<ObraDetailScreen> {
 
     return LayoutBuilder(
       builder: (context, constraints) {
-        // En móvil, si la pantalla es menor a 500px, usamos 2 filas
         if (constraints.maxWidth < 500) {
           const spacing = 6.0;
           final tabWidth = (constraints.maxWidth - spacing * 2) / 3;
@@ -935,13 +987,11 @@ class _ObraDetailScreenState extends State<ObraDetailScreen> {
     );
   }
 
-  // ─── Action bar responsive mejorado para móviles ───
   Widget _buildActionBar() {
     return LayoutBuilder(
       builder: (context, constraints) {
         final compact = constraints.maxWidth < 560;
 
-        // Alineamos el dropdown y el botón para que no dejen huecos
         final controls = Row(
           children: [
             Expanded(
@@ -988,7 +1038,7 @@ class _ObraDetailScreenState extends State<ObraDetailScreen> {
                     ),
                     const SizedBox(width: 16),
                     SizedBox(
-                      width: 340, // Ancho fijo para escritorio
+                      width: 340,
                       child: controls,
                     ),
                   ],
@@ -1097,7 +1147,6 @@ class _ObraDetailScreenState extends State<ObraDetailScreen> {
           );
         }
 
-        // En escritorio mantenemos un ancho fijo o fluido
         if (constraints.maxWidth > 900) {
           return Wrap(
             spacing: 12,
@@ -1109,7 +1158,6 @@ class _ObraDetailScreenState extends State<ObraDetailScreen> {
           );
         }
 
-        // En móvil, mostramos las tarjetas al 100% de ancho para que respiren mejor
         const spacing = 8.0;
         return Wrap(
           spacing: spacing,
@@ -1143,8 +1191,7 @@ class _ObraDetailScreenState extends State<ObraDetailScreen> {
     }
 
     return Container(
-      margin: const EdgeInsets.symmetric(
-          horizontal: 0), // Sin margen extra, usamos spacing
+      margin: const EdgeInsets.symmetric(horizontal: 0),
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
           color: AppColors.blanco,
@@ -1173,12 +1220,10 @@ class _ObraDetailScreenState extends State<ObraDetailScreen> {
     );
   }
 
-  Widget _buildActividadCard(Map<String, dynamic> actividad) {
+    Widget _buildActividadCard(Map<String, dynamic> actividad) {
     final estado = (actividad['estado'] ?? 'PENDIENTE').toString();
-    final avance = (actividad['avance'] as num?)?.toDouble() ?? 0;
-    final completada = actividad['isCompleted'] == true || avance >= 1;
-    final enProgreso =
-        !completada && (avance > 0 || estado.toUpperCase().contains('PROGRESO'));
+    final completada = actividad['isCompleted'] == true;
+    final enProgreso = !completada && estado.toUpperCase().contains('PROGRESO');
 
     final colorEstado = completada
         ? Colors.green.shade700
@@ -1191,136 +1236,143 @@ class _ObraDetailScreenState extends State<ObraDetailScreen> {
             ? Icons.timelapse
             : Icons.schedule;
 
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final isMobile = constraints.maxWidth < 450;
-
-        return Container(
-          margin: const EdgeInsets.only(bottom: 12),
-          padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: AppColors.bordeSuave)),
-          child: Column(
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: AppColors.bordeSuave)),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // ─── FILA SUPERIOR: BADGES Y BOTÓN ───
+          Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Wrap(
-                // Usamos Wrap para que los badges bajen de línea si no caben
-                spacing: 8,
-                runSpacing: 8,
-                crossAxisAlignment: WrapCrossAlignment.center,
-                children: [
-                  _buildBadge(actividad['fase'], AppColors.naranja,
-                      isOutlined: true),
-                  _buildBadge(estado, colorEstado, icon: iconoEstado),
-                ],
-              ),
-              const SizedBox(height: 12),
-              Text(actividad['titulo'],
-                  style: const TextStyle(
-                      fontWeight: FontWeight.bold, fontSize: 16)),
-              const SizedBox(height: 6),
-              Text(actividad['descripcion'],
-                  style: const TextStyle(
-                      fontSize: 12, color: AppColors.gris, height: 1.4)),
-              const SizedBox(height: 12),
-              _buildIconText(Icons.person, actividad['responsable']),
-              const SizedBox(height: 4),
-              _buildIconText(Icons.calendar_today, actividad['programado']),
-              const SizedBox(height: 12),
-              Container(
-                width: double.infinity,
-                padding: const EdgeInsets.all(10),
-                decoration: BoxDecoration(
-                    color: AppColors.naranja.withValues(alpha: 0.1),
-                    borderRadius: BorderRadius.circular(8),
-                    border: Border.all(
-                        color: AppColors.naranja.withValues(alpha: 0.3))),
-                child: Text('Último reporte: "${actividad['reporte']}"',
-                    style: const TextStyle(
-                        fontSize: 11,
-                        color: AppColors.naranja,
-                        fontStyle: FontStyle.italic)),
-              ),
-              const SizedBox(height: 16),
-              // En móvil, el botón de avance baja y ocupa todo el ancho
-              if (isMobile)
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
+              // Badges a la izquierda (usan Expanded para que hagan wrap si no caben)
+              Expanded(
+                child: Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  crossAxisAlignment: WrapCrossAlignment.center,
                   children: [
-                    _buildAvanceInfo(actividad),
-                    const SizedBox(height: 12),
-                    _buildBotonAvance(actividad),
+                    _buildBadge(actividad['fase'], AppColors.naranja, isOutlined: true),
+                    _buildBadge(estado, colorEstado, icon: iconoEstado),
                   ],
-                )
-              else
-                Row(
-                  children: [
-                    Expanded(child: _buildAvanceInfo(actividad)),
-                    const SizedBox(width: 16),
-                    _buildBotonAvance(actividad),
-                  ],
+                ),
+              ),
+              // Botón a la derecha (solo si NO está completada)
+              if (!completada && _puedeRegistrarAvance)
+                Padding(
+                  padding: const EdgeInsets.only(left: 8.0),
+                  child: _buildBotonAvance(actividad),
                 ),
             ],
           ),
-        );
-      },
+          
+          const SizedBox(height: 12),
+          Text(actividad['titulo'],
+              style: const TextStyle(
+                  fontWeight: FontWeight.bold, fontSize: 16)),
+          const SizedBox(height: 6),
+          Text(actividad['descripcion'],
+              style: const TextStyle(
+                  fontSize: 12, color: AppColors.gris, height: 1.4)),
+          const SizedBox(height: 12),
+          _buildIconText(Icons.person, actividad['responsable']),
+          const SizedBox(height: 4),
+          _buildIconText(Icons.calendar_today, actividad['programado']),
+          const SizedBox(height: 12),
+          
+          // ─── ÚLTIMO REPORTE ───
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(10),
+            decoration: BoxDecoration(
+                color: AppColors.naranja.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(
+                    color: AppColors.naranja.withValues(alpha: 0.3))),
+            child: Text('Último reporte: "${actividad['reporte']}"',
+                style: const TextStyle(
+                    fontSize: 11,
+                    color: AppColors.naranja,
+                    fontStyle: FontStyle.italic)),
+          ),
+          
+          // ─── VER HISTORIAL ───
+          if (completada)
+            Align(
+              alignment: Alignment.centerRight,
+              child: TextButton.icon(
+                onPressed: () => _verHistorial(actividad),
+                icon: const Icon(Icons.history, size: 14),
+                label: const Text('Ver historial', style: TextStyle(fontSize: 11)),
+              ),
+            ),
+        ],
+      ),
     );
   }
-
-  // Separamos la info de avance para no repetir código
   Widget _buildAvanceInfo(Map<String, dynamic> actividad) {
+    final completada = actividad['isCompleted'] == true;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text('Avance actual',
+        const Text('Estado',
             style: TextStyle(fontSize: 10, color: AppColors.gris)),
         const SizedBox(height: 4),
-        Row(
-          children: [
-            Expanded(
-              child: Container(
-                decoration: BoxDecoration(
-                    border: Border.all(color: Colors.grey.shade300),
-                    borderRadius: BorderRadius.circular(4)),
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(4),
-                  child: LinearProgressIndicator(
-                    value: actividad['avance'],
-                    backgroundColor: Colors.grey.shade100,
-                    valueColor: AlwaysStoppedAnimation<Color>(
-                        actividad['isCompleted'] == true
-                            ? Colors.green
-                            : AppColors.naranja),
-                    minHeight: 10,
-                  ),
-                ),
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+          decoration: BoxDecoration(
+              color:
+                  completada ? Colors.green.shade50 : AppColors.noseleccionado,
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(
+                  color: completada
+                      ? Colors.green.shade700
+                      : AppColors.bordeSuave)),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(
+                completada ? Icons.check_circle : Icons.schedule,
+                size: 14,
+                color: completada ? Colors.green.shade700 : AppColors.gris,
               ),
-            ),
-            const SizedBox(width: 8),
-            Text('${(actividad['avance'] * 100).toInt()}%',
-                style: const TextStyle(
-                    fontWeight: FontWeight.bold, fontSize: 13)),
-          ],
+              const SizedBox(width: 4),
+              Text(
+                completada ? 'COMPLETADA' : 'PENDIENTE',
+                style: TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.bold,
+                    color:
+                        completada ? Colors.green.shade700 : AppColors.gris),
+              ),
+            ],
+          ),
         ),
       ],
     );
   }
 
-  // Separamos el botón para no repetir código
   Widget _buildBotonAvance(Map<String, dynamic> actividad) {
-    return ElevatedButton(
+    final completada = actividad['isCompleted'] == true;
+    if (completada) return const SizedBox.shrink();
+
+    return ElevatedButton.icon(
       onPressed:
           _puedeRegistrarAvance ? () => _registrarAvance(actividad) : null,
+      icon: const Icon(Icons.check, size: 16),
+      label: const Text('Marcar como completada',
+          style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
       style: ElevatedButton.styleFrom(
           backgroundColor: AppColors.naranja,
           foregroundColor: Colors.white,
-          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-          shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(20))),
-      child: const Text('Registrar avance',
-          style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(20))),
     );
   }
 
@@ -1461,7 +1513,6 @@ class _ObraDetailScreenState extends State<ObraDetailScreen> {
         BitacoraSection(obra: widget.obra),
         MaterialesSection(obra: widget.obra),
         EvidenciasSection(obra: widget.obra),
-        // AQUÍ PASAMOS LAS FASES REALES AL REPORTE
         ReportesSection(
           obra: widget.obra,
           tipoReporteInicial: _tipoReporte,
