@@ -283,7 +283,7 @@ class _NuevaBitacoraDialogState extends State<_NuevaBitacoraDialog> {
     }
   }
 
-  void _guardar() async {
+    void _guardar() async {
     if (_fechaController.text.trim().isEmpty ||
         _descripcionController.text.trim().isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -299,6 +299,12 @@ class _NuevaBitacoraDialogState extends State<_NuevaBitacoraDialog> {
       builder: (_) => const Center(child: CircularProgressIndicator()),
     );
 
+    // Si hubo retraso pero no escribieron en incidencias, guardamos la causa en el campo de incidencias
+    String incidenciasFinales = _incidenciasController.text.trim();
+    if (_huboRetraso && incidenciasFinales.isEmpty) {
+      incidenciasFinales = "Retraso de ${_horasRetrasoController.text} hrs. Causa: ${_causaRetrasoController.text}";
+    }
+
     final body = {
       'id_obra': widget.idObra,
       'fecha': _fechaController.text.trim(),
@@ -306,18 +312,21 @@ class _NuevaBitacoraDialogState extends State<_NuevaBitacoraDialog> {
       'personal_presente': int.tryParse(_personalController.text) ?? 0,
       'descripcion_jornada': _descripcionController.text.trim(),
       'observaciones': _observacionesController.text.trim(),
-      'incidencias': _incidenciasController.text.trim(),
+      'incidencias': incidenciasFinales, // <--- Mandamos el texto unificado
+      'hubo_retraso': _huboRetraso,      // <--- Mandamos el booleano
+      'horas_retraso': _horasRetrasoController.text.trim(),
+      'causa_retraso': _causaRetrasoController.text.trim(),
     };
 
     final res = await ApiService.post('bitacoras.php', body);
 
     if (!mounted) return;
-    Navigator.pop(context);
+    Navigator.pop(context); // Cierra el spinner
     setState(() => _guardando = false);
 
     if (res['estado'] == true) {
       widget.onGuardar({});
-      Navigator.pop(context);
+      Navigator.pop(context); // Cierra el modal
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -327,7 +336,6 @@ class _NuevaBitacoraDialogState extends State<_NuevaBitacoraDialog> {
       );
     }
   }
-
   @override
   void dispose() {
     _fechaController.dispose();
