@@ -43,12 +43,61 @@ class _AdminIncidenciasScreenState extends State<AdminIncidenciasScreen> {
     }
   }
 
-  Future<void> _cambiarEstado(Map<String, dynamic> incidencia, String nuevoEstado) async {
+    Future<void> _cambiarEstado(Map<String, dynamic> incidencia, String nuevoEstado) async {
+    String solucion = 'Actualizado por administrador';
+    
+    // Si el estado es RESUELTA o CERRADA, pedimos la solución
+    if (nuevoEstado == 'RESUELTA' || nuevoEstado == 'CERRADA') {
+      final TextEditingController solucionController = TextEditingController();
+      
+      final confirmado = await showDialog<bool>(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          title: const Text('Solución de la incidencia'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text('Describe cómo se resolvió o atendió esta incidencia:', style: TextStyle(fontSize: 13)),
+              const SizedBox(height: 12),
+              TextField(
+                controller: solucionController,
+                maxLines: 3,
+                decoration: const InputDecoration(
+                  hintText: 'Ej. Se reemplazó el material dañado...',
+                  border: OutlineInputBorder(),
+                ),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx, false),
+              child: const Text('Cancelar'),
+            ),
+            ElevatedButton(
+              onPressed: () => Navigator.pop(ctx, true),
+              style: ElevatedButton.styleFrom(backgroundColor: AppColors.naranja),
+              child: const Text('Guardar solución'),
+            ),
+          ],
+        ),
+      );
+
+      if (confirmado != true) return; // Si canceló, no hacemos nada
+      
+      if (solucionController.text.trim().isNotEmpty) {
+        solucion = solucionController.text.trim();
+      }
+    }
+
     final res = await ApiService.post('incidencias.php', {
       'id_incidencia': incidencia['id_incidencia'],
       'estado': nuevoEstado,
-      'solucion': 'Actualizado por administrador',
+      'solucion': solucion,
     });
+    
     if (res['estado'] == true) _cargarIncidencias();
   }
 
@@ -134,8 +183,35 @@ class _AdminIncidenciasScreenState extends State<AdminIncidenciasScreen> {
                                       const SizedBox(height: 8),
                                       Text(inc['titulo'], style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
                                       const SizedBox(height: 4),
-                                      Text(inc['descripcion'], style: const TextStyle(color: AppColors.textoGris, fontSize: 13), maxLines: 2, overflow: TextOverflow.ellipsis),
-                                      const Divider(height: 24),
+                                                    Text(inc['descripcion'], style: const TextStyle(color: AppColors.textoGris, fontSize: 13), maxLines: 2, overflow: TextOverflow.ellipsis),
+              
+              // NUEVO: Mostrar la solución si existe
+              if (inc['solucion'] != null && inc['solucion'].toString().isNotEmpty) ...[
+                const SizedBox(height: 8),
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: Colors.green.shade50,
+                    borderRadius: BorderRadius.circular(6),
+                    border: Border.all(color: Colors.green.shade200),
+                  ),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Icon(Icons.check_circle_outline, size: 14, color: Colors.green.shade700),
+                      const SizedBox(width: 6),
+                      Expanded(
+                        child: Text(
+                          'Solución: ${inc['solucion']}',
+                          style: TextStyle(fontSize: 11, color: Colors.green.shade800),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+              
+              const Divider(height: 24),
                                       Row(
                                         children: [
                                           Icon(Icons.report_problem, size: 16, color: prioridadColor),

@@ -254,6 +254,10 @@ class _NuevaBitacoraDialogState extends State<_NuevaBitacoraDialog> {
   final _observacionesController = TextEditingController();
   final _incidenciasController = TextEditingController();
 
+  // Variables para incidencias
+  String? _prioridadSeleccionada;
+  final List<String> _prioridades = ['BAJA', 'MEDIA', 'ALTA', 'CRITICA'];
+
   // ─── Calendario con estilo naranja (idéntico a NuevaActividadModal) ───
   Future<void> _seleccionarFecha() async {
     final DateTime? picked = await showDatePicker(
@@ -283,15 +287,33 @@ class _NuevaBitacoraDialogState extends State<_NuevaBitacoraDialog> {
     }
   }
 
-    void _guardar() async {
+  // ─────────────────────────────────────────────────────────────
+  // ⚠️ ESTE MÉTODO ERA EL QUE ESTABA ROTO (faltaban llaves)
+  // ─────────────────────────────────────────────────────────────
+  void _guardar() async {
+    // 1) Validaciones básicas
     if (_fechaController.text.trim().isEmpty ||
         _descripcionController.text.trim().isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('La fecha y la descripción son obligatorias')),
+        const SnackBar(
+            content: Text('La fecha y la descripción son obligatorias')),
       );
       return;
     }
 
+    // 2) Validación de prioridad si hay incidencia
+    final bool hayIncidencia =
+        _incidenciasController.text.trim().isNotEmpty || _huboRetraso;
+    if (hayIncidencia && _prioridadSeleccionada == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+            content:
+                Text('Por favor, selecciona una prioridad para la incidencia')),
+      );
+      return;
+    }
+
+    // 3) Mostrar spinner
     setState(() => _guardando = true);
     showDialog(
       context: context,
@@ -299,25 +321,30 @@ class _NuevaBitacoraDialogState extends State<_NuevaBitacoraDialog> {
       builder: (_) => const Center(child: CircularProgressIndicator()),
     );
 
-    // Si hubo retraso pero no escribieron en incidencias, guardamos la causa en el campo de incidencias
+    // 4) Construir incidencias finales
     String incidenciasFinales = _incidenciasController.text.trim();
     if (_huboRetraso && incidenciasFinales.isEmpty) {
-      incidenciasFinales = "Retraso de ${_horasRetrasoController.text} hrs. Causa: ${_causaRetrasoController.text}";
+      incidenciasFinales =
+          "Retraso de ${_horasRetrasoController.text} hrs. Causa: ${_causaRetrasoController.text}";
     }
 
+    // 5) Body
     final body = {
       'id_obra': widget.idObra,
       'fecha': _fechaController.text.trim(),
       'clima': _climaSeleccionado ?? '',
+      'temperatura': int.tryParse(_temperaturaController.text) ?? 0,
       'personal_presente': int.tryParse(_personalController.text) ?? 0,
       'descripcion_jornada': _descripcionController.text.trim(),
       'observaciones': _observacionesController.text.trim(),
-      'incidencias': incidenciasFinales, // <--- Mandamos el texto unificado
-      'hubo_retraso': _huboRetraso,      // <--- Mandamos el booleano
+      'incidencias': incidenciasFinales,
+      'hubo_retraso': _huboRetraso,
       'horas_retraso': _horasRetrasoController.text.trim(),
       'causa_retraso': _causaRetrasoController.text.trim(),
+      'prioridad': _prioridadSeleccionada ?? 'MEDIA',
     };
 
+    // 6) Llamar al backend
     final res = await ApiService.post('bitacoras.php', body);
 
     if (!mounted) return;
@@ -335,7 +362,8 @@ class _NuevaBitacoraDialogState extends State<_NuevaBitacoraDialog> {
         ),
       );
     }
-  }
+  } // ✅ AQUÍ FALTABA ESTA LLAVE DE CIERRE
+
   @override
   void dispose() {
     _fechaController.dispose();
@@ -377,7 +405,8 @@ class _NuevaBitacoraDialogState extends State<_NuevaBitacoraDialog> {
                 readOnly: true,
                 onTap: _seleccionarFecha,
                 suffixIcon: IconButton(
-                  icon: const Icon(Icons.calendar_month_outlined, color: AppColors.naranja),
+                  icon: const Icon(Icons.calendar_month_outlined,
+                      color: AppColors.naranja),
                   onPressed: _seleccionarFecha,
                 ),
               ),
@@ -396,8 +425,15 @@ class _NuevaBitacoraDialogState extends State<_NuevaBitacoraDialog> {
                           hint: 'Selecciona',
                           icon: Icons.wb_sunny_outlined,
                           value: _climaSeleccionado,
-                          items: const ['Soleado', 'Nublado', 'Lluvioso', 'Tormenta', 'Viento fuerte'],
-                          onChanged: (value) => setState(() => _climaSeleccionado = value),
+                          items: const [
+                            'Soleado',
+                            'Nublado',
+                            'Lluvioso',
+                            'Tormenta',
+                            'Viento fuerte'
+                          ],
+                          onChanged: (value) =>
+                              setState(() => _climaSeleccionado = value),
                         ),
                       ],
                     ),
@@ -414,7 +450,6 @@ class _NuevaBitacoraDialogState extends State<_NuevaBitacoraDialog> {
                           icon: Icons.thermostat_outlined,
                           controller: _temperaturaController,
                           keyboardType: TextInputType.number,
-                          // 👇 Solo permite números enteros
                           inputFormatters: [
                             FilteringTextInputFormatter.digitsOnly,
                           ],
@@ -434,7 +469,6 @@ class _NuevaBitacoraDialogState extends State<_NuevaBitacoraDialog> {
                           icon: Icons.groups_outlined,
                           controller: _personalController,
                           keyboardType: TextInputType.number,
-                          // 👇 Solo permite números enteros
                           inputFormatters: [
                             FilteringTextInputFormatter.digitsOnly,
                           ],
@@ -496,7 +530,6 @@ class _NuevaBitacoraDialogState extends State<_NuevaBitacoraDialog> {
                                   icon: Icons.timer_outlined,
                                   controller: _horasRetrasoController,
                                   keyboardType: TextInputType.number,
-                                  // 👇 Solo permite números enteros
                                   inputFormatters: [
                                     FilteringTextInputFormatter.digitsOnly,
                                   ],
@@ -532,14 +565,30 @@ class _NuevaBitacoraDialogState extends State<_NuevaBitacoraDialog> {
                 hint: 'Describe cualquier incidencia',
                 icon: Icons.warning_amber_outlined,
                 controller: _incidenciasController,
+                onChanged: (val) => setState(() {}),
               ),
+
+              if (_incidenciasController.text.trim().isNotEmpty ||
+                  _huboRetraso) ...[
+                const SizedBox(height: 14),
+                _buildLabel('Prioridad de la incidencia *'),
+                _buildCustomDropdownField(
+                  hint: 'Selecciona prioridad',
+                  icon: Icons.flag_outlined,
+                  value: _prioridadSeleccionada,
+                  items: _prioridades,
+                  onChanged: (value) =>
+                      setState(() => _prioridadSeleccionada = value),
+                ),
+              ],
               const SizedBox(height: 20),
 
               Row(
                 mainAxisAlignment: MainAxisAlignment.end,
                 children: [
                   TextButton(
-                    onPressed: _guardando ? null : () => Navigator.pop(context),
+                    onPressed:
+                        _guardando ? null : () => Navigator.pop(context),
                     child: const Text('Cancelar',
                         style: TextStyle(color: AppColors.textoGris)),
                   ),
@@ -568,7 +617,7 @@ class _NuevaBitacoraDialogState extends State<_NuevaBitacoraDialog> {
     );
   }
 
-  // ─── Widgets auxiliares con los MISMOS iconos de tu diseño original ───
+  // ─── Widgets auxiliares ───
 
   Widget _buildLabel(String text) => Padding(
         padding: const EdgeInsets.only(bottom: 6.0),
@@ -592,6 +641,7 @@ class _NuevaBitacoraDialogState extends State<_NuevaBitacoraDialog> {
     int maxLines = 1,
     TextInputType? keyboardType,
     List<TextInputFormatter>? inputFormatters,
+    ValueChanged<String>? onChanged, // ✅ NUEVO parámetro
   }) {
     return TextField(
       controller: controller,
@@ -600,6 +650,7 @@ class _NuevaBitacoraDialogState extends State<_NuevaBitacoraDialog> {
       maxLines: maxLines,
       keyboardType: keyboardType,
       inputFormatters: inputFormatters,
+      onChanged: onChanged, // ✅ ahora sí se usa
       style: const TextStyle(fontSize: 13),
       decoration: InputDecoration(
         hintText: hint,
@@ -608,9 +659,9 @@ class _NuevaBitacoraDialogState extends State<_NuevaBitacoraDialog> {
         suffixIcon: suffixIcon,
         filled: true,
         fillColor: Colors.white,
-        contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
+        contentPadding:
+            const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
         isDense: true,
-        // Borde naranja perfecto (sin doble caja)
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(8),
           borderSide: const BorderSide(color: AppColors.naranja),
@@ -631,6 +682,8 @@ class _NuevaBitacoraDialogState extends State<_NuevaBitacoraDialog> {
     required void Function(String?) onChanged,
   }) {
     return DropdownButtonFormField<String>(
+      // ⚠️ En Flutter 3.13+ 'value' está deprecado -> usa 'initialValue'
+      // pero si tu versión es antigua, deja 'value'. Lo dejo como 'value'.
       value: value,
       isExpanded: true,
       hint: Text(hint,
@@ -641,9 +694,9 @@ class _NuevaBitacoraDialogState extends State<_NuevaBitacoraDialog> {
         prefixIcon: Icon(icon, color: Colors.grey.shade600, size: 20),
         filled: true,
         fillColor: Colors.white,
-        contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
+        contentPadding:
+            const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
         isDense: true,
-        // Borde naranja perfecto
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(8),
           borderSide: const BorderSide(color: AppColors.naranja),
