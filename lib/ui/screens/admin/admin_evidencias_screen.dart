@@ -32,6 +32,12 @@ class _AdminEvidenciasScreenState extends State<AdminEvidenciasScreen> {
     }
   }
 
+  String _urlArchivo(Map<String, dynamic> evidencia) {
+    final ruta = evidencia['archivo_url']?.toString().trim() ?? '';
+    if (ruta.isEmpty) return '';
+    return Uri.parse(ApiService.baseUrl).resolve(ruta).toString();
+  }
+
   void _verFotoGrande(Map<String, dynamic> ev) {
     showAdminDialog(
       context: context,
@@ -42,7 +48,7 @@ class _AdminEvidenciasScreenState extends State<AdminEvidenciasScreen> {
           children: [
             InteractiveViewer(
               child: Image.network(
-                ev['archivo_url'] ?? '',
+                _urlArchivo(ev),
                 errorBuilder: (_, __, ___) => const Center(child: Text('No se pudo cargar la imagen', style: TextStyle(color: Colors.white))),
                 fit: BoxFit.contain,
               ),
@@ -101,7 +107,7 @@ class _AdminEvidenciasScreenState extends State<AdminEvidenciasScreen> {
                                   child: ClipRRect(
                                     borderRadius: const BorderRadius.vertical(top: Radius.circular(11)),
                                     child: Image.network(
-                                      ev['archivo_url'] ?? '',
+                                      _urlArchivo(ev),
                                       fit: BoxFit.cover,
                                       errorBuilder: (_, __, ___) => const Center(child: Icon(Icons.broken_image, size: 40, color: AppColors.textoGris)),
                                     ),
